@@ -310,35 +310,31 @@ st.sidebar.success("🔑 Sabit API Key Aktif")
 # ---------------------------------------------------------
 # GEMINI ANALİZ FONKSİYONU (System Instruction ile Net Türkçe)
 # ---------------------------------------------------------
-def ask_gemini_analysis(event_title, event_details, user_question=""):
-  try:
-    genai.configure(api_key=FIXED_GEMINI_API_KEY)
-    
-    system_instruction = (
-        "Sen kıdemli bir finansal analistsin. Sadece net, öz ve kesinlikle Türkçe yanıtlar ver. "
-        "ASLA düşünce adımlarını, içsel analizlerini veya İngilizce açıklamaları çıktıya yazdırma. "
-        "Doğrudan nihai sonucu Türkçe olarak ver."
-    )
-    
-    generation_config = {
-        "temperature": 0.2,
-    }
-    
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",  # Güncel ve standart model adı"
-        system_instruction=system_instruction,
-        generation_config=generation_config,
-    )
-    
-    if user_question:
-        prompt = f"Finansal Bağlam: {event_title}\nDetay: {event_details}\nKullanıcı Sorusu: {user_question}"
-    else:
-        prompt = f"Finansal Bağlam: {event_title}\nDetay: {event_details}"
-        
-    response = model.generate_content(prompt)
-    return response.text
-  except Exception as e:
-    return f"⚠️ Gemini Bağlantı / Yanıt Hatası: {str(e)}"
+import time
+from google.api_core import exceptions
+
+
+# Gemini çağrısını yapan fonksiyonun içinde:
+def ask_gemini_analysis(prompt, system_instruction):
+  max_retries = 3
+  for attempt in range(max_retries):
+    try:
+      model = genai.GenerativeModel(
+          model_name="gemini-1.5-flash",
+          system_instruction=system_instruction,
+      )
+      response = model.generate_content(prompt)
+      return response.text
+    except exceptions.ResourceExhausted as e:
+      if attempt < max_retries - 1:
+        time.sleep(
+            5 * (attempt + 1)
+        )  # Kotaya takılırsa 5-10 saniye bekleyip tekrar dener
+        continue
+      else:
+        return f"Kota Sınırı Hatası: Lütfen birkaç dakika sonra tekrar deneyin. ({e})"
+    except Exception as e:
+      return f"Hata: {e}"
 
 
 # ---------------------------------------------------------
