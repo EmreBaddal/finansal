@@ -442,31 +442,34 @@ with main_tab1:
         "🤖 Hisse Özel AI Soru Paneli",
     ])
 
-    with sub_tab1:
-      st.write("##### Standart (Klasik) Pivot Seviyeleri")
-      timeframe_choice = st.radio(
-          "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
-      )
-
-      p_data = calculate_pivot_points(selected_stock, timeframe_choice)
-
-      if p_data:
+with sub_tab1:
+    st.write("##### Standart (Klasik) Pivot Seviyeleri")
+    timeframe_choice = st.radio(
+        "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
+    )
+    
+    # Para birimi güvenli tanımı (Hata almamak için)
+    currency = "TRY" if selected_stock.endswith(".IS") else "USD"
+    
+    p_data = calculate_pivot_points(selected_stock, timeframe_choice)
+    
+    if p_data and isinstance(p_data, dict):
         c1, c2, c3 = st.columns(3)
         with c1:
-          st.markdown("### 🔴 Dirençler")
-          st.error(f"**R3:** {p_data['Direnç 3 (R3)']} {currency}")
-          st.error(f"**R2:** {p_data['Direnç 2 (R2)']} {currency}")
-          st.error(f"**R1:** {p_data['Direnç 1 (R1)']} {currency}")
+            st.markdown("### 🔴 Dirençler")
+            st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
+            st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
+            st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
         with c2:
-          st.markdown("### ⚪ Pivot Seviyesi")
-          st.info(f"**Pivot (P):** {p_data['Pivot (P)']} {currency}")
+            st.markdown("### ⚪ Pivot Seviyesi")
+            st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
         with c3:
-          st.markdown("### 🟢 Destekler")
-          st.success(f"**S1:** {p_data['Destek 1 (S1)']} {currency}")
-          st.success(f"**S2:** {p_data['Destek 2 (S2)']} {currency}")
-          st.success(f"**S3:** {p_data['Destek 3 (S3)']} {currency}")
-      else:
-        st.warning("Pivot noktaları hesaplanamadı.")
+            st.markdown("### 🟢 Destekler")
+            st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
+            st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
+            st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
+    else:
+        st.warning("Yahoo Finance geçici olarak çok fazla istek aldığından veriler alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin.")
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
