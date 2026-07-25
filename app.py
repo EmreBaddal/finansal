@@ -314,27 +314,23 @@ import time
 from google.api_core import exceptions
 
 
-# Gemini çağrısını yapan fonksiyonun içinde:
 def ask_gemini_analysis(prompt, system_instruction):
   max_retries = 3
   for attempt in range(max_retries):
     try:
       model = genai.GenerativeModel(
-          model_name="gemini-1.5-flash",
-          system_instruction=system_instruction,
+          model_name="gemini-1.5-flash", system_instruction=system_instruction
       )
       response = model.generate_content(prompt)
       return response.text
     except exceptions.ResourceExhausted as e:
       if attempt < max_retries - 1:
-        time.sleep(
-            5 * (attempt + 1)
-        )  # Kotaya takılırsa 5-10 saniye bekleyip tekrar dener
+        time.sleep(5 * (attempt + 1))
         continue
       else:
-        return f"Kota Sınırı Hatası: Lütfen birkaç dakika sonra tekrar deneyin. ({e})"
+        return f"Kota Sınırı Hatası: Lütfen birkaç dakika sonra tekrar deneyin."
     except Exception as e:
-      return f"Hata: {e}"
+      return f"Hata oluştu: {e}"
 
 
 # ---------------------------------------------------------
@@ -502,9 +498,8 @@ with main_tab1:
           with st.spinner("Gemini analiz ediyor..."):
             stock_context_data = f"Seçilen Hisse: {selected_stock}, Güncel Fiyat: {current_price} {currency}, Değişim: %{percent_change:.2f}"
             stock_ans = ask_gemini_analysis(
-                f"{selected_stock} Hisse Analizi",
-                stock_context_data,
-                stock_user_q,
+                prompt=stock_user_q,
+                system_instruction=f"Seçilen Hisse: {selected_stock}. Bağlam verileri:\n{stock_context_data}",
             )
             st.markdown(stock_ans)
         else:
