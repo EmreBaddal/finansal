@@ -19,7 +19,7 @@ st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
 # ---------------------------------------------------------
 # SABİT API KEY TANIMLAMASI
 # ---------------------------------------------------------
-
+FIXED_GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 # ---------------------------------------------------------
 # KALICI TAKİP LİSTESİ YÖNETİMİ
 # ---------------------------------------------------------
@@ -308,71 +308,37 @@ st.sidebar.markdown("---")
 st.sidebar.success("🔑 Sabit API Key Aktif")
 
 # ---------------------------------------------------------
-# DİNAMİK GEMINI FONKSİYONU
+# GEMINI ANALİZ FONKSİYONU (System Instruction ile Net Türkçe)
 # ---------------------------------------------------------
-
-
-def fetch_gemini_response(prompt):
+def ask_gemini_analysis(event_title, event_details, user_question=""):
   try:
     genai.configure(api_key=FIXED_GEMINI_API_KEY)
-    forbidden_keywords = ["2.5", "1.0", "vision"]
-    valid_models = []
-
-    try:
-      for m in genai.list_models():
-        if "generateContent" in m.supported_generation_methods:
-          if not any(bad in m.name for bad in forbidden_keywords):
-            valid_models.append(m.name)
-    except Exception:
-      pass
-
-    candidates = valid_models + [
-        "gemini-1.5-pro",
-        "gemini-1.5-flash",
-        "gemini-2.0-flash",
-    ]
-    last_err = ""
-
-    for m_name in candidates:
-      try:
-        model = genai.GenerativeModel(m_name)
-        res = model.generate_content(prompt)
-        if res and res.text:
-          return res.text
-      except Exception as err:
-        last_err = str(err)
-        continue
-
-    return f"⚠️ Hiçbir model yanıt veremedi. Son Hata: {last_err}"
-  except Exception as e:
-    return f"⚠️ Bağlantı / Yanıt Hatası: {str(e)}"
-
-
-from openai import OpenAI
-
-def ask_gemini_analysis(event_title, event_details, user_question=""):
-    # OpenAI client tanımlaması (Streamlit secrets üzerinden API key alır)
-    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    
+    system_instruction = (
+        "Sen kıdemli bir finansal analistsin. Sadece net, öz ve kesinlikle Türkçe yanıtlar ver. "
+        "ASLA düşünce adımlarını, içsel analizlerini veya İngilizce açıklamaları çıktıya yazdırma. "
+        "Doğrudan nihai sonucu Türkçe olarak ver."
+    )
+    
+    generation_config = {
+        "temperature": 0.2,
+    }
+    
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        system_instruction=system_instruction,
+        generation_config=generation_config
+    )
     
     if user_question:
-        prompt = (
-            f"Finansal Bağlam: {event_title}\nDetay:\n{event_details}\n"
-            f"Kullanıcı Sorusu: {user_question}\n\n"
-            "Kıdemli bir finansal analist gibi net, öz ve kesinlikle Türkçe yanıt ver. "
-            "Asla düşünce adımlarını gösterme, doğrudan net sonucu yaz."
-        )
+        prompt = f"Finansal Bağlam: {event_title}\nDetay: {event_details}\nKullanıcı Sorusu: {user_question}"
     else:
-        prompt = (
-            f"Finansal Bağlam: {event_title}\nDetay:\n{event_details}\n\n"
-            "Kıdemli finansal analist gibi net, öz ve Türkçe özet geç."
-        )
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini", # veya istersen "gpt-4o"
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
-    )
-    return response.choices[0].message.content
+        prompt = f"Finansal Bağlam: {event_title}\nDetay: {event_details}"
+        
+    response = model.generate_content(prompt)
+    return response.text
+  except Exception as e:
+    return f"⚠️ Gemini Bağlantı / Yanıt Hatası: {str(e)}"
 
 
 # ---------------------------------------------------------
@@ -442,34 +408,32 @@ with main_tab1:
         "🤖 Hisse Özel AI Soru Paneli",
     ])
 
-with sub_tab1:
-    st.write("##### Standart (Klasik) Pivot Seviyeleri")
-    timeframe_choice = st.radio(
-        "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
-    )
-    
-    # Para birimi güvenli tanımı (Hata almamak için)
-    currency = "TRY" if selected_stock.endswith(".IS") else "USD"
-    
-    p_data = calculate_pivot_points(selected_stock, timeframe_choice)
-    
-    if p_data and isinstance(p_data, dict):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown("### 🔴 Dirençler")
-            st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
-            st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
-            st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
-        with c2:
-            st.markdown("### ⚪ Pivot Seviyesi")
-            st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
-        with c3:
-            st.markdown("### 🟢 Destekler")
-            st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
-            st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
-            st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
-    else:
-        st.warning("Yahoo Finance geçici olarak çok fazla istek aldığından veriler alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin.")
+    with sub_tab1:
+      st.write("##### Standart (Klasik) Pivot Seviyeleri")
+      timeframe_choice = st.radio(
+          "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
+      )
+      
+      currency = "TRY" if selected_stock.endswith(".IS") else "USD"
+      p_data = calculate_pivot_points(selected_stock, timeframe_choice)
+      
+      if p_data and isinstance(p_data, dict):
+          c1, c2, c3 = st.columns(3)
+          with c1:
+              st.markdown("### 🔴 Dirençler")
+              st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
+              st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
+              st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
+          with c2:
+              st.markdown("### ⚪ Pivot Seviyesi")
+              st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
+          with c3:
+              st.markdown("### 🟢 Destekler")
+              st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
+              st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
+              st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
+      else:
+          st.warning("Yahoo Finance geçici olarak çok fazla istek aldığından veriler alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin.")
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
