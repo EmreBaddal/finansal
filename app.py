@@ -319,7 +319,7 @@ def ask_gemini_analysis(prompt, system_instruction):
   for attempt in range(max_retries):
     try:
       model = genai.GenerativeModel(
-          model_name="gemini-1.5-flash", system_instruction=system_instruction
+          model_name="gemini-2.0-flash", system_instruction=system_instruction
       )
       response = model.generate_content(prompt)
       return response.text
