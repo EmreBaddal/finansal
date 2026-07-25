@@ -328,8 +328,8 @@ def fetch_gemini_response(prompt):
       pass
 
     candidates = valid_models + [
-        "gemini-1.5-flash",
         "gemini-1.5-pro",
+        "gemini-1.5-flash",
         "gemini-2.0-flash",
     ]
     last_err = ""
