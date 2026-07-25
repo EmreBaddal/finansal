@@ -325,9 +325,9 @@ def ask_gemini_analysis(event_title, event_details, user_question=""):
     }
     
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
+        model_name="gemini-2.5-flash",  # Veya "gemini-pro"
         system_instruction=system_instruction,
-        generation_config=generation_config
+        generation_config=generation_config,
     )
     
     if user_question:
