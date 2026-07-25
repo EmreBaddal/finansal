@@ -355,15 +355,16 @@ def ask_gemini_analysis(event_title, event_details, user_question=""):
             f"Finansal Bağlam: {event_title}\nDetay:\n"
             f"{event_details}\nKullanıcı Sorusu: {user_question}\n\n"
             "Kıdemli finansal analist gibi net, öz ve Türkçe yanıt ver. "
-            "ASLA kendi kendine düşünme aşamalarını, içsel analizlerini veya planlama adımlarını (Wait a moment, Fact Check vb.) çıktıya yazdırma. "
+            "ASLA kendi kendine düşünme aşamalarını, içsel analizlerini veya planlama adımlarını çıktıya yazdırma. "
             "Sadece doğrudan nihai cevabı Türkçe olarak ver."
         )
     else:
-    prompt = (
-        "Aşağıdaki finansal gelişmeyi/hissedeki durumu analiz et. Temel ve teknik"
-        " etkileri maddeler halinde Türkçe özetle:\n\nGelişme/Hisse:"
-        f" {event_title}\nDetaylar: {event_details}"
-    )
+        prompt = (
+            f"Finansal Bağlam: {event_title}\nDetay:\n"
+            f"{event_details}\n\n"
+            "Kıdemli finansal analist gibi net, öz ve Türkçe özet geç. "
+            "ASLA düşünme aşamalarını çıktıya yansıtma."
+        )
   return fetch_gemini_response(prompt)
 
 
