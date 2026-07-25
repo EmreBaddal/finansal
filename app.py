@@ -325,7 +325,7 @@ def ask_gemini_analysis(event_title, event_details, user_question=""):
     }
     
     model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",  # Güncel ve standart model adı"
+        model_name="gemini-1.5-pro",  # Güncel ve standart model adı"
         system_instruction=system_instruction,
         generation_config=generation_config,
     )
