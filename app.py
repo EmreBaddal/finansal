@@ -19,7 +19,6 @@ st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
 # ---------------------------------------------------------
 # SABİT API KEY TANIMLAMASI
 # ---------------------------------------------------------
-FIXED_GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 
 # ---------------------------------------------------------
 # KALICI TAKİP LİSTESİ YÖNETİMİ
