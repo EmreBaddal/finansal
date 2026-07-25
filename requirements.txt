@@ -3,5 +3,5 @@ yfinance
 pandas
 feedparser
 requests
-google-generativeai
 python-dateutil
+openai
