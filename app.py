@@ -365,7 +365,7 @@ def ask_gemini_analysis(event_title, event_details, user_question=""):
             "Kıdemli finansal analist gibi net, öz ve Türkçe özet geç. "
             "ASLA düşünme aşamalarını çıktıya yansıtma."
         )
-  return fetch_gemini_response(prompt)
+    return fetch_gemini_response(prompt)
 
 
 # ---------------------------------------------------------
