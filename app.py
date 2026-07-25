@@ -349,19 +349,31 @@ def fetch_gemini_response(prompt):
     return f"⚠️ Bağlantı / Yanıt Hatası: {str(e)}"
 
 
+from openai import OpenAI
+
 def ask_gemini_analysis(event_title, event_details, user_question=""):
+    # OpenAI client tanımlaması (Streamlit secrets üzerinden API key alır)
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+    
     if user_question:
         prompt = (
-            f"[TALİMAT]: Asla İngilizce konuşma. Asla düşünme aşamalarını, maddeleri, 'Fact Check', 'Historical High' gibi içsel analizleri ekrana yazma. "
-            f"Sadece tek bir cümleyle doğrudan Türkçe nihai cevabı ver.\n\n"
-            f"Bağlam: {event_title}\nDetay: {event_details}\nSoru: {user_question}"
+            f"Finansal Bağlam: {event_title}\nDetay:\n{event_details}\n"
+            f"Kullanıcı Sorusu: {user_question}\n\n"
+            "Kıdemli bir finansal analist gibi net, öz ve kesinlikle Türkçe yanıt ver. "
+            "Asla düşünce adımlarını gösterme, doğrudan net sonucu yaz."
         )
     else:
         prompt = (
-            f"[TALİMAT]: Asla İngilizce konuşma ve düşüncelerini gizle. Sadece Türkçe özet geç.\n\n"
-            f"Bağlam: {event_title}\nDetay: {event_details}"
+            f"Finansal Bağlam: {event_title}\nDetay:\n{event_details}\n\n"
+            "Kıdemli finansal analist gibi net, öz ve Türkçe özet geç."
         )
-    return fetch_gemini_response(prompt)
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini", # veya istersen "gpt-4o"
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+    return response.choices[0].message.content
 
 
 # ---------------------------------------------------------
