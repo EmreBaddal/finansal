@@ -247,33 +247,31 @@ def calculate_pivot_points(ticker_symbol, timeframe):
     return None
 
 
-def get_coincap_stats(symbol="BTCUSDT"):
-  mapping = {
-      "BTCUSDT": "bitcoin",
-      "ETHUSDT": "ethereum",
-      "SOLUSDT": "solana",
-      "AVAXUSDT": "avalanche",
-      "BNBUSDT": "binance-coin",
-      "XRPUSDT": "xrp",
-      "ADAUSDT": "cardano",
-      "DOGEUSDT": "dogecoin",
-  }
-  coin_id = mapping.get(symbol, "bitcoin")
+def get_crypto_yf_stats(symbol="BTCUSDT"):
+  # Binance sembolünü yfinance formatına dönüştür (örn: ETHUSDT -> ETH-USD)
+  yf_symbol = symbol.replace("USDT", "-USD")
   try:
-    url = f"https://api.coincap.io/v2/assets/{coin_id}"
-    response = requests.get(url, timeout=5)
-    data = response.json().get("data", {})
-    if data:
-      price = float(data.get("priceUsd", 0))
-      change = float(data.get("changePercent24Hr", 0))
-      volume = float(data.get("volumeUsd24Hr", 0))
-      return {
-          "lastPrice": price,
-          "priceChangePercent": change,
-          "volumeUsd": volume,
-      }
+    t = yf.Ticker(yf_symbol)
+    fi = t.fast_info
+    price = fi.get("lastPrice", 0)
+    prev_close = fi.get("previousClose", 0)
+    if price and prev_close:
+      change = ((price - prev_close) / prev_close) * 100
+      return {"lastPrice": price, "priceChangePercent": change}
   except Exception:
-    return None
+    pass
+
+  # Yedek yöntem olarak tarihsel veriden çekmeyi deneyelim
+  try:
+    df = yf.download(yf_symbol, period="2d", interval="1d", progress=False)
+    if not df.empty and len(df) >= 2:
+      price = float(df["Close"].iloc[-1])
+      prev_close = float(df["Close"].iloc[-2])
+      change = ((price - prev_close) / prev_close) * 100
+      return {"lastPrice": price, "priceChangePercent": change}
+  except Exception:
+    pass
+
   return None
 
 
@@ -642,13 +640,11 @@ with main_tab2:
         st.warning("Lütfen soru alanını doldurun.")
 
 # =========================================================
-# ANA SEKMELER 3: KRİPTO PİYASASI (COINCAP)
+# ANA SEKMELER 3: KRİPTO PİYASASI (YFINANCE)
 # =========================================================
 with main_tab3:
   st.header("🪙 Kripto Piyasası Canlı Takibi")
-  st.caption(
-      "Küresel kripto veri altyapısı üzerinden anlık fiyat ve hacim takibi."
-  )
+  st.caption("Yahoo Finance altyapısı üzerinden anlık kripto para takibi.")
 
   crypto_options = [
       "BTCUSDT",
@@ -663,20 +659,18 @@ with main_tab3:
   selected_crypto = st.selectbox("İşlem Çifti Seçin:", crypto_options)
 
   if selected_crypto:
-    stats = get_coincap_stats(selected_crypto)
+    stats = get_crypto_yf_stats(selected_crypto)
     if stats and stats["lastPrice"] > 0:
       fiyat = stats["lastPrice"]
       degisim = stats["priceChangePercent"]
-      hacim = stats["volumeUsd"]
 
-      c1, c2, c3 = st.columns(3)
+      c1, c2 = st.columns(2)
       c1.metric("Anlık Fiyat", f"${fiyat:,.2f}")
       c2.metric(
           "24 Saatlik Değişim",
           f"%{degisim:.2f}",
           delta=f"{degisim:.2f}%",
       )
-      c3.metric("24s İşlem Hacmi (USD)", f"${hacim:,.0f}")
     else:
       st.error(
           "Veriler alınamadı veya ağ bağlantısında geçici bir sorun oluştu."
