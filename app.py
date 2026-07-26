@@ -17,26 +17,33 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
-# Mobil Ekranlar İçin Yazı Boyutu ve Padding İyileştirmesi (Özel CSS)
+# Mobil Ekranlar İçin Yazı Boyutu, Padding ve Sidebar Kaydırma Çubuğu (Özel CSS)
 st.markdown(
     """
     <style>
+    /* Sidebar içerisinin mobilde taşmasını önlemek ve scroll kazandırmak */
+    [data-testid="stSidebar"] > div:first-child {
+        overflow-y: auto;
+        max-height: 100vh;
+        padding-bottom: 80px;
+    }
+
     @media (max-width: 768px) {
         .stMetric {
             font-size: 14px !important;
         }
         h1 {
-            font-size: 24px !important;
+            font-size: 22px !important;
         }
         h2 {
-            font-size: 20px !important;
-        }
-        h3 {
             font-size: 18px !important;
         }
+        h3 {
+            font-size: 16px !important;
+        }
         .stTabs [data-baseweb="tab"] {
-            font-size: 13px !important;
-            padding: 8px 10px !important;
+            font-size: 12px !important;
+            padding: 6px 8px !important;
         }
     }
     </style>
