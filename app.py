@@ -57,25 +57,40 @@ st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
 # SABİT API KEY TANIMLAMASI
 # ---------------------------------------------------------
 FIXED_GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+
 # ---------------------------------------------------------
 # KALICI TAKİP LİSTESİ YÖNETİMİ
 # ---------------------------------------------------------
 JSON_FILE = "takip_listesi.json"
+DEFAULT_WATCHLIST = [
+    "KONTR.IS",
+    "THYAO.IS",
+    "GARAN.IS",
+    "AAPL",
+    "NVDA",
+    "BTC-USD",
+    "ETH-USD",
+]
 
 
 def load_watchlist():
   if os.path.exists(JSON_FILE):
     try:
       with open(JSON_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+        if isinstance(data, list) and len(data) > 0:
+          return data
     except Exception:
-      return ["KONTR.IS", "THYAO.IS", "GARAN.IS", "AAPL", "NVDA"]
-  return ["KONTR.IS", "THYAO.IS", "GARAN.IS", "AAPL", "NVDA"]
+      pass
+  return DEFAULT_WATCHLIST
 
 
 def save_watchlist(watchlist):
-  with open(JSON_FILE, "w", encoding="utf-8") as f:
-    json.dump(watchlist, f, ensure_ascii=False, indent=2)
+  try:
+    with open(JSON_FILE, "w", encoding="utf-8") as f:
+      json.dump(watchlist, f, ensure_ascii=False, indent=2)
+  except Exception:
+    pass
 
 
 if "watch_list" not in st.session_state:
@@ -284,7 +299,7 @@ def calculate_pivot_points(ticker_symbol, timeframe):
     return None
 
 
-def get_crypto_yf_stats(symbol="BTCUSDT"):
+def get_crypto_yf_stats(symbol="BTC-USD"):
   yf_symbol = symbol.replace("USDT", "-USD")
   try:
     t = yf.Ticker(yf_symbol)
@@ -336,7 +351,7 @@ if selected_sector_key != "Özel Liste (Manuel)":
       st.rerun()
 
 st.sidebar.markdown("---")
-search_input = st.sidebar.text_input("Hisse Arayın (Örn: THYAO, NVDA, RKLB):")
+search_input = st.sidebar.text_input("Hisse Arayın (Örn: THYAO, NVDA, BTC-USD):")
 
 if search_input:
   suggestions = search_ticker_global(search_input)
@@ -418,7 +433,11 @@ with main_tab1:
       previous_close = fast_info["previousClose"]
       price_change = current_price - previous_close
       percent_change = (price_change / previous_close) * 100
-      currency = "TRY" if selected_stock.endswith(".IS") else "USD"
+      currency = (
+          "TRY"
+          if selected_stock.endswith(".IS")
+          else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
+      )
 
       col1, col2 = st.columns([1, 2])
 
@@ -471,7 +490,11 @@ with main_tab1:
           "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
       )
 
-      currency = "TRY" if selected_stock.endswith(".IS") else "USD"
+      currency = (
+          "TRY"
+          if selected_stock.endswith(".IS")
+          else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
+      )
       p_data = calculate_pivot_points(selected_stock, timeframe_choice)
 
       if p_data and isinstance(p_data, dict):
@@ -675,21 +698,21 @@ with main_tab2:
         st.warning("Lütfen soru alanını doldurun.")
 
 # =========================================================
-# ANA SEKMELER 3: KRİPTO PİYASASI (YFINANCE)
+# ANA SEKMELER 3: KRİPTO PİYASASı (YFINANCE)
 # =========================================================
 with main_tab3:
   st.header("🪙 Kripto Piyasası Canlı Takibi")
   st.caption("Yahoo Finance altyapısı üzerinden anlık kripto para takibi.")
 
   crypto_options = [
-      "BTCUSDT",
-      "ETHUSDT",
-      "SOLUSDT",
-      "AVAXUSDT",
-      "BNBUSDT",
-      "XRPUSDT",
-      "ADAUSDT",
-      "DOGEUSDT",
+      "BTC-USD",
+      "ETH-USD",
+      "SOL-USD",
+      "AVAX-USD",
+      "BNB-USD",
+      "XRP-USD",
+      "ADA-USD",
+      "DOGE-USD",
   ]
   selected_crypto = st.selectbox("İşlem Çifti Seçin:", crypto_options)
 
