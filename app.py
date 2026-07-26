@@ -140,7 +140,7 @@ headers = {
 }
 
 # ---------------------------------------------------------
-# CANLI HİSSE ARAMA & PİVOT YARDIMCILARI
+# CANLI HİSSE ARAMA & PİVOT & BİNANCE YARDIMCILARI
 # ---------------------------------------------------------
 
 
@@ -247,6 +247,15 @@ def calculate_pivot_points(ticker_symbol, timeframe):
     return None
 
 
+def get_binance_24hr_stats(symbol="BTCUSDT"):
+  try:
+    url = f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}"
+    response = requests.get(url, timeout=5)
+    return response.json()
+  except Exception:
+    return None
+
+
 # ---------------------------------------------------------
 # SOL MENÜ - HİSSE YÖNETİMİ & TEMATİK DİKEYLER
 # ---------------------------------------------------------
@@ -308,7 +317,7 @@ st.sidebar.markdown("---")
 st.sidebar.success("🔑 Sabit API Key Aktif")
 
 # ---------------------------------------------------------
-# GEMINI ANALİZ FONKSİYONU (System Instruction ile Net Türkçe)
+# GEMINI ANALİZ FONKSİYONU
 # ---------------------------------------------------------
 import time
 from google.api_core import exceptions
@@ -328,7 +337,7 @@ def ask_gemini_analysis(prompt, system_instruction):
         time.sleep(5 * (attempt + 1))
         continue
       else:
-        return f"Kota Sınırı Hatası: Lütfen birkaç dakika sonra tekrar deneyin."
+        return "Kota Sınırı Hatası: Lütfen birkaç dakika sonra tekrar deneyin."
     except Exception as e:
       return f"Hata oluştu: {e}"
 
@@ -336,9 +345,11 @@ def ask_gemini_analysis(prompt, system_instruction):
 # ---------------------------------------------------------
 # ÜST DÜZEY ANA SEKMELER
 # ---------------------------------------------------------
-main_tab1, main_tab2 = st.tabs(
-    ["📊 Hisse Analiz Paneli", "📅 Makro Finansal Takvim & AI Chat"]
-)
+main_tab1, main_tab2, main_tab3 = st.tabs([
+    "📊 Hisse Analiz Paneli",
+    "📅 Makro Finansal Takvim & AI",
+    "🪙 Binance Kripto Piyasası",
+])
 
 # =========================================================
 # ANA SEKMELER 1: HİSSE ANALİZ PANELİ
@@ -405,27 +416,30 @@ with main_tab1:
       timeframe_choice = st.radio(
           "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
       )
-      
+
       currency = "TRY" if selected_stock.endswith(".IS") else "USD"
       p_data = calculate_pivot_points(selected_stock, timeframe_choice)
-      
+
       if p_data and isinstance(p_data, dict):
-          c1, c2, c3 = st.columns(3)
-          with c1:
-              st.markdown("### 🔴 Dirençler")
-              st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
-              st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
-              st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
-          with c2:
-              st.markdown("### ⚪ Pivot Seviyesi")
-              st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
-          with c3:
-              st.markdown("### 🟢 Destekler")
-              st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
-              st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
-              st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+          st.markdown("### 🔴 Dirençler")
+          st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
+          st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
+          st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
+        with c2:
+          st.markdown("### ⚪ Pivot Seviyesi")
+          st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
+        with c3:
+          st.markdown("### 🟢 Destekler")
+          st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
+          st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
+          st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
       else:
-          st.warning("Yahoo Finance geçici olarak çok fazla istek aldığından veriler alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin.")
+        st.warning(
+            "Yahoo Finance geçici olarak çok fazla istek aldığından veriler"
+            " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
+        )
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
@@ -499,7 +513,10 @@ with main_tab1:
             stock_context_data = f"Seçilen Hisse: {selected_stock}, Güncel Fiyat: {current_price} {currency}, Değişim: %{percent_change:.2f}"
             stock_ans = ask_gemini_analysis(
                 prompt=stock_user_q,
-                system_instruction=f"Seçilen Hisse: {selected_stock}. Bağlam verileri:\n{stock_context_data}",
+                system_instruction=(
+                    f"Seçilen Hisse: {selected_stock}. Bağlam"
+                    f" verileri:\n{stock_context_data}"
+                ),
             )
             st.markdown(stock_ans)
         else:
@@ -598,9 +615,54 @@ with main_tab2:
     if st.button("Soruyu Gemini'ye Gönder", type="primary"):
       if user_q:
         with st.spinner("Gemini yanıtlıyor..."):
-          ans = ask_gemini_analysis(
-              matched_event["title"], str(matched_event), user_q
-          )
+          ans = ask_gemini_analysis(user_q, str(matched_event))
           st.markdown(ans)
       else:
         st.warning("Lütfen soru alanını doldurun.")
+
+# =========================================================
+# ANA SEKMELER 3: BİNANCE KRİPTO PİYASASI
+# =========================================================
+with main_tab3:
+  st.header("🪙 Binance Kripto Piyasası Takibi")
+  st.caption("Binance halka açık verileriyle anlık kripto para takibi.")
+
+  crypto_options = [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT",
+      "AVAXUSDT",
+      "BNBUSDT",
+      "XRPUSDT",
+      "ADAUSDT",
+      "DOGEUSDT",
+  ]
+  selected_crypto = st.selectbox("İşlem Çifti Seçin:", crypto_options)
+
+  if selected_crypto:
+    stats = get_binance_24hr_stats(selected_crypto)
+    if stats and "lastPrice" in stats:
+      fiyat = float(stats["lastPrice"])
+      degisim = float(stats["priceChangePercent"])
+      hacim = float(stats["volume"])
+      yuksek = float(stats["highPrice"])
+      dusuk = float(stats["lowPrice"])
+
+      c1, c2, c3 = st.columns(3)
+      c1.metric("Anlık Fiyat", f"{fiyat:,.2f} USDT")
+      c2.metric(
+          "24 Saatlik Değişim",
+          f"%{degisim:.2f}",
+          delta=f"{degisim:.2f}%",
+      )
+      c3.metric("24s İşlem Hacmi", f"{hacim:,.0f} {selected_crypto[:-4]}")
+
+      st.markdown("---")
+      col_h1, col_h2 = st.columns(2)
+      col_h1.info(f"**24 Saatlik En Yüksek:** {yuksek:,.2f} USDT")
+      col_h2.success(f"**24 Saatlik En Düşük:** {dusuk:,.2f} USDT")
+    else:
+      st.error(
+          "Binance verileri alınamadı veya ağ bağlantısında geçici bir sorun"
+          " oluştu."
+      )
