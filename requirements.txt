@@ -5,3 +5,4 @@ feedparser
 requests
 python-dateutil
 openai
+google-generativeai
