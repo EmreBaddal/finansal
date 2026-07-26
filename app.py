@@ -355,27 +355,6 @@ def get_crypto_yf_stats(symbol="BTC-USD"):
 # ---------------------------------------------------------
 st.sidebar.header("⚙️ Hisse Yönetimi")
 
-# Tematik Dikey Filtre Seçimi
-st.sidebar.subheader("🎯 Tematik Dikey Filtreler")
-selected_sector_key = st.sidebar.selectbox(
-    "Sektör Dikey Seçin:", ["Özel Liste (Manuel)"] + list(THEMATIC_SECTORS.keys())
-)
-
-if selected_sector_key != "Özel Liste (Manuel)":
-  sector_items = THEMATIC_SECTORS[selected_sector_key]
-  st.sidebar.markdown(f"**{selected_sector_key} Hisseleri:**")
-  sec_choice = st.sidebar.selectbox(
-      "Dikey İçi Şirket Seçin:", [i["symbol"] + " - " + i["name"] for i in sector_items]
-  )
-  quick_add_ticker = sec_choice.split(" - ")[0].strip()
-  if st.sidebar.button("➕ Dikey Hisseyi Listeye Ekle"):
-    if quick_add_ticker not in st.session_state.watch_list:
-      st.session_state.watch_list.append(quick_add_ticker)
-      save_watchlist(st.session_state.watch_list)
-      st.sidebar.success(f"{quick_add_ticker} eklendi!")
-      st.rerun()
-
-st.sidebar.markdown("---")
 search_input = st.sidebar.text_input("Hisse Arayın (Örn: THYAO, NVDA, BTC-USD):")
 
 if search_input:
@@ -406,6 +385,28 @@ if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
     st.rerun()
   else:
     st.sidebar.error("Listenizde en az 1 hisse kalmalıdır.")
+
+st.sidebar.markdown("---")
+
+# Tematik Dikey Filtre Seçimi (Takip Listesinin Altına Taşındı)
+st.sidebar.subheader("🎯 Tematik Dikey Filtreler")
+selected_sector_key = st.sidebar.selectbox(
+    "Sektör Dikey Seçin:", ["Özel Liste (Manuel)"] + list(THEMATIC_SECTORS.keys())
+)
+
+if selected_sector_key != "Özel Liste (Manuel)":
+  sector_items = THEMATIC_SECTORS[selected_sector_key]
+  st.sidebar.markdown(f"**{selected_sector_key} Hisseleri:**")
+  sec_choice = st.sidebar.selectbox(
+      "Dikey İçi Şirket Seçin:", [i["symbol"] + " - " + i["name"] for i in sector_items]
+  )
+  quick_add_ticker = sec_choice.split(" - ")[0].strip()
+  if st.sidebar.button("➕ Dikey Hisseyi Listeye Ekle"):
+    if quick_add_ticker not in st.session_state.watch_list:
+      st.session_state.watch_list.append(quick_add_ticker)
+      save_watchlist(st.session_state.watch_list)
+      st.sidebar.success(f"{quick_add_ticker} eklendi!")
+      st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.success("🔑 Sabit API Key Aktif")
