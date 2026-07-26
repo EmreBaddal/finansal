@@ -17,10 +17,19 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
-# Mobil Ekranlar İçin Yazı Boyutu, Padding ve Sidebar Kaydırma Çubuğu (Özel CSS)
+# Mobil Ekranlar İçin Yazı Boyutu, Padding ve Üst Boşluğu Azaltma (Özel CSS)
 st.markdown(
     """
     <style>
+    /* Sayfa üstündeki boşluğu ve header padding'ini azaltır */
+    .block-container {
+        padding-top: 1.2rem !important;
+        padding-bottom: 2rem !important;
+    }
+    header[data-testid="stHeader"] {
+        background: transparent;
+    }
+
     /* Sidebar içerisinin mobilde taşmasını önlemek ve scroll kazandırmak */
     [data-testid="stSidebar"] > div:first-child {
         overflow-y: auto;
@@ -29,6 +38,9 @@ st.markdown(
     }
 
     @media (max-width: 768px) {
+        .block-container {
+            padding-top: 0.8rem !important;
+        }
         .stMetric {
             font-size: 14px !important;
         }
@@ -388,7 +400,7 @@ if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
 
 st.sidebar.markdown("---")
 
-# Tematik Dikey Filtre Seçimi (Takip Listesinin Altına Taşındı)
+# Tematik Dikey Filtre Seçimi
 st.sidebar.subheader("🎯 Tematik Dikey Filtreler")
 selected_sector_key = st.sidebar.selectbox(
     "Sektör Dikey Seçin:", ["Özel Liste (Manuel)"] + list(THEMATIC_SECTORS.keys())
