@@ -140,7 +140,7 @@ headers = {
 }
 
 # ---------------------------------------------------------
-# CANLI HİSSE ARAMA & PİVOT & BİNANCE YARDIMCILARI
+# CANLI HİSSE ARAMA & PİVOT & KRİPTO YARDIMCILARI
 # ---------------------------------------------------------
 
 
@@ -247,13 +247,34 @@ def calculate_pivot_points(ticker_symbol, timeframe):
     return None
 
 
-def get_binance_24hr_stats(symbol="BTCUSDT"):
+def get_coincap_stats(symbol="BTCUSDT"):
+  mapping = {
+      "BTCUSDT": "bitcoin",
+      "ETHUSDT": "ethereum",
+      "SOLUSDT": "solana",
+      "AVAXUSDT": "avalanche",
+      "BNBUSDT": "binance-coin",
+      "XRPUSDT": "xrp",
+      "ADAUSDT": "cardano",
+      "DOGEUSDT": "dogecoin",
+  }
+  coin_id = mapping.get(symbol, "bitcoin")
   try:
-    url = f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}"
+    url = f"https://api.coincap.io/v2/assets/{coin_id}"
     response = requests.get(url, timeout=5)
-    return response.json()
+    data = response.json().get("data", {})
+    if data:
+      price = float(data.get("priceUsd", 0))
+      change = float(data.get("changePercent24Hr", 0))
+      volume = float(data.get("volumeUsd24Hr", 0))
+      return {
+          "lastPrice": price,
+          "priceChangePercent": change,
+          "volumeUsd": volume,
+      }
   except Exception:
     return None
+  return None
 
 
 # ---------------------------------------------------------
@@ -348,7 +369,7 @@ def ask_gemini_analysis(prompt, system_instruction):
 main_tab1, main_tab2, main_tab3 = st.tabs([
     "📊 Hisse Analiz Paneli",
     "📅 Makro Finansal Takvim & AI",
-    "🪙 Binance Kripto Piyasası",
+    "🪙 Kripto Piyasası",
 ])
 
 # =========================================================
@@ -621,11 +642,13 @@ with main_tab2:
         st.warning("Lütfen soru alanını doldurun.")
 
 # =========================================================
-# ANA SEKMELER 3: BİNANCE KRİPTO PİYASASI
+# ANA SEKMELER 3: KRİPTO PİYASASI (COINCAP)
 # =========================================================
 with main_tab3:
-  st.header("🪙 Binance Kripto Piyasası Takibi")
-  st.caption("Binance halka açık verileriyle anlık kripto para takibi.")
+  st.header("🪙 Kripto Piyasası Canlı Takibi")
+  st.caption(
+      "Küresel kripto veri altyapısı üzerinden anlık fiyat ve hacim takibi."
+  )
 
   crypto_options = [
       "BTCUSDT",
@@ -640,29 +663,21 @@ with main_tab3:
   selected_crypto = st.selectbox("İşlem Çifti Seçin:", crypto_options)
 
   if selected_crypto:
-    stats = get_binance_24hr_stats(selected_crypto)
-    if stats and "lastPrice" in stats:
-      fiyat = float(stats["lastPrice"])
-      degisim = float(stats["priceChangePercent"])
-      hacim = float(stats["volume"])
-      yuksek = float(stats["highPrice"])
-      dusuk = float(stats["lowPrice"])
+    stats = get_coincap_stats(selected_crypto)
+    if stats and stats["lastPrice"] > 0:
+      fiyat = stats["lastPrice"]
+      degisim = stats["priceChangePercent"]
+      hacim = stats["volumeUsd"]
 
       c1, c2, c3 = st.columns(3)
-      c1.metric("Anlık Fiyat", f"{fiyat:,.2f} USDT")
+      c1.metric("Anlık Fiyat", f"${fiyat:,.2f}")
       c2.metric(
           "24 Saatlik Değişim",
           f"%{degisim:.2f}",
           delta=f"{degisim:.2f}%",
       )
-      c3.metric("24s İşlem Hacmi", f"{hacim:,.0f} {selected_crypto[:-4]}")
-
-      st.markdown("---")
-      col_h1, col_h2 = st.columns(2)
-      col_h1.info(f"**24 Saatlik En Yüksek:** {yuksek:,.2f} USDT")
-      col_h2.success(f"**24 Saatlik En Düşük:** {dusuk:,.2f} USDT")
+      c3.metric("24s İşlem Hacmi (USD)", f"${hacim:,.0f}")
     else:
       st.error(
-          "Binance verileri alınamadı veya ağ bağlantısında geçici bir sorun"
-          " oluştu."
+          "Veriler alınamadı veya ağ bağlantısında geçici bir sorun oluştu."
       )
