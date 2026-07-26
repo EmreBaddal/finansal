@@ -59,7 +59,7 @@ st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
 FIXED_GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 
 # ---------------------------------------------------------
-# KALICI TAKİP LİSTESİ YÖNETİMİ
+# KALICI TAKİP LİSTESİ YÖNETİMİ (KRİPTO KORUMALI)
 # ---------------------------------------------------------
 JSON_FILE = "takip_listesi.json"
 DEFAULT_WATCHLIST = [
@@ -79,6 +79,9 @@ def load_watchlist():
       with open(JSON_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
         if isinstance(data, list) and len(data) > 0:
+          # BTC-USD listeden uçtuysa otomatik geri ekle
+          if "BTC-USD" not in data:
+            data.append("BTC-USD")
           return data
     except Exception:
       pass
@@ -425,14 +428,25 @@ main_tab1, main_tab2, main_tab3 = st.tabs([
 # =========================================================
 with main_tab1:
   if selected_stock:
-    ticker_obj = yf.Ticker(selected_stock)
-
+    # Kripto veya Hisse ayrımına göre veri çekme güvenliği
     try:
-      fast_info = ticker_obj.fast_info
-      current_price = fast_info["lastPrice"]
-      previous_close = fast_info["previousClose"]
-      price_change = current_price - previous_close
-      percent_change = (price_change / previous_close) * 100
+      if "-" in selected_stock:
+        crypto_data = get_crypto_yf_stats(selected_stock)
+        if crypto_data:
+          current_price = crypto_data["lastPrice"]
+          percent_change = crypto_data["priceChangePercent"]
+          previous_close = current_price / (1 + percent_change / 100)
+          price_change = current_price - previous_close
+        else:
+          raise Exception("Kripto verisi alınamadı.")
+      else:
+        ticker_obj = yf.Ticker(selected_stock)
+        fast_info = ticker_obj.fast_info
+        current_price = fast_info["lastPrice"]
+        previous_close = fast_info["previousClose"]
+        price_change = current_price - previous_close
+        percent_change = (price_change / previous_close) * 100
+
       currency = (
           "TRY"
           if selected_stock.endswith(".IS")
@@ -549,7 +563,8 @@ with main_tab1:
 
     with sub_tab4:
       try:
-        news_list = ticker_obj.news
+        ticker_obj_yf = yf.Ticker(selected_stock)
+        news_list = ticker_obj_yf.news
         if news_list:
           for item in news_list[:7]:
             title = (
@@ -698,7 +713,7 @@ with main_tab2:
         st.warning("Lütfen soru alanını doldurun.")
 
 # =========================================================
-# ANA SEKMELER 3: KRİPTO PİYASASı (YFINANCE)
+# ANA SEKMELER 3: KRİPTO PİYASASI (YFINANCE)
 # =========================================================
 with main_tab3:
   st.header("🪙 Kripto Piyasası Canlı Takibi")
