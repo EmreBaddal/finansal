@@ -59,9 +59,11 @@ st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
 FIXED_GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 
 # ---------------------------------------------------------
-# KALICI TAKİP LİSTESİ YÖNETİMİ (KRİPTO KORUMALI)
+# KALICI TAKİP LİSTESİ & ALARM YÖNETİMİ
 # ---------------------------------------------------------
 JSON_FILE = "takip_listesi.json"
+ALARM_FILE = "alarmlar.json"
+
 DEFAULT_WATCHLIST = [
     "KONTR.IS",
     "THYAO.IS",
@@ -79,7 +81,6 @@ def load_watchlist():
       with open(JSON_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
         if isinstance(data, list) and len(data) > 0:
-          # BTC-USD listeden uçtuysa otomatik geri ekle
           if "BTC-USD" not in data:
             data.append("BTC-USD")
           return data
@@ -96,8 +97,29 @@ def save_watchlist(watchlist):
     pass
 
 
+def load_alarms():
+  if os.path.exists(ALARM_FILE):
+    try:
+      with open(ALARM_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+    except Exception:
+      pass
+  return {}
+
+
+def save_alarms(alarms):
+  try:
+    with open(ALARM_FILE, "w", encoding="utf-8") as f:
+      json.dump(alarms, f, ensure_ascii=False, indent=2)
+  except Exception:
+    pass
+
+
 if "watch_list" not in st.session_state:
   st.session_state.watch_list = load_watchlist()
+
+if "alarms" not in st.session_state:
+  st.session_state.alarms = load_alarms()
 
 # ---------------------------------------------------------
 # TEMATİK SEKTÖR / DİKEY VERİ TABANI (BIST & NASDAQ)
@@ -428,7 +450,6 @@ main_tab1, main_tab2, main_tab3 = st.tabs([
 # =========================================================
 with main_tab1:
   if selected_stock:
-    # Kripto veya Hisse ayrımına göre veri çekme güvenliği
     try:
       if "-" in selected_stock:
         crypto_data = get_crypto_yf_stats(selected_stock)
@@ -463,26 +484,76 @@ with main_tab1:
         )
 
       with col2:
-        st.subheader("🔔 Fiyat Alarmı")
-        target_price = st.number_input(
-            "Hedef Fiyat:", value=float(round(current_price, 2)), step=0.5
+        st.subheader("🔔 Fiyat Alarmı Yönetimi")
+
+        # Mevcut hisse için kayıtlı alarm varsa çek
+        existing_alarm = st.session_state.alarms.get(selected_stock, {})
+        default_target = existing_alarm.get(
+            "target", float(round(current_price, 2))
         )
-        condition = st.selectbox(
-            "Koşul:", ["Üzerine Çıkınca", "Altına Düşünce"]
+        default_cond_idx = (
+            0
+            if existing_alarm.get("condition", "Üzerine Çıkınca")
+            == "Üzerine Çıkınca"
+            else 1
         )
 
-        if condition == "Üzerine Çıkınca" and current_price >= target_price:
-          st.error(
-              f"🚨 **ALARM!** {selected_stock} fiyatı ({current_price:.2f}"
-              f" {currency}) hedef seviyeyi geçti!"
+        target_price = st.number_input(
+            "Hedef Fiyat:",
+            value=float(default_target),
+            step=0.5,
+            key=f"alarm_input_{selected_stock}",
+        )
+        condition = st.selectbox(
+            "Koşul:",
+            ["Üzerine Çıkınca", "Altına Düşünce"],
+            index=default_cond_idx,
+            key=f"alarm_cond_{selected_stock}",
+        )
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+          if st.button("💾 Alarmı Kaydet", key=f"save_alarm_{selected_stock}"):
+            st.session_state.alarms[selected_stock] = {
+                "target": target_price,
+                "condition": condition,
+            }
+            save_alarms(st.session_state.alarms)
+            st.success(f"✅ {selected_stock} için alarm kaydedildi!")
+            st.rerun()
+
+        with col_b:
+          if selected_stock in st.session_state.alarms:
+            if st.button("🗑️ Alarmı Sil", key=f"del_alarm_{selected_stock}"):
+              del st.session_state.alarms[selected_stock]
+              save_alarms(st.session_state.alarms)
+              st.warning("Alarm silindi.")
+              st.rerun()
+
+        # Kayıtlı Alarm Durum Kontrolü
+        if selected_stock in st.session_state.alarms:
+          saved_t = st.session_state.alarms[selected_stock]["target"]
+          saved_c = st.session_state.alarms[selected_stock]["condition"]
+
+          st.info(
+              f"📌 Aktif Kayıtlı Alarm: **{saved_t} {currency}** ({saved_c})"
           )
-        elif condition == "Altına Düşünce" and current_price <= target_price:
-          st.warning(
-              f"🚨 **ALARM!** {selected_stock} fiyatı ({current_price:.2f}"
-              f" {currency}) hedef seviyenin altına düştü!"
-          )
+
+          if saved_c == "Üzerine Çıkınca" and current_price >= saved_t:
+            st.error(
+                f"🚨 **ALARM TETİKLENDİ!** {selected_stock} fiyatı ({current_price:.2f}"
+                f" {currency}) hedef seviyeyi geçti!"
+            )
+          elif saved_c == "Altına Düşünce" and current_price <= saved_t:
+            st.warning(
+                f"🚨 **ALARM TETİKLENDİ!** {selected_stock} fiyatı ({current_price:.2f}"
+                f" {currency}) hedef seviyenin altına düştü!"
+            )
         else:
-          st.success("✅ Alarm aktif.")
+          st.caption(
+              "Bu varlık için kayıtlı aktif bir alarm bulunmuyor. Hedef"
+              " belirleyip 'Alarmı Kaydet'e basın."
+          )
 
     except Exception as e:
       st.error(f"Veri çekilemedi: {e}")
@@ -694,7 +765,6 @@ with main_tab2:
         )
         st.markdown(analysis_res)
 
-    st.markdown("---")
     st.markdown("### 💬 Gemini'ye Soru Sorun")
     user_q = st.text_input(
         f"'{matched_event['title']}' gelişmesiyle ilgili sorunuz:",
