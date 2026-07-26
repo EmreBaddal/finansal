@@ -9,9 +9,39 @@ import requests
 import streamlit as st
 import yfinance as yf
 
-# Sayfa Yapılandırması
+# Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
 st.set_page_config(
-    page_title="Aylooper Finans & AI Paneli", layout="wide", page_icon="📈"
+    page_title="Aylooper Finans & AI Paneli",
+    layout="wide",
+    page_icon="📈",
+    initial_sidebar_state="auto",
+)
+
+# Mobil Ekranlar İçin Yazı Boyutu ve Padding İyileştirmesi (Özel CSS)
+st.markdown(
+    """
+    <style>
+    @media (max-width: 768px) {
+        .stMetric {
+            font-size: 14px !important;
+        }
+        h1 {
+            font-size: 24px !important;
+        }
+        h2 {
+            font-size: 20px !important;
+        }
+        h3 {
+            font-size: 18px !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            font-size: 13px !important;
+            padding: 8px 10px !important;
+        }
+    }
+    </style>
+""",
+    unsafe_allow_html=True,
 )
 
 st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
@@ -248,7 +278,6 @@ def calculate_pivot_points(ticker_symbol, timeframe):
 
 
 def get_crypto_yf_stats(symbol="BTCUSDT"):
-  # Binance sembolünü yfinance formatına dönüştür (örn: ETHUSDT -> ETH-USD)
   yf_symbol = symbol.replace("USDT", "-USD")
   try:
     t = yf.Ticker(yf_symbol)
@@ -261,7 +290,6 @@ def get_crypto_yf_stats(symbol="BTCUSDT"):
   except Exception:
     pass
 
-  # Yedek yöntem olarak tarihsel veriden çekmeyi deneyelim
   try:
     df = yf.download(yf_symbol, period="2d", interval="1d", progress=False)
     if not df.empty and len(df) >= 2:
