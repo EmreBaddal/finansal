@@ -632,29 +632,13 @@ with main_tab1:
       st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
       tv_symbol = get_tradingview_symbol(selected_stock)
 
-      # TradingView Gelişmiş Grafik Widget HTML Kodu
+      # Kesin sonuç veren kararlı TradingView Iframe Widget yapısı
       tv_html = f"""
-      <div class="tradingview-widget-container" style="height:600px;width:100%">
-        <div id="tradingview_chart" style="height:100%;width:100%"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-        <script type="text/javascript">
-        new TradingView.widget(
-        {{
-          "width": "100%",
-          "height": "600",
-          "symbol": "{tv_symbol}",
-          "interval": "D",
-          "timezone": "Europe/Istanbul",
-          "theme": "dark",
-          "style": "1",
-          "locale": "tr",
-          "toolbar_bg": "#f1f3f6",
-          "enable_publishing": false,
-          "allow_symbol_change": true,
-          "container_id": "tradingview_chart"
-        }}
-        );
-        </script>
+      <div style="width:100%;height:600px;">
+        <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_76d87&symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Europe%2FIstanbul&studies_overrides={{}}&enabled_features={{}}&disabled_features={{}}&locale=tr&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart&utm_term={tv_symbol}" 
+        style="width: 100%; height: 100%; border: none;" 
+        allowtransparency="true" 
+        scrolling="no"></iframe>
       </div>
       """
       st.components.v1.html(tv_html, height=620)
@@ -821,7 +805,7 @@ with main_tab2:
         )
         st.markdown(analysis_res)
 
-    st.markdown("### 💬 Gemini'ye Soru Sorون")
+    st.markdown("### 💬 Gemini'ye Soru Sorun")
     user_q = st.text_input(
         f"'{matched_event['title']}' gelişmesiyle ilgili sorunuz:",
         placeholder=(
