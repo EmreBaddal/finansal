@@ -14,15 +14,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- ÖZEL CSS STİLLERİ ---
+# --- AÇIK TEMA (WHITE MODE) ÖZEL CSS STİLLERİ ---
 st.markdown("""
     <style>
     .main {
-        background-color: #0e1117;
-        color: #fafafa;
+        background-color: #ffffff;
+        color: #111111;
     }
     .stSidebar {
-        background-color: #161b22;
+        background-color: #f0f2f6;
     }
     div.stButton > button {
         background-color: #ff4b4b;
@@ -64,7 +64,6 @@ def calculate_pivot_points(ticker, timeframe):
         if len(df) < 2:
             return None
         
-        # Bir önceki dönemin verileri
         prev_row = df.iloc[-2]
         high = prev_row['High']
         low = prev_row['Low']
@@ -139,7 +138,6 @@ st.sidebar.caption("Takip Listesi & Arama Paneli")
 
 user_input_ticker = st.sidebar.text_input("Hisse Arayın (Örn: THYAO, IVDA, BTC-USD):", placeholder="THYAO.IS")
 
-# Takip listesi state yönetimi
 if "watchlist" not in st.session_state:
     st.session_state.watchlist = ["THYAO.IS", "KAPLM.IS", "KONTR.IS", "BTC-USD"]
 
@@ -163,7 +161,6 @@ sector_filter = st.sidebar.selectbox("Sektör Dikey Seçin:", ["Özel Liste (Man
 st.title("🚀 Aylooper Finans & AI Paneli")
 st.markdown(f"**Aktif Varlık:** `{selected_stock}` | **Zaman:** `{datetime.now().strftime('%d.%m.%Y %H:%M')}`")
 
-# Canlı Fiyat Çekme
 clean_ticker = selected_stock.replace(".IS", "")
 current_price = 0.0
 percent_change = 0.0
@@ -185,7 +182,6 @@ except Exception:
     current_price = 0.0
     percent_change = 0.0
 
-# Üst Özet Metrikler
 col_m1, col_m2, col_m3 = st.columns(3)
 with col_m1:
     st.metric(label="Seçilen Varlık", value=selected_stock)
@@ -236,9 +232,10 @@ with sub_tab_chart:
     st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
     tv_symbol = get_tradingview_symbol(selected_stock)
     
+    # theme=light yapılarak grafik arayüzü beyaz temaya çevrildi
     tv_html = f"""
     <div class="tradingview-widget-container" style="height:600px;width:100%">
-      <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
+      <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
     </div>
     """
     st.components.v1.html(tv_html, height=620)
