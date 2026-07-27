@@ -628,17 +628,14 @@ with main_tab1:
             " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
         )
 
-    with sub_tab_chart:
+   with sub_tab_chart:
       st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
       tv_symbol = get_tradingview_symbol(selected_stock)
 
-      # Kesin sonuç veren kararlı TradingView Iframe Widget yapısı
+      # Sadeleştirilmiş, doğrudan çalışan TradingView Iframe Widget yapısı
       tv_html = f"""
-      <div style="width:100%;height:600px;">
-        <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_76d87&symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Europe%2FIstanbul&studies_overrides={{}}&enabled_features={{}}&disabled_features={{}}&locale=tr&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart&utm_term={tv_symbol}" 
-        style="width: 100%; height: 100%; border: none;" 
-        allowtransparency="true" 
-        scrolling="no"></iframe>
+      <div class="tradingview-widget-container" style="height:600px;width:100%">
+        <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
       </div>
       """
       st.components.v1.html(tv_html, height=620)
