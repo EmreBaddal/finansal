@@ -633,7 +633,7 @@ with main_tab1:
       tv_symbol = get_tradingview_symbol(selected_stock)
       
       theme_mode = st.radio("Grafik Modu:", ["Koyu Mod (Dark)", "Beyaz Mod (Light)"], horizontal=True, key="tv_theme_radio")
-      t_theme = "light" if "Beyaz" in theme_mode else "dark"
+      t_theme = "light" if "Beyaz" in theme_mode else "light"
 
       tv_html = f"""
       <div class="tradingview-widget-container" style="height:600px;width:100%">
