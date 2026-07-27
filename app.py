@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
-# Mobil Ekranlar İçin Özel CSS
+# Mobil Ekranlar İçin Özel CSS (Sidebar input genişlik düzeltmesi dahil)
 st.markdown(
     """
     <style>
@@ -32,6 +32,9 @@ st.markdown(
         overflow-y: auto;
         max-height: 100vh;
         padding-bottom: 80px;
+    }
+    div[data-baseweb="input"] {
+        width: 100% !important;
     }
     @media (max-width: 768px) {
         .block-container {
@@ -52,6 +55,7 @@ st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
 # SABİT API KEY TANIMLAMASI
 # ---------------------------------------------------------
 FIXED_GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+genai.configure(api_key=FIXED_GEMINI_API_KEY)
 
 # ---------------------------------------------------------
 # KALICI TAKİP LİSTESİ & ALARM YÖNETİMİ
@@ -168,6 +172,20 @@ FINANCIAL_CALENDAR_EVENTS = [
         "previous": "206K",
         "impact_desc": "Dolar Endeksi (DXY), Altın ve S&P 500/NASDAQ'ı etkiler.",
         "summary": "İşgücü piyasasının durumu Fed'in faiz patikasını çizer.",
+    },
+    {
+        "id": "us_2",
+        "country": "🇺🇸 US",
+        "title": "ABD TÜFE (Enflasyon) Verisi",
+        "importance": "🔴 Yüksek",
+        "date": "2026-08-12 15:30",
+        "forecast": "%2.9",
+        "previous": "%3.0",
+        "impact_desc": "Fed'in sonraki toplantı faiz beklentilerini doğrudan fiyatlar.",
+        "summary": (
+            "Enflasyondaki düşüş veya yapışkanlık küresel borsaların kaderini"
+            " tayin eder."
+        ),
     },
 ]
 
@@ -488,17 +506,8 @@ with main_tab1:
           st.success(f"**S3:** {p_data.get('Destek 3 (S3)')}")
 
     with sub_tab_chart:
-      st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafik")
+      st.subheader(f"📉 {selected_stock} - TradingView Grafik Entegrasyonu")
 
-      theme_mode = st.radio(
-          "Grafik Modu:",
-          ["Koyu Mod (Dark)", "Beyaz Mod (Light)"],
-          horizontal=True,
-          key="tv_theme_radio",
-      )
-      t_theme = "light" if "Beyaz" in theme_mode else "dark"
-
-      # TradingView sembol eşleştirme
       tv_symbol = selected_stock
       if selected_stock.endswith(".IS"):
         tv_symbol = f"BIST:{selected_stock.replace('.IS', '')}"
@@ -507,13 +516,34 @@ with main_tab1:
       else:
         tv_symbol = f"NASDAQ:{selected_stock}"
 
+      tv_url = f"https://www.tradingview.com/chart/?symbol={tv_symbol}"
+
+      st.markdown(
+          f"""
+            <div style="padding: 20px; background-color: #1e222d; border-radius: 10px; text-align: center; color: white; margin-bottom: 15px;">
+                <h3>📊 {selected_stock} İçin Gelişmiş Grafik</h3>
+                <p>Tam çizim araçları, göstergeler ve esneklik için doğrudan TradingView platformunu açabilirsiniz:</p>
+                <a href="{tv_url}" target="_blank" style="background-color: #2962ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; margin-top: 10px;">🚀 TradingView'de Canlı Aç</a>
+            </div>
+            """,
+          unsafe_allow_html=True,
+      )
+
+      theme_mode = st.radio(
+          "Gömülü Widget Modu:",
+          ["Koyu Mod (Dark)", "Beyaz Mod (Light)"],
+          horizontal=True,
+          key="tv_theme_radio",
+      )
+      t_theme = "light" if "Beyaz" in theme_mode else "dark"
+
       tv_html = f"""
-            <div class="tradingview-widget-container" style="height:550px;width:100%">
+            <div class="tradingview-widget-container" style="height:500px;width:100%">
               <div id="tradingview_chart" style="height:100%;width:100%"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
               <script type="text/javascript">
               new TradingView.widget(
-              {{
+              {
                 "autosize": true,
                 "symbol": "{tv_symbol}",
                 "interval": "D",
@@ -525,12 +555,12 @@ with main_tab1:
                 "enable_publishing": false,
                 "allow_symbol_change": true,
                 "container_id": "tradingview_chart"
-              }}
+              }
               );
               </script>
             </div>
             """
-      components.html(tv_html, height=570)
+      components.html(tv_html, height=520)
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
@@ -558,11 +588,53 @@ with main_tab1:
           st.markdown(ans)
 
 with main_tab2:
-  st.header("📅 Küresel Makroekonomik Takvim")
+  st.header("📅 Küresel Makroekonomik Takvim ve Yapay Zeka Analizi")
+  st.write(
+      "Önümüzdeki kritik makro verileri inceleyin ve Gemini'ye detaylı etkilerini"
+      " sorun."
+  )
+
+  # DataFrame gösterimi
   df_cal = pd.DataFrame(FINANCIAL_CALENDAR_EVENTS)[
       ["date", "country", "title", "importance", "forecast", "previous"]
   ]
   st.dataframe(df_cal, use_container_width=True, hide_index=True)
+
+  st.markdown("---")
+  st.subheader("🔍 Etkinlik Bazlı Yapay Zeka Analizi")
+
+  event_titles = [e["title"] for e in FINANCIAL_CALENDAR_EVENTS]
+  selected_event_title = st.selectbox(
+      "Analiz Edilecek Veriyi Seçin:", event_titles
+  )
+
+  selected_event = next(
+      e for e in FINANCIAL_CALENDAR_EVENTS if e["title"] == selected_event_title
+  )
+
+  st.info(
+      f"**Özet:** {selected_event['summary']} \n\n**Olası Etki:**"
+      f" {selected_event['impact_desc']}"
+  )
+
+  user_cal_q = st.text_input(
+      "Bu makro veri hakkında Gemini'ye özel bir soru sorun:",
+      key="cal_ai_input",
+  )
+  if st.button("🧠 Takvim Verisini Gemini ile Analiz Et", key="cal_ai_btn"):
+    prompt = (
+        f"Etkinlik: {selected_event['title']}\nTarih:"
+        f" {selected_event['date']}\nÜlke: {selected_event['country']}\nÖnem:"
+        f" {selected_event['importance']}\nTahmin: {selected_event['forecast']}"
+        f"\nÖnceki: {selected_event['previous']}\nAçıklama:"
+        f" {selected_event['summary']}\n\nKullanıcı Sorusu:"
+        f" {user_cal_q if user_cal_q else 'Bu veri piyasaları nasıl etkiler?'}"
+    )
+    ans = ask_gemini_analysis(
+        prompt,
+        "Sen kıdemli bir küresel makroekonomist ve piyasa analistisin.",
+    )
+    st.markdown(ans)
 
 with main_tab3:
   st.header("🪙 Kripto Piyasası Canlı Takibi")
