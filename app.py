@@ -6,9 +6,9 @@ import feedparser
 import google.generativeai as genai
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import requests
 import streamlit as st
-import streamlit.components.v1 as components
 import yfinance as yf
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
@@ -340,273 +340,287 @@ def calculate_pivot_points(ticker_symbol, timeframe):
 
 
 # ---------------------------------------------------------
-# TRADINGVIEW / YEREL GRAFIK YARDIMCILARI
+# GELİŞMİŞ PLOTLY TEKNİK GRAFİK YARDIMCILARI
 # ---------------------------------------------------------
-# TradingView finansal widget'lari sembolleri EXCHANGE:TICKER biçiminde bekler.
-# Borsa Istanbul verisi resmi web widget'larinda sunulmadigi için .IS sembollerinde
-# yfinance + Plotly ile yerel mum grafik kullanılır.
+# Grafik Yahoo Finance verisini kullanır. Böylece BIST, ABD hisseleri ve
+# kripto varlıkları aynı grafik altyapısında açılır. Plotly araç çubuğundaki
+# çizim düğmeleriyle kullanıcı grafiğin üzerine manuel trend çizgisi,
+# dikdörtgen ve serbest çizgi ekleyebilir.
 
-TV_SYMBOL_OVERRIDES = {
-    # Nasdaq
-    "AAPL": "NASDAQ:AAPL",
-    "NVDA": "NASDAQ:NVDA",
-    "TSLA": "NASDAQ:TSLA",
-    "ASTS": "NASDAQ:ASTS",
-    "RKLB": "NASDAQ:RKLB",
-    "MRNA": "NASDAQ:MRNA",
-    "BNTX": "NASDAQ:BNTX",
-    # NYSE
-    "BA": "NYSE:BA",
-    "LMT": "NYSE:LMT",
-    "PFE": "NYSE:PFE",
-    "ABB": "NYSE:ABB",
+CHART_RANGE_OPTIONS = {
+    "1 Ay": ("1mo", "1h"),
+    "3 Ay": ("3mo", "1d"),
+    "6 Ay": ("6mo", "1d"),
+    "1 Yıl": ("1y", "1d"),
+    "2 Yıl": ("2y", "1wk"),
+    "5 Yıl": ("5y", "1wk"),
 }
-
-YAHOO_EXCHANGE_TO_TV = {
-    "NMS": "NASDAQ",
-    "NGM": "NASDAQ",
-    "NCM": "NASDAQ",
-    "NAS": "NASDAQ",
-    "NYQ": "NYSE",
-    "ASE": "AMEX",
-    "PCX": "AMEX",
-    "BTS": "CBOE",
-    "PNK": "OTC",
-    "OBB": "OTC",
-    "LSE": "LSE",
-    "TOR": "TSX",
-    "VAN": "TSXV",
-    "GER": "XETR",
-    "FRA": "FWB",
-    "PAR": "EURONEXT",
-    "AMS": "EURONEXT",
-    "BRU": "EURONEXT",
-    "MIL": "MIL",
-    "SWX": "SIX",
-    "HKG": "HKEX",
-    "JPX": "TSE",
-    "ASX": "ASX",
-}
-
-YAHOO_SUFFIX_TO_TV = {
-    ".L": "LSE",
-    ".TO": "TSX",
-    ".V": "TSXV",
-    ".DE": "XETR",
-    ".F": "FWB",
-    ".PA": "EURONEXT",
-    ".AS": "EURONEXT",
-    ".BR": "EURONEXT",
-    ".MI": "MIL",
-    ".SW": "SIX",
-    ".HK": "HKEX",
-    ".T": "TSE",
-    ".AX": "ASX",
-}
-
-
-def tradingview_interval(timeframe):
-  return {
-      "Günlük": "D",
-      "Haftalık": "W",
-      "Aylık": "M",
-  }.get(timeframe, "D")
-
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def resolve_tradingview_symbol(yahoo_symbol):
-  """Yahoo sembolünü TradingView'in EXCHANGE:TICKER biçimine dönüştürür."""
-  symbol = yahoo_symbol.strip().upper()
-
-  # BIST, TradingView'in ücretsiz embed widget veri listesinde bulunmuyor.
-  if symbol.endswith(".IS"):
-    return None
-
-  # Kriptolarda Yahoo BTC-USD -> TradingView BINANCE:BTCUSDT
-  if symbol.endswith("-USD"):
-    base = symbol[:-4].replace("-", "")
-    return f"BINANCE:{base}USDT"
-
-  # Yahoo döviz çiftleri: EURUSD=X -> FX_IDC:EURUSD
-  if symbol.endswith("=X"):
-    pair = symbol[:-2].replace("-", "")
-    return f"FX_IDC:{pair}"
-
-  if symbol in TV_SYMBOL_OVERRIDES:
-    return TV_SYMBOL_OVERRIDES[symbol]
-
-  # Yahoo'nun ülke son eklerinden doğrudan eşleştirme.
-  for suffix, tv_exchange in YAHOO_SUFFIX_TO_TV.items():
-    if symbol.endswith(suffix):
-      ticker = symbol[:-len(suffix)]
-      return f"{tv_exchange}:{ticker}"
-
-  # ABD ve diğer piyasalarda borsa kodunu Yahoo fast_info üzerinden çöz.
-  try:
-    fast_info = yf.Ticker(symbol).fast_info
-    try:
-      yahoo_exchange = fast_info["exchange"]
-    except Exception:
-      yahoo_exchange = getattr(fast_info, "exchange", None)
-
-    tv_exchange = YAHOO_EXCHANGE_TO_TV.get(str(yahoo_exchange).upper())
-    if tv_exchange:
-      # Yahoo BRK-B, TradingView BRK.B biçimini kullanır.
-      tv_ticker = symbol.replace("-", ".")
-      return f"{tv_exchange}:{tv_ticker}"
-  except Exception:
-    pass
-
-  # Son çare. Kullanıcı grafikte üst arama alanından doğru sembolü seçebilir.
-  return f"NASDAQ:{symbol.replace('-', '.')}"
-
-
-def render_tradingview_chart(yahoo_symbol, timeframe, height=585):
-  """Resmi TradingView Advanced Chart widget'ını Streamlit içinde gösterir."""
-  tv_symbol = resolve_tradingview_symbol(yahoo_symbol)
-  if not tv_symbol:
-    return False
-
-  config = {
-      "autosize": True,
-      "symbol": tv_symbol,
-      "interval": tradingview_interval(timeframe),
-      "timezone": "Europe/Istanbul",
-      "theme": "light",
-      "style": "1",
-      "locale": "tr",
-      "allow_symbol_change": True,
-      "calendar": False,
-      "details": False,
-      "hide_side_toolbar": False,
-      "hide_top_toolbar": False,
-      "hide_legend": False,
-      "hide_volume": False,
-      "hotlist": False,
-      "save_image": True,
-      "withdateranges": True,
-      "support_host": "https://www.tradingview.com",
-  }
-
-  safe_config = json.dumps(config, ensure_ascii=False)
-  safe_link_symbol = tv_symbol.replace(":", "-").replace(".", "-")
-
-  widget_html = f"""
-  <!doctype html>
-  <html lang="tr">
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <style>
-        html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; }}
-        .tradingview-widget-container {{ width: 100%; height: {height - 8}px; }}
-        .tradingview-widget-container__widget {{ width: 100%; height: calc(100% - 28px); }}
-        .tradingview-widget-copyright {{
-          height: 22px; font: 12px Arial, sans-serif; padding-top: 4px;
-        }}
-        .tradingview-widget-copyright a {{ color: #2962ff; text-decoration: none; }}
-      </style>
-    </head>
-    <body>
-      <div class="tradingview-widget-container">
-        <div class="tradingview-widget-container__widget"></div>
-        <div class="tradingview-widget-copyright">
-          <a href="https://www.tradingview.com/symbols/{safe_link_symbol}/"
-             rel="noopener nofollow" target="_blank">{tv_symbol} grafiği</a>
-          <span> TradingView tarafından sağlanır</span>
-        </div>
-        <script type="text/javascript"
-                src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
-                async>{safe_config}</script>
-      </div>
-    </body>
-  </html>
-  """
-
-  components.html(widget_html, height=height, scrolling=False)
-  return True
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def get_chart_history(ticker_symbol, timeframe):
-  """Plotly yedek grafiği için fiyat geçmişini getirir."""
-  if timeframe == "Günlük":
-    period, interval = "6mo", "1d"
-  elif timeframe == "Haftalık":
-    period, interval = "2y", "1wk"
-  else:
-    period, interval = "5y", "1mo"
+def get_chart_history(ticker_symbol, range_label):
+  """Teknik grafik için OHLCV fiyat geçmişini getirir."""
+  period, interval = CHART_RANGE_OPTIONS.get(range_label, ("6mo", "1d"))
 
-  df = yf.Ticker(ticker_symbol).history(period=period, interval=interval)
+  try:
+    df = yf.Ticker(ticker_symbol).history(
+        period=period,
+        interval=interval,
+        auto_adjust=False,
+    )
+  except Exception:
+    return pd.DataFrame()
+
   if df is None or df.empty:
     return pd.DataFrame()
 
   needed = ["Open", "High", "Low", "Close", "Volume"]
-  existing = [col for col in needed if col in df.columns]
-  return df[existing].dropna(subset=["Open", "High", "Low", "Close"])
+  for column in needed:
+    if column not in df.columns:
+      if column == "Volume":
+        df[column] = 0
+      else:
+        return pd.DataFrame()
+
+  df = df[needed].copy()
+  df = df.dropna(subset=["Open", "High", "Low", "Close"])
+
+  # Plotly ve farklı borsaların saat dilimi verilerinin sorunsuz çalışması için.
+  try:
+    if getattr(df.index, "tz", None) is not None:
+      df.index = df.index.tz_localize(None)
+  except Exception:
+    pass
+
+  return df
 
 
-def render_local_candlestick(ticker_symbol, timeframe, pivot_data, currency):
-  """TradingView widget'ının gösteremediği semboller için interaktif mum grafik."""
-  df = get_chart_history(ticker_symbol, timeframe)
+def add_technical_indicators(df):
+  """EMA ve Bollinger Bantlarını hesaplar."""
+  result = df.copy()
+  result["EMA20"] = result["Close"].ewm(span=20, adjust=False).mean()
+  result["EMA50"] = result["Close"].ewm(span=50, adjust=False).mean()
+
+  result["BB_MID"] = result["Close"].rolling(window=20).mean()
+  rolling_std = result["Close"].rolling(window=20).std()
+  result["BB_UPPER"] = result["BB_MID"] + (rolling_std * 2)
+  result["BB_LOWER"] = result["BB_MID"] - (rolling_std * 2)
+  return result
+
+
+def render_technical_chart(
+    ticker_symbol,
+    range_label,
+    chart_type,
+    pivot_timeframe,
+    selected_indicators,
+    currency,
+):
+  """Mum/çizgi, hacim, pivot ve indikatörleri tek interaktif grafikte gösterir."""
+  df = get_chart_history(ticker_symbol, range_label)
   if df.empty:
     st.warning("Grafik verisi alınamadı. Birkaç dakika sonra tekrar deneyin.")
     return
 
-  fig = go.Figure(
-      data=[
-          go.Candlestick(
-              x=df.index,
-              open=df["Open"],
-              high=df["High"],
-              low=df["Low"],
-              close=df["Close"],
-              name=ticker_symbol,
-          )
-      ]
-  )
+  df = add_technical_indicators(df)
+  show_volume = "Hacim" in selected_indicators
 
-  pivot_lines = [
-      ("R3", pivot_data.get("Direnç 3 (R3)"), "#b91c1c"),
-      ("R2", pivot_data.get("Direnç 2 (R2)"), "#dc2626"),
-      ("R1", pivot_data.get("Direnç 1 (R1)"), "#ef4444"),
-      ("P", pivot_data.get("Pivot (P)"), "#64748b"),
-      ("S1", pivot_data.get("Destek 1 (S1)"), "#22c55e"),
-      ("S2", pivot_data.get("Destek 2 (S2)"), "#16a34a"),
-      ("S3", pivot_data.get("Destek 3 (S3)"), "#15803d"),
-  ]
+  if show_volume:
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.04,
+        row_heights=[0.76, 0.24],
+    )
+    price_row = 1
+  else:
+    fig = make_subplots(rows=1, cols=1)
+    price_row = 1
 
-  for label, value, color in pivot_lines:
-    if value is None:
-      continue
-    fig.add_hline(
-        y=float(value),
-        line_dash="dot",
-        line_width=1,
-        line_color=color,
-        annotation_text=f"{label}: {value:.2f}",
-        annotation_position="top right",
-        annotation_font_color=color,
+  if chart_type == "Mum":
+    fig.add_trace(
+        go.Candlestick(
+            x=df.index,
+            open=df["Open"],
+            high=df["High"],
+            low=df["Low"],
+            close=df["Close"],
+            name="Fiyat",
+            increasing_line_color="#16a34a",
+            decreasing_line_color="#dc2626",
+        ),
+        row=price_row,
+        col=1,
+    )
+  else:
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df["Close"],
+            mode="lines",
+            name="Kapanış",
+            line=dict(width=2),
+        ),
+        row=price_row,
+        col=1,
     )
 
+  if "EMA 20" in selected_indicators:
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df["EMA20"],
+            mode="lines",
+            name="EMA 20",
+            line=dict(width=1.5),
+        ),
+        row=price_row,
+        col=1,
+    )
+
+  if "EMA 50" in selected_indicators:
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df["EMA50"],
+            mode="lines",
+            name="EMA 50",
+            line=dict(width=1.5),
+        ),
+        row=price_row,
+        col=1,
+    )
+
+  if "Bollinger Bantları" in selected_indicators:
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df["BB_UPPER"],
+            mode="lines",
+            name="Bollinger Üst",
+            line=dict(width=1, dash="dot"),
+        ),
+        row=price_row,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df.index,
+            y=df["BB_LOWER"],
+            mode="lines",
+            name="Bollinger Alt",
+            line=dict(width=1, dash="dot"),
+            fill="tonexty",
+            fillcolor="rgba(100, 116, 139, 0.08)",
+        ),
+        row=price_row,
+        col=1,
+    )
+
+  if "Pivot Seviyeleri" in selected_indicators:
+    pivot_data = calculate_pivot_points(ticker_symbol, pivot_timeframe)
+    if pivot_data:
+      pivot_lines = [
+          ("R3", pivot_data.get("Direnç 3 (R3)"), "#991b1b"),
+          ("R2", pivot_data.get("Direnç 2 (R2)"), "#dc2626"),
+          ("R1", pivot_data.get("Direnç 1 (R1)"), "#ef4444"),
+          ("P", pivot_data.get("Pivot (P)"), "#64748b"),
+          ("S1", pivot_data.get("Destek 1 (S1)"), "#22c55e"),
+          ("S2", pivot_data.get("Destek 2 (S2)"), "#16a34a"),
+          ("S3", pivot_data.get("Destek 3 (S3)"), "#15803d"),
+      ]
+
+      for label, value, color in pivot_lines:
+        if value is None:
+          continue
+        fig.add_hline(
+            y=float(value),
+            row=price_row,
+            col=1,
+            line_dash="dot",
+            line_width=1.2,
+            line_color=color,
+            annotation_text=f"{label} {float(value):.2f}",
+            annotation_position="top right",
+            annotation_font_color=color,
+            annotation_font_size=11,
+        )
+
+  if show_volume:
+    volume_colors = [
+        "rgba(22, 163, 74, 0.55)" if close >= open_price
+        else "rgba(220, 38, 38, 0.55)"
+        for close, open_price in zip(df["Close"], df["Open"])
+    ]
+    fig.add_trace(
+        go.Bar(
+            x=df.index,
+            y=df["Volume"],
+            name="Hacim",
+            marker_color=volume_colors,
+        ),
+        row=2,
+        col=1,
+    )
+    fig.update_yaxes(title_text="Hacim", row=2, col=1, side="right")
+
+  chart_height = 700 if show_volume else 610
   fig.update_layout(
-      title=f"{ticker_symbol} — {timeframe} Mum Grafik",
-      height=585,
-      margin=dict(l=8, r=8, t=50, b=8),
-      xaxis_rangeslider_visible=False,
+      title=f"{ticker_symbol} — {range_label}",
+      height=chart_height,
+      margin=dict(l=8, r=18, t=55, b=8),
       template="plotly_white",
       hovermode="x unified",
-      yaxis_title=currency or "Fiyat",
-      showlegend=False,
+      showlegend=True,
+      legend=dict(
+          orientation="h",
+          yanchor="bottom",
+          y=1.02,
+          xanchor="left",
+          x=0,
+      ),
+      dragmode="pan",
+      newshape=dict(
+          line=dict(color="#7c3aed", width=2),
+          fillcolor="rgba(124, 58, 237, 0.08)",
+      ),
   )
-  fig.update_xaxes(showgrid=True)
-  fig.update_yaxes(showgrid=True, side="right")
+
+  fig.update_xaxes(
+      rangeslider_visible=False,
+      showgrid=True,
+      gridcolor="rgba(148, 163, 184, 0.18)",
+  )
+  fig.update_yaxes(
+      title_text=currency or "Fiyat",
+      showgrid=True,
+      gridcolor="rgba(148, 163, 184, 0.18)",
+      side="right",
+      row=price_row,
+      col=1,
+  )
+
+  st.caption(
+      "Grafiğin sağ üst araç çubuğundan çizgi, serbest çizim veya dikdörtgen "
+      "ekleyebilirsin. Çizimleri silmek için silgi simgesini kullan."
+  )
 
   st.plotly_chart(
       fig,
       use_container_width=True,
-      key=f"local_chart_{ticker_symbol}_{timeframe}",
-      config={"displaylogo": False, "scrollZoom": True},
+      key=f"technical_chart_{ticker_symbol}_{range_label}_{chart_type}_{pivot_timeframe}",
+      config={
+          "displaylogo": False,
+          "scrollZoom": True,
+          "responsive": True,
+          "modeBarButtonsToAdd": [
+              "drawline",
+              "drawopenpath",
+              "drawrect",
+              "eraseshape",
+          ],
+      },
   )
 
 
@@ -848,72 +862,99 @@ with main_tab1:
     st.markdown("---")
     clean_ticker = selected_stock.replace(".IS", "")
 
-    sub_tab1, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
+    sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
         "🎯 Pivot Noktaları",
+        "📈 Grafik",
         "🏛️ KAP Bildirimleri (BIST)",
         "📰 Basın Haberleri",
         "🌐 Yahoo Finance",
         "🤖 Hisse Özel AI Soru Paneli",
     ])
 
+    currency = (
+        "TRY"
+        if selected_stock.endswith(".IS")
+        else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
+    )
+
     with sub_tab1:
-      st.write("##### Pivot Seviyeleri ve Fiyat Grafiği")
+      st.write("##### Standart (Klasik) Pivot Seviyeleri")
       timeframe_choice = st.radio(
-          "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
+          "Zaman Dilimi Seçin:",
+          ["Günlük", "Haftalık", "Aylık"],
+          horizontal=True,
+          key=f"pivot_timeframe_{selected_stock}",
       )
 
-      currency = (
-          "TRY"
-          if selected_stock.endswith(".IS")
-          else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
-      )
       p_data = calculate_pivot_points(selected_stock, timeframe_choice)
 
       if p_data and isinstance(p_data, dict):
-        pivot_col, chart_col = st.columns([1, 2.45], gap="large")
-
-        with pivot_col:
+        c1, c2, c3 = st.columns(3)
+        with c1:
           st.markdown("### 🔴 Dirençler")
           st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
           st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
           st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
-
-          st.markdown("### ⚪ Pivot")
-          st.info(f"**P:** {p_data.get('Pivot (P)', 'N/A')} {currency}")
-
+        with c2:
+          st.markdown("### ⚪ Pivot Seviyesi")
+          st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
+        with c3:
           st.markdown("### 🟢 Destekler")
           st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
           st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
           st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
-
-        with chart_col:
-          if selected_stock.endswith(".IS"):
-            st.caption(
-                "BIST sembolleri TradingView'in dış site widget'ında lisans nedeniyle "
-                "gösterilemiyor. Bu nedenle aynı alanda interaktif mum grafik ve pivot "
-                "çizgileri Yahoo Finance verisiyle oluşturuldu."
-            )
-            render_local_candlestick(
-                selected_stock, timeframe_choice, p_data, currency
-            )
-          else:
-            rendered = render_tradingview_chart(
-                selected_stock, timeframe_choice
-            )
-            if not rendered:
-              render_local_candlestick(
-                  selected_stock, timeframe_choice, p_data, currency
-              )
-
-            with st.expander("TradingView açılmazsa yedek grafiği göster"):
-              render_local_candlestick(
-                  selected_stock, timeframe_choice, p_data, currency
-              )
       else:
         st.warning(
-            "Yahoo Finance geçici olarak çok fazla istek aldığından veriler"
-            " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
+            "Yahoo Finance geçici olarak çok fazla istek aldığından veriler "
+            "alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
         )
+
+    with sub_tab_chart:
+      st.write("##### İnteraktif Teknik Fiyat Grafiği")
+
+      control_col1, control_col2, control_col3 = st.columns(3)
+      with control_col1:
+        chart_range = st.selectbox(
+            "Grafik Aralığı:",
+            list(CHART_RANGE_OPTIONS.keys()),
+            index=2,
+            key=f"chart_range_{selected_stock}",
+        )
+      with control_col2:
+        chart_type = st.radio(
+            "Grafik Tipi:",
+            ["Mum", "Çizgi"],
+            horizontal=True,
+            key=f"chart_type_{selected_stock}",
+        )
+      with control_col3:
+        chart_pivot_timeframe = st.selectbox(
+            "Pivot Çizgisi Dönemi:",
+            ["Günlük", "Haftalık", "Aylık"],
+            key=f"chart_pivot_timeframe_{selected_stock}",
+        )
+
+      selected_indicators = st.multiselect(
+          "Grafikte Göster:",
+          [
+              "Pivot Seviyeleri",
+              "EMA 20",
+              "EMA 50",
+              "Bollinger Bantları",
+              "Hacim",
+          ],
+          default=["Pivot Seviyeleri", "EMA 20", "EMA 50", "Hacim"],
+          key=f"chart_indicators_{selected_stock}",
+      )
+
+      render_technical_chart(
+          ticker_symbol=selected_stock,
+          range_label=chart_range,
+          chart_type=chart_type,
+          pivot_timeframe=chart_pivot_timeframe,
+          selected_indicators=selected_indicators,
+          currency=currency,
+      )
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
