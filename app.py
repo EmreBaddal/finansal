@@ -14,34 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS STİLLERİ ---
-st.markdown("""
-    <style>
-    .main {
-        background-color: #ffffff;
-        color: #111111;
-    }
-    [data-testid="stSidebar"] {
-        background-color: #0e1117;
-        color: #ffffff;
-    }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
-        color: #ffffff !important;
-    }
-    div.stButton > button {
-        background-color: #ff4b4b;
-        color: white;
-        border-radius: 6px;
-        border: none;
-        font-weight: bold;
-    }
-    div.stButton > button:hover {
-        background-color: #ff2b2b;
-        color: white;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # --- YARDIMCI FONKSİYONLAR ---
 
 def get_tradingview_symbol(ticker):
@@ -142,39 +114,8 @@ st.sidebar.caption("Takip Listesi & Arama Paneli")
 
 user_input_ticker = st.sidebar.text_input("Hisse Arayın (Örn: THYAO, IVDA, BTC-USD):", placeholder="THYAO.IS")
 
-# Kayıtlı tüm varlıklar ve tematik listeler
 if "watchlist" not in st.session_state:
-    st.session_state.watchlist = ["THYAO.IS", "KAPLM.IS", "KONTR.IS", "GARAN.IS", "AAPL", "NVDA", "BTC-USD", "ETH-USD"]
-
-# Tematik Sektör Dikey Seçimleri ve İçerikleri
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🌐 Tematik Dikey Filtreler")
-sector_filter = st.sidebar.selectbox(
-    "Sektör Dikey Seçin:", 
-    ["Özel Liste (Manuel)", "Teknoloji & Enerji", "Bankacılık & Holding", "Kripto Varlıklar", "Uzay, Havacılık & Fiziksel AI"]
-)
-
-# Tematik seçime göre listeyi dinamik filtreleme veya güncelleme mantığı
-if sector_filter == "Teknoloji & Enerji":
-    thematic_stocks = ["KONTR.IS", "AAPL", "NVDA"]
-    for s in thematic_stocks:
-        if s not in st.session_state.watchlist:
-            st.session_state.watchlist.append(s)
-elif sector_filter == "Bankacılık & Holding":
-    thematic_stocks = ["GARAN.IS", "THYAO.IS"]
-    for s in thematic_stocks:
-        if s not in st.session_state.watchlist:
-            st.session_state.watchlist.append(s)
-elif sector_filter == "Kripto Varlıklar":
-    crypto_stocks = ["BTC-USD", "ETH-USD", "BNB-USD"]
-    for s in crypto_stocks:
-        if s not in st.session_state.watchlist:
-            st.session_state.watchlist.append(s)
-elif sector_filter == "Uzay, Havacılık & Fiziksel AI":
-    space_stocks = ["THYAO.IS", "NVDA"]
-    for s in space_stocks:
-        if s not in st.session_state.watchlist:
-            st.session_state.watchlist.append(s)
+    st.session_state.watchlist = ["THYAO.IS", "KAPLM.IS", "KONTR.IS", "BTC-USD"]
 
 if user_input_ticker:
     formatted_ticker = user_input_ticker.strip().upper()
@@ -187,6 +128,10 @@ if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
     if selected_stock in st.session_state.watchlist:
         st.session_state.watchlist.remove(selected_stock)
         st.rerun()
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🌐 Tematik Dikey Filtreler")
+sector_filter = st.sidebar.selectbox("Sektör Dikey Seçin:", ["Özel Liste (Manuel)", "Teknoloji & Enerji", "Bankacılık & Holding", "Kripto Varlıklar"])
 
 # --- ANA EKRAN ---
 st.title("🚀 Aylooper Finans & AI Paneli")
@@ -265,7 +210,7 @@ with sub_tab_chart:
     
     tv_html = f"""
     <div class="tradingview-widget-container" style="height:600px;width:100%">
-      <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
+      <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
     </div>
     """
     st.components.v1.html(tv_html, height=620)
