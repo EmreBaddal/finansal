@@ -632,40 +632,40 @@ with main_tab1:
         )
 
 with sub_tab_chart:
-      st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
-      tv_symbol = get_tradingview_symbol(selected_stock)
+        st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
+        tv_symbol = get_tradingview_symbol(selected_stock)
 
-      theme_mode = st.radio(
-          "Grafik Modu:",
-          ["Koyu Mod (Dark)", "Beyaz Mod (Light)"],
-          horizontal=True,
-          key="tv_theme_radio",
-      )
-      t_theme = "light" if "Beyaz" in theme_mode else "dark"
+        theme_mode = st.radio(
+            "Grafik Modu:",
+            ["Koyu Mod (Dark)", "Beyaz Mod (Light)"],
+            horizontal=True,
+            key="tv_theme_radio",
+        )
+        t_theme = "light" if "Beyaz" in theme_mode else "dark"
 
-      tv_html = f"""
+        tv_html = f"""
       <div class="tradingview-widget-container" style="height:600px;width:100%">
         <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=1&symboledit=0&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme={t_theme}&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
       </div>
       """
-      st.components.v1.html(tv_html, height=620)
+        st.components.v1.html(tv_html, height=620)
 
     with sub_tab2:
-      if selected_stock.endswith(".IS"):
-        kap_news = fetch_rss_news_sorted(f"site:kap.org.tr {clean_ticker}")
-        if not kap_news:
-          kap_news = fetch_rss_news_sorted(f"{clean_ticker} KAP bildirimi")
-        if kap_news:
-          for item in kap_news:
-            st.markdown(
-                f"* [{item['title']}]({item['link']}) — <small"
-                f" style='color:gray;'>📅 {item['published_str']}</small>",
-                unsafe_allow_html=True,
-            )
+        if selected_stock.endswith(".IS"):
+            kap_news = fetch_rss_news_sorted(f"site:kap.org.tr {clean_ticker}")
+            if not kap_news:
+                kap_news = fetch_rss_news_sorted(f"{clean_ticker} KAP bildirimi")
+            if kap_news:
+                for item in kap_news:
+                    st.markdown(
+                        f"* [{item['title']}]({item['link']}) — <small"
+                        f" style='color:gray;'>📅 {item['published_str']}</small>",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("KAP bildirimleri bulunamadı.")
         else:
-          st.info("KAP bildirimleri bulunamadı.")
-      else:
-        st.info("KAP bildirimleri sadece BIST hisseleri içindir.")
+            st.info("KAP bildirimleri sadece BIST hisseleri içindir.")
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
