@@ -488,7 +488,15 @@ with main_tab1:
           st.success(f"**S3:** {p_data.get('Destek 3 (S3)')}")
 
     with sub_tab_chart:
-      st.subheader(f"📉 {selected_stock} - TradingView Grafik Entegrasyonu")
+      st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafik")
+
+      theme_mode = st.radio(
+          "Grafik Modu:",
+          ["Koyu Mod (Dark)", "Beyaz Mod (Light)"],
+          horizontal=True,
+          key="tv_theme_radio",
+      )
+      t_theme = "light" if "Beyaz" in theme_mode else "dark"
 
       # TradingView sembol eşleştirme
       tv_symbol = selected_stock
@@ -499,29 +507,8 @@ with main_tab1:
       else:
         tv_symbol = f"NASDAQ:{selected_stock}"
 
-      tv_url = f"https://www.tradingview.com/chart/?symbol={tv_symbol}"
-
-      st.markdown(
-          f"""
-            <div style="padding: 20px; background-color: #1e222d; border-radius: 10px; text-align: center; color: white; margin-bottom: 15px;">
-                <h3>📊 {selected_stock} İçin Gelişmiş Grafik</h3>
-                <p>TradingView gömülü pencerelerinde bazı BIST ve özel semboller eşleşme hatası verebilmektedir. Grafik üzerinde tam çizim araçları, göstergeler ve esneklik için doğrudan TradingView platformunu açabilirsiniz:</p>
-                <a href="{tv_url}" target="_blank" style="background-color: #2962ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; margin-top: 10px;">🚀 TradingView'de Canlı Aç</a>
-            </div>
-            """,
-          unsafe_allow_html=True,
-      )
-
-      theme_mode = st.radio(
-          "Gömülü Widget Modu:",
-          ["Koyu Mod (Dark)", "Beyaz Mod (Light)"],
-          horizontal=True,
-          key="tv_theme_radio",
-      )
-      t_theme = "light" if "Beyaz" in theme_mode else "dark"
-
       tv_html = f"""
-            <div class="tradingview-widget-container" style="height:500px;width:100%">
+            <div class="tradingview-widget-container" style="height:550px;width:100%">
               <div id="tradingview_chart" style="height:100%;width:100%"></div>
               <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
               <script type="text/javascript">
@@ -543,7 +530,7 @@ with main_tab1:
               </script>
             </div>
             """
-      components.html(tv_html, height=520)
+      components.html(tv_html, height=570)
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
