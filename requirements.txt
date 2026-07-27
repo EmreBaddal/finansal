@@ -1,9 +1,9 @@
 streamlit
 yfinance
 pandas
-feedparser
-requests
-python-dateutil
-openai
-google-generativeai
 plotly
+requests
+feedparser
+python-dateutil
+google-generativeai
+google-api-core
