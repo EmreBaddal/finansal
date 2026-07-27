@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
@@ -340,10 +341,201 @@ def calculate_pivot_points(ticker_symbol, timeframe):
 
 
 # ---------------------------------------------------------
+# TRADINGVIEW GRAFİK YARDIMCILARI
+# ---------------------------------------------------------
+# Borsa İstanbul (.IS) sembollerinde TradingView dış-site veri lisansı
+# nedeniyle Plotly kullanılır. Diğer desteklenen piyasalarda doğrudan
+# TradingView Advanced Chart açılır.
+
+TV_SYMBOL_OVERRIDES = {
+    # NASDAQ
+    "AAPL": "NASDAQ:AAPL",
+    "NVDA": "NASDAQ:NVDA",
+    "TSLA": "NASDAQ:TSLA",
+    "ASTS": "NASDAQ:ASTS",
+    "RKLB": "NASDAQ:RKLB",
+    "MRNA": "NASDAQ:MRNA",
+    "BNTX": "NASDAQ:BNTX",
+    # NYSE
+    "BA": "NYSE:BA",
+    "LMT": "NYSE:LMT",
+    "PFE": "NYSE:PFE",
+    "ABB": "NYSE:ABB",
+}
+
+YAHOO_EXCHANGE_TO_TV = {
+    "NMS": "NASDAQ",
+    "NGM": "NASDAQ",
+    "NCM": "NASDAQ",
+    "NAS": "NASDAQ",
+    "NYQ": "NYSE",
+    "ASE": "AMEX",
+    "PCX": "AMEX",
+    "BTS": "CBOE",
+    "PNK": "OTC",
+    "OBB": "OTC",
+    "LSE": "LSE",
+    "TOR": "TSX",
+    "VAN": "TSXV",
+    "GER": "XETR",
+    "FRA": "FWB",
+    "PAR": "EURONEXT",
+    "AMS": "EURONEXT",
+    "BRU": "EURONEXT",
+    "MIL": "MIL",
+    "SWX": "SIX",
+    "HKG": "HKEX",
+    "JPX": "TSE",
+    "ASX": "ASX",
+}
+
+YAHOO_SUFFIX_TO_TV = {
+    ".L": "LSE",
+    ".TO": "TSX",
+    ".V": "TSXV",
+    ".DE": "XETR",
+    ".F": "FWB",
+    ".PA": "EURONEXT",
+    ".AS": "EURONEXT",
+    ".BR": "EURONEXT",
+    ".MI": "MIL",
+    ".SW": "SIX",
+    ".HK": "HKEX",
+    ".T": "TSE",
+    ".AX": "ASX",
+}
+
+
+def requires_plotly_chart(symbol):
+  """TradingView dış-site lisansı nedeniyle yerel grafik gereken semboller."""
+  return symbol.strip().upper().endswith(".IS")
+
+
+def tradingview_interval(timeframe):
+  return {
+      "Günlük": "D",
+      "Haftalık": "W",
+      "Aylık": "M",
+  }.get(timeframe, "D")
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def resolve_tradingview_symbol(yahoo_symbol):
+  """Yahoo Finance sembolünü TradingView EXCHANGE:TICKER biçimine çevirir."""
+  symbol = yahoo_symbol.strip().upper()
+
+  if requires_plotly_chart(symbol):
+    return None
+
+  # Yahoo kripto sembolü: BTC-USD -> BINANCE:BTCUSDT
+  if symbol.endswith("-USD"):
+    base = symbol[:-4].replace("-", "")
+    return f"BINANCE:{base}USDT"
+
+  # Yahoo döviz çifti: EURUSD=X -> FX_IDC:EURUSD
+  if symbol.endswith("=X"):
+    pair = symbol[:-2].replace("-", "")
+    return f"FX_IDC:{pair}"
+
+  if symbol in TV_SYMBOL_OVERRIDES:
+    return TV_SYMBOL_OVERRIDES[symbol]
+
+  for suffix, tv_exchange in YAHOO_SUFFIX_TO_TV.items():
+    if symbol.endswith(suffix):
+      ticker = symbol[:-len(suffix)]
+      return f"{tv_exchange}:{ticker}"
+
+  try:
+    fast_info = yf.Ticker(symbol).fast_info
+    try:
+      yahoo_exchange = fast_info["exchange"]
+    except Exception:
+      yahoo_exchange = getattr(fast_info, "exchange", None)
+
+    tv_exchange = YAHOO_EXCHANGE_TO_TV.get(str(yahoo_exchange).upper())
+    if tv_exchange:
+      tv_ticker = symbol.replace("-", ".")
+      return f"{tv_exchange}:{tv_ticker}"
+  except Exception:
+    pass
+
+  # Yahoo borsa kodu çözülemezse ABD hissesi için NASDAQ varsayımı.
+  return f"NASDAQ:{symbol.replace('-', '.')}"
+
+
+def render_tradingview_chart(yahoo_symbol, timeframe="Günlük", height=720):
+  """TradingView Advanced Chart widget'ını Streamlit içinde gösterir."""
+  tv_symbol = resolve_tradingview_symbol(yahoo_symbol)
+  if not tv_symbol:
+    return False
+
+  config = {
+      "autosize": True,
+      "symbol": tv_symbol,
+      "interval": tradingview_interval(timeframe),
+      "timezone": "Europe/Istanbul",
+      "theme": "light",
+      "style": "1",
+      "locale": "tr",
+      "allow_symbol_change": True,
+      "calendar": False,
+      "details": True,
+      "hide_side_toolbar": False,
+      "hide_top_toolbar": False,
+      "hide_legend": False,
+      "hide_volume": False,
+      "hotlist": False,
+      "save_image": True,
+      "withdateranges": True,
+      "support_host": "https://www.tradingview.com",
+  }
+
+  safe_config = json.dumps(config, ensure_ascii=False)
+  safe_link_symbol = tv_symbol.replace(":", "-").replace(".", "-")
+
+  widget_html = f"""
+  <!doctype html>
+  <html lang="tr">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <style>
+        html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }}
+        .tradingview-widget-container {{ width: 100%; height: {height - 6}px; }}
+        .tradingview-widget-container__widget {{ width: 100%; height: calc(100% - 26px); }}
+        .tradingview-widget-copyright {{
+          height: 20px;
+          font: 11px Arial, sans-serif;
+          padding-top: 3px;
+        }}
+        .tradingview-widget-copyright a {{ color: #2962ff; text-decoration: none; }}
+      </style>
+    </head>
+    <body>
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <div class="tradingview-widget-copyright">
+          <a href="https://www.tradingview.com/symbols/{safe_link_symbol}/"
+             rel="noopener nofollow" target="_blank">{tv_symbol} grafiği</a>
+          <span> TradingView tarafından sağlanır</span>
+        </div>
+        <script type="text/javascript"
+                src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+                async>{safe_config}</script>
+      </div>
+    </body>
+  </html>
+  """
+
+  components.html(widget_html, height=height, scrolling=False)
+  return True
+
+
+# ---------------------------------------------------------
 # GELİŞMİŞ PLOTLY TEKNİK GRAFİK YARDIMCILARI
 # ---------------------------------------------------------
-# Grafik Yahoo Finance verisini kullanır. Böylece BIST, ABD hisseleri ve
-# kripto varlıkları aynı grafik altyapısında açılır. Plotly araç çubuğundaki
+# Bu grafik yalnızca TradingView dış-site lisansı nedeniyle açılamayan
+# Borsa İstanbul (.IS) sembollerinde kullanılır. Plotly araç çubuğundaki
 # çizim düğmeleriyle kullanıcı grafiğin üzerine manuel trend çizgisi,
 # dikdörtgen ve serbest çizgi ekleyebilir.
 
@@ -910,51 +1102,76 @@ with main_tab1:
         )
 
     with sub_tab_chart:
-      st.write("##### İnteraktif Teknik Fiyat Grafiği")
+      if requires_plotly_chart(selected_stock):
+        st.write("##### İnteraktif Teknik Fiyat Grafiği")
+        st.caption(
+            "Bu BIST sembolü TradingView'in dış-site veri lisansı nedeniyle "
+            "widget içinde açılamadığı için Plotly grafik kullanılıyor."
+        )
 
-      control_col1, control_col2, control_col3 = st.columns(3)
-      with control_col1:
-        chart_range = st.selectbox(
-            "Grafik Aralığı:",
-            list(CHART_RANGE_OPTIONS.keys()),
-            index=2,
-            key=f"chart_range_{selected_stock}",
+        control_col1, control_col2, control_col3 = st.columns(3)
+        with control_col1:
+          chart_range = st.selectbox(
+              "Grafik Aralığı:",
+              list(CHART_RANGE_OPTIONS.keys()),
+              index=2,
+              key=f"chart_range_{selected_stock}",
+          )
+        with control_col2:
+          chart_type = st.radio(
+              "Grafik Tipi:",
+              ["Mum", "Çizgi"],
+              horizontal=True,
+              key=f"chart_type_{selected_stock}",
+          )
+        with control_col3:
+          chart_pivot_timeframe = st.selectbox(
+              "Pivot Çizgisi Dönemi:",
+              ["Günlük", "Haftalık", "Aylık"],
+              key=f"chart_pivot_timeframe_{selected_stock}",
+          )
+
+        selected_indicators = st.multiselect(
+            "Grafikte Göster:",
+            [
+                "Pivot Seviyeleri",
+                "EMA 20",
+                "EMA 50",
+                "Bollinger Bantları",
+                "Hacim",
+            ],
+            default=["Pivot Seviyeleri", "EMA 20", "EMA 50", "Hacim"],
+            key=f"chart_indicators_{selected_stock}",
         )
-      with control_col2:
-        chart_type = st.radio(
-            "Grafik Tipi:",
-            ["Mum", "Çizgi"],
-            horizontal=True,
-            key=f"chart_type_{selected_stock}",
+
+        render_technical_chart(
+            ticker_symbol=selected_stock,
+            range_label=chart_range,
+            chart_type=chart_type,
+            pivot_timeframe=chart_pivot_timeframe,
+            selected_indicators=selected_indicators,
+            currency=currency,
         )
-      with control_col3:
-        chart_pivot_timeframe = st.selectbox(
-            "Pivot Çizgisi Dönemi:",
+      else:
+        st.write("##### TradingView Gelişmiş Grafik")
+        tv_timeframe = st.radio(
+            "Başlangıç Zaman Dilimi:",
             ["Günlük", "Haftalık", "Aylık"],
-            key=f"chart_pivot_timeframe_{selected_stock}",
+            horizontal=True,
+            key=f"tv_timeframe_{selected_stock}",
+        )
+        st.caption(
+            "Grafik TradingView üzerinden açılır. Zaman aralığı, indikatör ve "
+            "çizim araçlarını grafiğin kendi araç çubuğundan değiştirebilirsin."
         )
 
-      selected_indicators = st.multiselect(
-          "Grafikte Göster:",
-          [
-              "Pivot Seviyeleri",
-              "EMA 20",
-              "EMA 50",
-              "Bollinger Bantları",
-              "Hacim",
-          ],
-          default=["Pivot Seviyeleri", "EMA 20", "EMA 50", "Hacim"],
-          key=f"chart_indicators_{selected_stock}",
-      )
-
-      render_technical_chart(
-          ticker_symbol=selected_stock,
-          range_label=chart_range,
-          chart_type=chart_type,
-          pivot_timeframe=chart_pivot_timeframe,
-          selected_indicators=selected_indicators,
-          currency=currency,
-      )
+        rendered = render_tradingview_chart(
+            yahoo_symbol=selected_stock,
+            timeframe=tv_timeframe,
+            height=720,
+        )
+        if not rendered:
+          st.error("Bu sembol için TradingView grafik eşleştirmesi yapılamadı.")
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
