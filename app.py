@@ -628,17 +628,17 @@ with main_tab1:
             " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
         )
 
-   with sub_tab_chart:
-      st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
-      tv_symbol = get_tradingview_symbol(selected_stock)
+ with sub_tab_chart:
+        st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
+        tv_symbol = get_tradingview_symbol(selected_stock)
 
-      # Sadeleştirilmiş, doğrudan çalışan TradingView Iframe Widget yapısı
-      tv_html = f"""
-      <div class="tradingview-widget-container" style="height:600px;width:100%">
-        <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
-      </div>
-      """
-      st.components.v1.html(tv_html, height=620)
+        # Sadeleştirilmiş ve doğru girintilenmiş TradingView Iframe Widget yapısı
+        tv_html = f"""
+        <div class="tradingview-widget-container" style="height:600px;width:100%">
+          <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
+        </div>
+        """
+        st.components.v1.html(tv_html, height=620)
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
