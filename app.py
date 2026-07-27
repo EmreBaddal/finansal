@@ -5,8 +5,9 @@ from dateutil import parser
 import feedparser
 import google.generativeai as genai
 import pandas as pd
+import plotly.graph_objects as go
+import requests
 import streamlit as st
-import streamlit.components.v1 as components
 import yfinance as yf
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
@@ -574,7 +575,7 @@ with main_tab1:
 
     sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
         "🎯 Pivot Noktaları",
-        "📉 TradingView Canlı Grafik",
+        "📉 Canlı Teknik Grafik",
         "🏛️ KAP Bildirimleri (BIST)",
         "📰 Basın Haberleri",
         "🌐 Yahoo Finance",
@@ -616,7 +617,7 @@ with main_tab1:
         )
 
     with sub_tab_chart:
-      st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafik")
+      st.subheader(f"📉 {selected_stock} - İnteraktif Fiyat Grafiği")
 
       theme_mode = st.radio(
           "Grafik Modu:",
@@ -626,39 +627,40 @@ with main_tab1:
       )
       t_theme = "light" if "Beyaz" in theme_mode else "dark"
 
-      # TradingView sembol eşleştirme (Sembol bulunamadı hatasını önlemek için)
-      tv_symbol = selected_stock
-      if selected_stock.endswith(".IS"):
-        tv_symbol = f"BIST:{selected_stock.replace('.IS', '')}"
-      elif "-" in selected_stock:
-        tv_symbol = f"BINANCE:{selected_stock.replace('-USD', 'USDT')}"
-      else:
-        tv_symbol = f"NASDAQ:{selected_stock}"
+      # TradingView yerine Plotly Mum Grafiği (Sembol bulunamadı hatasını önler)
+      df_chart = yf.download(
+          selected_stock, period="6mo", interval="1d", progress=False
+      )
 
-      tv_html = f"""
-            <div class="tradingview-widget-container" style="height:550px;width:100%">
-              <div id="tradingview_chart" style="height:100%;width:100%"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-              <script type="text/javascript">
-              new TradingView.widget(
-              {{
-                "autosize": true,
-                "symbol": "{tv_symbol}",
-                "interval": "D",
-                "timezone": "Europe/Istanbul",
-                "theme": "{t_theme}",
-                "style": "1",
-                "locale": "tr",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
-                "allow_symbol_change": true,
-                "container_id": "tradingview_chart"
-              }}
-              );
-              </script>
-            </div>
-            """
-      components.html(tv_html, height=570)
+      if not df_chart.empty:
+        if isinstance(df_chart.columns, pd.MultiIndex):
+          df_chart.columns = df_chart.columns.get_level_values(0)
+
+        fig = go.Figure(
+            data=[
+                go.Candlestick(
+                    x=df_chart.index,
+                    open=df_chart["Open"],
+                    high=df_chart["High"],
+                    low=df_chart["Low"],
+                    close=df_chart["Close"],
+                    name="Fiyat",
+                )
+            ]
+        )
+
+        fig.update_layout(
+            title=f"{selected_stock} Teknik Görünüm",
+            yaxis_title=f"Fiyat ({currency})",
+            xaxis_title="Tarih",
+            template="plotly_dark" if "dark" in t_theme else "plotly_white",
+            height=550,
+            margin=dict(l=10, r=10, t=40, b=10),
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+      else:
+        st.warning("Bu hisse için grafik verisi yüklenemedi.")
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
