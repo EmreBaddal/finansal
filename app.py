@@ -597,7 +597,7 @@ sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
         "🤖 Hisse Özel AI Soru Paneli",
     ])
 
-    with sub_tab1:
+with sub_tab1:
         st.write("##### Standart (Klasik) Pivot Seviyeleri")
         timeframe_choice = st.radio(
             "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
