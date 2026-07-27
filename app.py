@@ -5,8 +5,8 @@ from dateutil import parser
 import feedparser
 import google.generativeai as genai
 import pandas as pd
+import requests
 import streamlit as st
-import streamlit.components.v1 as components
 import yfinance as yf
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
@@ -17,10 +17,11 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
-# Mobil Ekranlar İçin Özel CSS (Sidebar input genişlik düzeltmesi dahil)
+# Mobil Ekranlar İçin Yazı Boyutu, Padding ve Üst Boşluğu Azaltma (Özel CSS)
 st.markdown(
     """
     <style>
+    /* Sayfa üstündeki boşluğu ve header padding'ini azaltır */
     .block-container {
         padding-top: 1.2rem !important;
         padding-bottom: 2rem !important;
@@ -28,20 +29,33 @@ st.markdown(
     header[data-testid="stHeader"] {
         background: transparent;
     }
+
+    /* Sidebar içerisinin mobilde taşmasını önlemek ve scroll kazandırmak */
     [data-testid="stSidebar"] > div:first-child {
         overflow-y: auto;
         max-height: 100vh;
         padding-bottom: 80px;
     }
-    div[data-baseweb="input"] {
-        width: 100% !important;
-    }
+
     @media (max-width: 768px) {
         .block-container {
             padding-top: 0.8rem !important;
         }
         .stMetric {
             font-size: 14px !important;
+        }
+        h1 {
+            font-size: 22px !important;
+        }
+        h2 {
+            font-size: 18px !important;
+        }
+        h3 {
+            font-size: 16px !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            font-size: 12px !important;
+            padding: 6px 8px !important;
         }
     }
     </style>
@@ -55,7 +69,6 @@ st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
 # SABİT API KEY TANIMLAMASI
 # ---------------------------------------------------------
 FIXED_GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=FIXED_GEMINI_API_KEY)
 
 # ---------------------------------------------------------
 # KALICI TAKİP LİSTESİ & ALARM YÖNETİMİ
@@ -121,7 +134,7 @@ if "alarms" not in st.session_state:
   st.session_state.alarms = load_alarms()
 
 # ---------------------------------------------------------
-# TEMATİK SEKTÖR / DİKEY VERİ TABANI
+# TEMATİK SEKTÖR / DİKEY VERİ TABANI (BIST & NASDAQ)
 # ---------------------------------------------------------
 THEMATIC_SECTORS = {
     "🚀 Uzay ve Havacılık": [
@@ -130,18 +143,21 @@ THEMATIC_SECTORS = {
         {"symbol": "BA", "name": "Boeing (Global)"},
         {"symbol": "LMT", "name": "Lockheed Martin (Global)"},
         {"symbol": "AYES.IS", "name": "Ayesaş / BIST Havacılık"},
+        {"symbol": "CLEEN", "name": "Clean Earth / Defense"},
     ],
     "🧬 Biyoteknoloji": [
         {"symbol": "MRNA", "name": "Moderna (Global)"},
         {"symbol": "PFE", "name": "Pfizer (Global)"},
         {"symbol": "BNTX", "name": "BioNTech (Global)"},
         {"symbol": "GEPH.IS", "name": "Gen İlaç (BIST)"},
+        {"symbol": "SEKFK.IS", "name": "Sağlık Odaklı Varlıklar"},
     ],
     "🤖 Fiziksel Yapay Zeka & Robotik": [
         {"symbol": "NVDA", "name": "NVIDIA (AI Donanım)"},
         {"symbol": "TSLA", "name": "Tesla (Robotaksi & Optimus)"},
-        {"symbol": "ISCTR.IS", "name": "İş Bankası (Teknoloji)"},
-        {"symbol": "KONTR.IS", "name": "Kontrolmatik (Robotik & Enerji)"},
+        {"symbol": "ISCTR.IS", "name": "İş Bankası (Teknoloji Yatırımları)"},
+        {"symbol": "KONTR.IS", "name": "Kontrolmatik (Robotik & Enerji Otomasyonu)"},
+        {"symbol": "ABB", "name": "ABB Ltd (Endüstriyel Robotik)"},
     ],
 }
 
@@ -163,6 +179,21 @@ FINANCIAL_CALENDAR_EVENTS = [
         "summary": "Faiz kararı ve açıklama metni borsa ve döviz yönünü belirler.",
     },
     {
+        "id": "tr_2",
+        "country": "🇹🇷 TR",
+        "title": "Türkiye Enflasyon Verisi (TÜFE Yıllık)",
+        "importance": "🔴 Yüksek",
+        "date": "2026-08-03 10:00",
+        "forecast": "%38.20",
+        "previous": "%41.60",
+        "impact_desc": (
+            "BIST perakende, gıda ve faiz beklentilerini doğrudan etkiler."
+        ),
+        "summary": (
+            "Düşüş trendinin sürmesi borsaya yabancı girişini artırabilir."
+        ),
+    },
+    {
         "id": "us_1",
         "country": "🇺🇸 US",
         "title": "ABD Tarım Dışı İstihdam (NFP)",
@@ -176,16 +207,16 @@ FINANCIAL_CALENDAR_EVENTS = [
     {
         "id": "us_2",
         "country": "🇺🇸 US",
-        "title": "ABD TÜFE (Enflasyon) Verisi",
+        "title": "ABD Tüketici Fiyat Endeksi (CPI Enflasyon)",
         "importance": "🔴 Yüksek",
         "date": "2026-08-12 15:30",
-        "forecast": "%2.9",
-        "previous": "%3.0",
-        "impact_desc": "Fed'in sonraki toplantı faiz beklentilerini doğrudan fiyatlar.",
-        "summary": (
-            "Enflasyondaki düşüş veya yapışkanlık küresel borsaların kaderini"
-            " tayin eder."
+        "forecast": "%3.10",
+        "previous": "%3.30",
+        "impact_desc": (
+            "Küresel borsalar ve teknoloji hisseleri (NVDA, AAPL) için en kritik"
+            " veri."
         ),
+        "summary": "Beklenti altı enflasyon faiz indirim beklentisini kuvvetlendirir.",
     },
 ]
 
@@ -198,26 +229,29 @@ headers = {
 }
 
 # ---------------------------------------------------------
-# YARDIMCI FONKSİYONLAR
+# CANLI HİSSE ARAMA & PİVOT & KRİPTO YARDIMCILARI
 # ---------------------------------------------------------
 
 
 def search_ticker_global(query):
   if not query or len(query.strip()) < 1:
     return []
+
   query_clean = query.strip().upper()
   results = []
+
   try:
     url = f"https://query2.finance.yahoo.com/v1/finance/search?q={urllib.parse.quote(query_clean)}&quotesCount=10"
     resp = requests.get(url, headers=headers, timeout=4)
     if resp.status_code == 200:
       data = resp.json()
-      for item in data.get("quotes", []):
-        symbol = item.get("symbol", "")
-        shortname = item.get("shortname") or item.get("longname") or symbol
-        exch = item.get("exchDisp", "")
-        if symbol:
-          results.append(f"{symbol} | {shortname} ({exch})")
+      if "quotes" in data:
+        for item in data.get("quotes", []):
+          symbol = item.get("symbol", "")
+          shortname = item.get("shortname") or item.get("longname") or symbol
+          exch = item.get("exchDisp", "")
+          if symbol:
+            results.append(f"{symbol} | {shortname} ({exch})")
   except Exception:
     pass
 
@@ -225,6 +259,7 @@ def search_ticker_global(query):
     if not query_clean.endswith(".IS") and len(query_clean) <= 6:
       results.append(f"{query_clean}.IS | {query_clean} (BIST)")
     results.append(f"{query_clean} | {query_clean} (Global/US)")
+
   return results
 
 
@@ -234,6 +269,7 @@ def fetch_rss_news_sorted(query_term):
     rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=tr&gl=TR&ceid=TR:tr"
     resp = requests.get(rss_url, headers=headers, timeout=5)
     feed = feedparser.parse(resp.content)
+
     news = []
     for entry in feed.entries[:15]:
       pub_raw = entry.get("published", "")
@@ -268,11 +304,12 @@ def fetch_rss_news_sorted(query_term):
 def calculate_pivot_points(ticker_symbol, timeframe):
   try:
     ticker = yf.Ticker(ticker_symbol)
+
     if timeframe == "Günlük":
       df = ticker.history(period="1mo", interval="1d")
     elif timeframe == "Haftalık":
       df = ticker.history(period="6mo", interval="1wk")
-    else:
+    else:  # Aylık
       df = ticker.history(period="2y", interval="1mo")
 
     if df.empty or len(df) < 2:
@@ -311,13 +348,25 @@ def get_crypto_yf_stats(symbol="BTC-USD"):
       return {"lastPrice": price, "priceChangePercent": change}
   except Exception:
     pass
+
+  try:
+    df = yf.download(yf_symbol, period="2d", interval="1d", progress=False)
+    if not df.empty and len(df) >= 2:
+      price = float(df["Close"].iloc[-1])
+      prev_close = float(df["Close"].iloc[-2])
+      change = ((price - prev_close) / prev_close) * 100
+      return {"lastPrice": price, "priceChangePercent": change}
+  except Exception:
+    pass
+
   return None
 
 
 # ---------------------------------------------------------
-# SOL MENÜ
+# SOL MENÜ - HİSSE YÖNETİMİ & TEMATİK DİKEYLER
 # ---------------------------------------------------------
 st.sidebar.header("⚙️ Hisse Yönetimi")
+
 search_input = st.sidebar.text_input("Hisse Arayın (Örn: THYAO, NVDA, BTC-USD):")
 
 if search_input:
@@ -327,6 +376,7 @@ if search_input:
         "Arama Sonuçları:", suggestions
     )
     ticker_to_add = selected_suggestion.split(" | ")[0].strip()
+
     if st.sidebar.button("➕ Listeye Ekle", key="add_btn"):
       if ticker_to_add not in st.session_state.watch_list:
         st.session_state.watch_list.append(ticker_to_add)
@@ -349,12 +399,16 @@ if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
     st.sidebar.error("Listenizde en az 1 hisse kalmalıdır.")
 
 st.sidebar.markdown("---")
+
+# Tematik Dikey Filtre Seçimi
+st.sidebar.subheader("🎯 Tematik Dikey Filtreler")
 selected_sector_key = st.sidebar.selectbox(
     "Sektör Dikey Seçin:", ["Özel Liste (Manuel)"] + list(THEMATIC_SECTORS.keys())
 )
 
 if selected_sector_key != "Özel Liste (Manuel)":
   sector_items = THEMATIC_SECTORS[selected_sector_key]
+  st.sidebar.markdown(f"**{selected_sector_key} Hisseleri:**")
   sec_choice = st.sidebar.selectbox(
       "Dikey İçi Şirket Seçin:", [i["symbol"] + " - " + i["name"] for i in sector_items]
   )
@@ -366,6 +420,8 @@ if selected_sector_key != "Özel Liste (Manuel)":
       st.sidebar.success(f"{quick_add_ticker} eklendi!")
       st.rerun()
 
+st.sidebar.markdown("---")
+st.sidebar.success("🔑 Sabit API Key Aktif")
 
 # ---------------------------------------------------------
 # GEMINI ANALİZ FONKSİYONU
@@ -383,7 +439,7 @@ def ask_gemini_analysis(prompt, system_instruction):
       )
       response = model.generate_content(prompt)
       return response.text
-    except exceptions.ResourceExhausted:
+    except exceptions.ResourceExhausted as e:
       if attempt < max_retries - 1:
         time.sleep(5 * (attempt + 1))
         continue
@@ -394,7 +450,7 @@ def ask_gemini_analysis(prompt, system_instruction):
 
 
 # ---------------------------------------------------------
-# ANA SEKMELER
+# ÜST DÜZEY ANA SEKMELER
 # ---------------------------------------------------------
 main_tab1, main_tab2, main_tab3 = st.tabs([
     "📊 Hisse Analiz Paneli",
@@ -402,6 +458,9 @@ main_tab1, main_tab2, main_tab3 = st.tabs([
     "🪙 Kripto Piyasası",
 ])
 
+# =========================================================
+# ANA SEKMELER 1: HİSSE ANALİZ PANELİ
+# =========================================================
 with main_tab1:
   if selected_stock:
     try:
@@ -429,6 +488,7 @@ with main_tab1:
       )
 
       col1, col2 = st.columns([1, 2])
+
       with col1:
         st.metric(
             label=f"Anlık Fiyat ({selected_stock})",
@@ -438,10 +498,19 @@ with main_tab1:
 
       with col2:
         st.subheader("🔔 Fiyat Alarmı Yönetimi")
+
+        # Mevcut hisse için kayıtlı alarm varsa çek
         existing_alarm = st.session_state.alarms.get(selected_stock, {})
         default_target = existing_alarm.get(
             "target", float(round(current_price, 2))
         )
+        default_cond_idx = (
+            0
+            if existing_alarm.get("condition", "Üzerine Çıkınca")
+            == "Üzerine Çıkınca"
+            else 1
+        )
+
         target_price = st.number_input(
             "Hedef Fiyat:",
             value=float(default_target),
@@ -451,6 +520,7 @@ with main_tab1:
         condition = st.selectbox(
             "Koşul:",
             ["Üzerine Çıkınca", "Altına Düşünce"],
+            index=default_cond_idx,
             key=f"alarm_cond_{selected_stock}",
         )
 
@@ -462,8 +532,9 @@ with main_tab1:
                 "condition": condition,
             }
             save_alarms(st.session_state.alarms)
-            st.success("Alarm kaydedildi!")
+            st.success(f"✅ {selected_stock} için alarm kaydedildi!")
             st.rerun()
+
         with col_b:
           if selected_stock in st.session_state.alarms:
             if st.button("🗑️ Alarmı Sil", key=f"del_alarm_{selected_stock}"):
@@ -472,174 +543,291 @@ with main_tab1:
               st.warning("Alarm silindi.")
               st.rerun()
 
+        # Kayıtlı Alarm Durum Kontrolü
+        if selected_stock in st.session_state.alarms:
+          saved_t = st.session_state.alarms[selected_stock]["target"]
+          saved_c = st.session_state.alarms[selected_stock]["condition"]
+
+          st.info(
+              f"📌 Aktif Kayıtlı Alarm: **{saved_t} {currency}** ({saved_c})"
+          )
+
+          if saved_c == "Üzerine Çıkınca" and current_price >= saved_t:
+            st.error(
+                f"🚨 **ALARM TETİKLENDİ!** {selected_stock} fiyatı ({current_price:.2f}"
+                f" {currency}) hedef seviyeyi geçti!"
+            )
+          elif saved_c == "Altına Düşünce" and current_price <= saved_t:
+            st.warning(
+                f"🚨 **ALARM TETİKLENDİ!** {selected_stock} fiyatı ({current_price:.2f}"
+                f" {currency}) hedef seviyenin altına düştü!"
+            )
+        else:
+          st.caption(
+              "Bu varlık için kayıtlı aktif bir alarm bulunmuyor. Hedef"
+              " belirleyip 'Alarmı Kaydet'e basın."
+          )
+
     except Exception as e:
       st.error(f"Veri çekilemedi: {e}")
 
     st.markdown("---")
     clean_ticker = selected_stock.replace(".IS", "")
 
-    sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4 = st.tabs([
+    sub_tab1, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
         "🎯 Pivot Noktaları",
-        "📉 TradingView Canlı Grafik",
         "🏛️ KAP Bildirimleri (BIST)",
         "📰 Basın Haberleri",
+        "🌐 Yahoo Finance",
         "🤖 Hisse Özel AI Soru Paneli",
     ])
 
     with sub_tab1:
-      st.write("##### Standart Pivot Seviyeleri")
+      st.write("##### Standart (Klasik) Pivot Seviyeleri")
       timeframe_choice = st.radio(
           "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
       )
+
+      currency = (
+          "TRY"
+          if selected_stock.endswith(".IS")
+          else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
+      )
       p_data = calculate_pivot_points(selected_stock, timeframe_choice)
-      if p_data:
+
+      if p_data and isinstance(p_data, dict):
         c1, c2, c3 = st.columns(3)
         with c1:
-          st.error(f"**R3:** {p_data.get('Direnç 3 (R3)')}")
-          st.error(f"**R2:** {p_data.get('Direnç 2 (R2)')}")
-          st.error(f"**R1:** {p_data.get('Direnç 1 (R1)')}")
+          st.markdown("### 🔴 Dirençler")
+          st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
+          st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
+          st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
         with c2:
-          st.info(f"**Pivot (P):** {p_data.get('Pivot (P)')}")
+          st.markdown("### ⚪ Pivot Seviyesi")
+          st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
         with c3:
-          st.success(f"**S1:** {p_data.get('Destek 1 (S1)')}")
-          st.success(f"**S2:** {p_data.get('Destek 2 (S2)')}")
-          st.success(f"**S3:** {p_data.get('Destek 3 (S3)')}")
-
-    with sub_tab_chart:
-      st.subheader(f"📉 {selected_stock} - TradingView Grafik Entegrasyonu")
-
-      tv_symbol = selected_stock
-      if selected_stock.endswith(".IS"):
-        tv_symbol = f"BIST:{selected_stock.replace('.IS', '')}"
-      elif "-" in selected_stock:
-        tv_symbol = f"BINANCE:{selected_stock.replace('-USD', 'USDT')}"
+          st.markdown("### 🟢 Destekler")
+          st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
+          st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
+          st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
       else:
-        tv_symbol = f"NASDAQ:{selected_stock}"
-
-      tv_url = f"https://www.tradingview.com/chart/?symbol={tv_symbol}"
-
-      st.markdown(
-          f"""
-            <div style="padding: 20px; background-color: #1e222d; border-radius: 10px; text-align: center; color: white; margin-bottom: 15px;">
-                <h3>📊 {selected_stock} İçin Gelişmiş Grafik</h3>
-                <p>Tam çizim araçları, göstergeler ve esneklik için doğrudan TradingView platformunu açabilirsiniz:</p>
-                <a href="{tv_url}" target="_blank" style="background-color: #2962ff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; margin-top: 10px;">🚀 TradingView'de Canlı Aç</a>
-            </div>
-            """,
-          unsafe_allow_html=True,
-      )
-
-      theme_mode = st.radio(
-          "Gömülü Widget Modu:",
-          ["Koyu Mod (Dark)", "Beyaz Mod (Light)"],
-          horizontal=True,
-          key="tv_theme_radio",
-      )
-      t_theme = "light" if "Beyaz" in theme_mode else "dark"
-
-      tv_html = f"""
-            <div class="tradingview-widget-container" style="height:500px;width:100%">
-              <div id="tradingview_chart" style="height:100%;width:100%"></div>
-              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-              <script type="text/javascript">
-              new TradingView.widget(
-              {{
-                "autosize": true,
-                "symbol": "{tv_symbol}",
-                "interval": "D",
-                "timezone": "Europe/Istanbul",
-                "theme": "{t_theme}",
-                "style": "1",
-                "locale": "tr",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
-                "allow_symbol_change": true,
-                "container_id": "tradingview_chart"
-              }}
-              );
-              </script>
-            </div>
-            """
-      components.html(tv_html, height=520)
+        st.warning(
+            "Yahoo Finance geçici olarak çok fazla istek aldığından veriler"
+            " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
+        )
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
         kap_news = fetch_rss_news_sorted(f"site:kap.org.tr {clean_ticker}")
-        for item in kap_news[:10]:
-          st.markdown(f"* [{item['title']}]({item['link']})")
+        if not kap_news:
+          kap_news = fetch_rss_news_sorted(f"{clean_ticker} KAP bildirimi")
+        if kap_news:
+          for item in kap_news:
+            st.markdown(
+                f"* [{item['title']}]({item['link']}) — <small"
+                f" style='color:gray;'>📅 {item['published_str']}</small>",
+                unsafe_allow_html=True,
+            )
+        else:
+          st.info("KAP bildirimleri bulunamadı.")
       else:
         st.info("KAP bildirimleri sadece BIST hisseleri içindir.")
 
     with sub_tab3:
       g_news = fetch_rss_news_sorted(f"{clean_ticker} hisse haber OR borsa")
-      for item in g_news[:10]:
-        st.markdown(f"* [{item['title']}]({item['link']})")
+      if g_news:
+        for item in g_news:
+          st.markdown(
+              f"* [{item['title']}]({item['link']}) — *{item['source']}*  \n "
+              f" <small style='color:gray;'>📅 {item['published_str']}</small>",
+              unsafe_allow_html=True,
+          )
+      else:
+        st.info("İlgili haber bulunamadı.")
 
     with sub_tab4:
+      try:
+        ticker_obj_yf = yf.Ticker(selected_stock)
+        news_list = ticker_obj_yf.news
+        if news_list:
+          for item in news_list[:7]:
+            title = (
+                item.get("title")
+                or item.get("content", {}).get("title", "Başlık Yok")
+            )
+            link = (
+                item.get("link")
+                or item.get("content", {})
+                .get("canonicalUrl", {})
+                .get("url", "#")
+            )
+            st.markdown(f"* [{title}]({link})")
+        else:
+          st.info("Yahoo Finance haberi bulunamadı.")
+      except Exception:
+        st.write("Yahoo haberleri yüklenemedi.")
+
+    with sub_tab5:
+      st.subheader(f"🤖 {selected_stock} için Gemini AI Asistanı")
+      st.caption(
+          "Bu hisseyle ilgili güncel durum, beklentiler, teknik seviyeler veya"
+          " sektör dinamikleri hakkında dilediğin soruyu sorabilirsin."
+      )
+
       stock_user_q = st.text_input(
           f"{selected_stock} hakkında neyi öğrenmek istiyorsun?",
+          placeholder=(
+              "Örn: Bu hissenin son dönemdeki performansını ve teknik"
+              " görünümünü değerlendir."
+          ),
           key="stock_ai_input",
       )
+
       if st.button("💬 Soruyu Gemini'ye İlet", key="stock_ai_btn"):
         if stock_user_q:
-          ans = ask_gemini_analysis(
-              stock_user_q, f"Seçilen Hisse: {selected_stock}"
-          )
-          st.markdown(ans)
+          with st.spinner("Gemini analiz ediyor..."):
+            stock_context_data = f"Seçilen Hisse: {selected_stock}, Güncel Fiyat: {current_price} {currency}, Değişim: %{percent_change:.2f}"
+            stock_ans = ask_gemini_analysis(
+                prompt=stock_user_q,
+                system_instruction=(
+                    f"Seçilen Hisse: {selected_stock}. Bağlam"
+                    f" verileri:\n{stock_context_data}"
+                ),
+            )
+            st.markdown(stock_ans)
+        else:
+          st.warning("Lütfen bir soru yazın.")
 
+# =========================================================
+# ANA SEKMELER 2: KÜRESEL TAKVİM & AI CHAT
+# =========================================================
 with main_tab2:
-  st.header("📅 Küresel Makroekonomik Takvim ve Yapay Zeka Analizi")
-  st.write(
-      "Önümüzdeki kritik makro verileri inceleyin ve Gemini'ye detaylı etkilerini"
-      " sorun."
-  )
+  st.header("📅 Küresel Makroekonomik Takvim & Gemini AI Portal")
+  f_col1, f_col2 = st.columns(2)
 
-  df_cal = pd.DataFrame(FINANCIAL_CALENDAR_EVENTS)[
-      ["date", "country", "title", "importance", "forecast", "previous"]
-  ]
-  st.dataframe(df_cal, use_container_width=True, hide_index=True)
+  with f_col1:
+    country_filter = st.selectbox(
+        "🌎 Ülke / Bölge Filtresi:",
+        ["Tümü", "🇹🇷 TR", "🇺🇸 US", "🇪🇺 EU", "🇬🇧 UK", "🇨🇳 CN", "🇯🇵 JP"],
+    )
+  with f_col2:
+    importance_filter = st.selectbox(
+        "🎯 Önem Derecesi Filtresi:", ["Tümü", "🔴 Yüksek", "🟡 Orta"]
+    )
+
+  filtered_events = FINANCIAL_CALENDAR_EVENTS
+  if country_filter != "Tümü":
+    filtered_events = [
+        e for e in filtered_events if e["country"] == country_filter
+    ]
+  if importance_filter != "Tümü":
+    filtered_events = [
+        e for e in filtered_events if e["importance"] == importance_filter
+    ]
+
+  st.subheader("📋 Genel Takvim Görünümü")
+  if filtered_events:
+    df_cal = pd.DataFrame(filtered_events)[
+        ["date", "country", "title", "importance", "forecast", "previous"]
+    ]
+    df_cal.columns = [
+        "Tarih / Saat",
+        "Ülke",
+        "Açıklama / Gelişme",
+        "Önem",
+        "Beklenti",
+        "Önceki",
+    ]
+    st.dataframe(df_cal, use_container_width=True, hide_index=True)
 
   st.markdown("---")
-  st.subheader("🔍 Etkinlik Bazlı Yapay Zeka Analizi")
+  st.subheader("🤖 AI Analiz Ve Soru Paneli")
 
-  event_titles = [e["title"] for e in FINANCIAL_CALENDAR_EVENTS]
-  selected_event_title = st.selectbox(
-      "Analiz Edilecek Veriyi Seçin:", event_titles
-  )
-
-  selected_event = next(
-      e for e in FINANCIAL_CALENDAR_EVENTS if e["title"] == selected_event_title
-  )
-
-  st.info(
-      f"**Özet:** {selected_event['summary']} \n\n**Olası Etki:**"
-      f" {selected_event['impact_desc']}"
-  )
-
-  user_cal_q = st.text_input(
-      "Bu makro veri hakkında Gemini'ye özel bir soru sorun:",
-      key="cal_ai_input",
-  )
-  if st.button("🧠 Takvim Verisini Gemini ile Analiz Et", key="cal_ai_btn"):
-    prompt = (
-        f"Etkinlik: {selected_event['title']}\nTarih:"
-        f" {selected_event['date']}\nÜlke: {selected_event['country']}\nÖnem:"
-        f" {selected_event['importance']}\nTahmin: {selected_event['forecast']}"
-        f"\nÖnceki: {selected_event['previous']}\nAçıklama:"
-        f" {selected_event['summary']}\n\nKullanıcı Sorusu:"
-        f" {user_cal_q if user_cal_q else 'Bu veri piyasaları nasıl etkiler?'}"
+  event_options = [
+      f"{e['country']} | {e['title']} ({e['date']})" for e in filtered_events
+  ]
+  if event_options:
+    selected_event_str = st.selectbox(
+        "Analiz Edilecek Veya Soru Sorulacak Gelişmeyi Seçin:", event_options
     )
-    ans = ask_gemini_analysis(
-        prompt,
-        "Sen kıdemli bir küresel makroekonomist ve piyasa analistisin.",
+    matched_event = next(
+        (
+            e
+            for e in filtered_events
+            if f"{e['country']} | {e['title']} ({e['date']})"
+            == selected_event_str
+        ),
+        filtered_events[0],
     )
-    st.markdown(ans)
 
+    with st.expander("📌 Seçili Gelişme Detaylarını Gör", expanded=True):
+      mc1, mc2, mc3 = st.columns(3)
+      mc1.info(f"**Tarih:** {matched_event['date']}")
+      mc2.warning(f"**Önem:** {matched_event['importance']}")
+      mc3.success(
+          f"**Beklenen / Önceki:** {matched_event['forecast']} /"
+          f" {matched_event['previous']}"
+      )
+      st.caption(f"**Genel Etki Özeti:** {matched_event['impact_desc']}")
+
+    st.markdown("### 🤖 Gemini Otomatik Piyasa Analizi")
+    if st.button("🚀 Bu Gelişmeyi Gemini ile Analiz Et"):
+      with st.spinner("Gemini piyasa analizini hazırlıyor..."):
+        analysis_res = ask_gemini_analysis(
+            matched_event["title"], str(matched_event)
+        )
+        st.markdown(analysis_res)
+
+    st.markdown("### 💬 Gemini'ye Soru Sorun")
+    user_q = st.text_input(
+        f"'{matched_event['title']}' gelişmesiyle ilgili sorunuz:",
+        placeholder=(
+            "Örn: Bu enflasyon verisi BIST bankacılık ve perakende hisselerine"
+            " nasıl yansır?"
+        ),
+    )
+
+    if st.button("Soruyu Gemini'ye Gönder", type="primary"):
+      if user_q:
+        with st.spinner("Gemini yanıtlıyor..."):
+          ans = ask_gemini_analysis(user_q, str(matched_event))
+          st.markdown(ans)
+      else:
+        st.warning("Lütfen soru alanını doldurun.")
+
+# =========================================================
+# ANA SEKMELER 3: KRİPTO PİYASASI (YFINANCE)
+# =========================================================
 with main_tab3:
   st.header("🪙 Kripto Piyasası Canlı Takibi")
-  selected_crypto = st.selectbox(
-      "İşlem Çifti Seçin:", ["BTC-USD", "ETH-USD", "SOL-USD", "AVAX-USD"]
-  )
-  stats = get_crypto_yf_stats(selected_crypto)
-  if stats:
-    st.metric("Anlık Fiyat", f"${stats['lastPrice']:,.2f}")
+  st.caption("Yahoo Finance altyapısı üzerinden anlık kripto para takibi.")
+
+  crypto_options = [
+      "BTC-USD",
+      "ETH-USD",
+      "SOL-USD",
+      "AVAX-USD",
+      "BNB-USD",
+      "XRP-USD",
+      "ADA-USD",
+      "DOGE-USD",
+  ]
+  selected_crypto = st.selectbox("İşlem Çifti Seçin:", crypto_options)
+
+  if selected_crypto:
+    stats = get_crypto_yf_stats(selected_crypto)
+    if stats and stats["lastPrice"] > 0:
+      fiyat = stats["lastPrice"]
+      degisim = stats["priceChangePercent"]
+
+      c1, c2 = st.columns(2)
+      c1.metric("Anlık Fiyat", f"${fiyat:,.2f}")
+      c2.metric(
+          "24 Saatlik Değişim",
+          f"%{degisim:.2f}",
+          delta=f"{degisim:.2f}%",
+      )
+    else:
+      st.error(
+          "Veriler alınamadı veya ağ bağlantısında geçici bir sorun oluştu."
+      )
