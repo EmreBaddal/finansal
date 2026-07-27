@@ -588,7 +588,7 @@ with main_tab1:
     st.markdown("---")
     clean_ticker = selected_stock.replace(".IS", "")
 
-ssub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
+sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
     "🎯 Pivot Noktaları",
     "📉 TradingView Canlı Grafik",
     "🏛️ KAP Bildirimleri (BIST)",
