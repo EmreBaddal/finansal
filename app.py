@@ -363,6 +363,19 @@ def get_crypto_yf_stats(symbol="BTC-USD"):
 
 
 # ---------------------------------------------------------
+# TRADINGVIEW SEMBOL YARDIMCISI
+# ---------------------------------------------------------
+def get_tradingview_symbol(ticker):
+  ticker = ticker.upper().strip()
+  if ticker.endswith(".IS"):
+    return f"BIST:{ticker.replace('.IS', '')}"
+  elif "-" in ticker or "USD" in ticker or "BTC" in ticker or "ETH" in ticker:
+    return f"BINANCE:{ticker.replace('-','').replace('/','')}"
+  else:
+    return ticker
+
+
+# ---------------------------------------------------------
 # SOL MENÜ - HİSSE YÖNETİMİ & TEMATİK DİKEYLER
 # ---------------------------------------------------------
 st.sidebar.header("⚙️ Hisse Yönetimi")
@@ -499,7 +512,6 @@ with main_tab1:
       with col2:
         st.subheader("🔔 Fiyat Alarmı Yönetimi")
 
-        # Mevcut hisse için kayıtlı alarm varsa çek
         existing_alarm = st.session_state.alarms.get(selected_stock, {})
         default_target = existing_alarm.get(
             "target", float(round(current_price, 2))
@@ -543,7 +555,6 @@ with main_tab1:
               st.warning("Alarm silindi.")
               st.rerun()
 
-        # Kayıtlı Alarm Durum Kontrolü
         if selected_stock in st.session_state.alarms:
           saved_t = st.session_state.alarms[selected_stock]["target"]
           saved_c = st.session_state.alarms[selected_stock]["condition"]
@@ -574,8 +585,9 @@ with main_tab1:
     st.markdown("---")
     clean_ticker = selected_stock.replace(".IS", "")
 
-    sub_tab1, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
+    sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
         "🎯 Pivot Noktaları",
+        "📉 TradingView Canlı Grafik",
         "🏛️ KAP Bildirimleri (BIST)",
         "📰 Basın Haberleri",
         "🌐 Yahoo Finance",
@@ -615,6 +627,20 @@ with main_tab1:
             "Yahoo Finance geçici olarak çok fazla istek aldığından veriler"
             " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
         )
+
+    with sub_tab_chart:
+      st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
+      tv_symbol = get_tradingview_symbol(selected_stock)
+      
+      theme_mode = st.radio("Grafik Modu:", ["Koyu Mod (Dark)", "Beyaz Mod (Light)"], horizontal=True, key="tv_theme_radio")
+      t_theme = "light" if "Beyaz" in theme_mode else "dark"
+
+      tv_html = f"""
+      <div class="tradingview-widget-container" style="height:600px;width:100%">
+        <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme={t_theme}&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
+      </div>
+      """
+      st.components.v1.html(tv_html, height=620)
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
