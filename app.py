@@ -588,7 +588,7 @@ with main_tab1:
     st.markdown("---")
     clean_ticker = selected_stock.replace(".IS", "")
 
-    sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
+sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
         "🎯 Pivot Noktaları",
         "📉 TradingView Canlı Grafik",
         "🏛️ KAP Bildirimleri (BIST)",
@@ -598,40 +598,40 @@ with main_tab1:
     ])
 
     with sub_tab1:
-      st.write("##### Standart (Klasik) Pivot Seviyeleri")
-      timeframe_choice = st.radio(
-          "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
-      )
-
-      currency = (
-          "TRY"
-          if selected_stock.endswith(".IS")
-          else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
-      )
-      p_data = calculate_pivot_points(selected_stock, timeframe_choice)
-
-      if p_data and isinstance(p_data, dict):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-          st.markdown("### 🔴 Dirençler")
-          st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
-          st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
-          st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
-        with c2:
-          st.markdown("### ⚪ Pivot Seviyesi")
-          st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
-        with c3:
-          st.markdown("### 🟢 Destekler")
-          st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
-          st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
-          st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
-      else:
-        st.warning(
-            "Yahoo Finance geçici olarak çok fazla istek aldığından veriler"
-            " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
+        st.write("##### Standart (Klasik) Pivot Seviyeleri")
+        timeframe_choice = st.radio(
+            "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
         )
 
-with sub_tab_chart:
+        currency = (
+            "TRY"
+            if selected_stock.endswith(".IS")
+            else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
+        )
+        p_data = calculate_pivot_points(selected_stock, timeframe_choice)
+
+        if p_data and isinstance(p_data, dict):
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.markdown("### 🔴 Dirençler")
+                st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
+                st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
+                st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
+            with c2:
+                st.markdown("### ⚪ Pivot Seviyesi")
+                st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
+            with c3:
+                st.markdown("### 🟢 Destekler")
+                st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
+                st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
+                st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
+        else:
+            st.warning(
+                "Yahoo Finance geçici olarak çok fazla istek aldığından veriler"
+                " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
+            )
+
+    with sub_tab_chart:
         st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
         tv_symbol = get_tradingview_symbol(selected_stock)
 
@@ -667,87 +667,70 @@ with sub_tab_chart:
         else:
             st.info("KAP bildirimleri sadece BIST hisseleri içindir.")
 
-    with sub_tab2:
-      if selected_stock.endswith(".IS"):
-        kap_news = fetch_rss_news_sorted(f"site:kap.org.tr {clean_ticker}")
-        if not kap_news:
-          kap_news = fetch_rss_news_sorted(f"{clean_ticker} KAP bildirimi")
-        if kap_news:
-          for item in kap_news:
-            st.markdown(
-                f"* [{item['title']}]({item['link']}) — <small"
-                f" style='color:gray;'>📅 {item['published_str']}</small>",
-                unsafe_allow_html=True,
-            )
-        else:
-          st.info("KAP bildirimleri bulunamadı.")
-      else:
-        st.info("KAP bildirimleri sadece BIST hisseleri içindir.")
-
     with sub_tab3:
-      g_news = fetch_rss_news_sorted(f"{clean_ticker} hisse haber OR borsa")
-      if g_news:
-        for item in g_news:
-          st.markdown(
-              f"* [{item['title']}]({item['link']}) — *{item['source']}*  \n "
-              f" <small style='color:gray;'>📅 {item['published_str']}</small>",
-              unsafe_allow_html=True,
-          )
-      else:
-        st.info("İlgili haber bulunamadı.")
+        g_news = fetch_rss_news_sorted(f"{clean_ticker} hisse haber OR borsa")
+        if g_news:
+            for item in g_news:
+                st.markdown(
+                    f"* [{item['title']}]({item['link']}) — *{item['source']}*  \n "
+                    f" <small style='color:gray;'>📅 {item['published_str']}</small>",
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("İlgili haber bulunamadı.")
 
     with sub_tab4:
-      try:
-        ticker_obj_yf = yf.Ticker(selected_stock)
-        news_list = ticker_obj_yf.news
-        if news_list:
-          for item in news_list[:7]:
-            title = (
-                item.get("title")
-                or item.get("content", {}).get("title", "Başlık Yok")
-            )
-            link = (
-                item.get("link")
-                or item.get("content", {})
-                .get("canonicalUrl", {})
-                .get("url", "#")
-            )
-            st.markdown(f"* [{title}]({link})")
-        else:
-          st.info("Yahoo Finance haberi bulunamadı.")
-      except Exception:
-        st.write("Yahoo haberleri yüklenemedi.")
+        try:
+            ticker_obj_yf = yf.Ticker(selected_stock)
+            news_list = ticker_obj_yf.news
+            if news_list:
+                for item in news_list[:7]:
+                    title = (
+                        item.get("title")
+                        or item.get("content", {}).get("title", "Başlık Yok")
+                    )
+                    link = (
+                        item.get("link")
+                        or item.get("content", {})
+                        .get("canonicalUrl", {})
+                        .get("url", "#")
+                    )
+                    st.markdown(f"* [{title}]({link})")
+            else:
+                st.info("Yahoo Finance haberi bulunamadı.")
+        except Exception:
+            st.write("Yahoo haberleri yüklenemedi.")
 
     with sub_tab5:
-      st.subheader(f"🤖 {selected_stock} için Gemini AI Asistanı")
-      st.caption(
-          "Bu hisseyle ilgili güncel durum, beklentiler, teknik seviyeler veya"
-          " sektör dinamikleri hakkında dilediğin soruyu sorabilirsin."
-      )
+        st.subheader(f"🤖 {selected_stock} için Gemini AI Asistanı")
+        st.caption(
+            "Bu hisseyle ilgili güncel durum, beklentiler, teknik seviyeler veya"
+            " sektör dinamikleri hakkında dilediğin soruyu sorabilirsin."
+        )
 
-      stock_user_q = st.text_input(
-          f"{selected_stock} hakkında neyi öğrenmek istiyorsun?",
-          placeholder=(
-              "Örn: Bu hissenin son dönemdeki performansını ve teknik"
-              " görünümünü değerlendir."
-          ),
-          key="stock_ai_input",
-      )
+        stock_user_q = st.text_input(
+            f"{selected_stock} hakkında neyi öğrenmek istiyorsun?",
+            placeholder=(
+                "Örn: Bu hissenin son dönemdeki performansını ve teknik"
+                " görünümünü değerlendir."
+            ),
+            key="stock_ai_input",
+        )
 
-      if st.button("💬 Soruyu Gemini'ye İlet", key="stock_ai_btn"):
-        if stock_user_q:
-          with st.spinner("Gemini analiz ediyor..."):
-            stock_context_data = f"Seçilen Hisse: {selected_stock}, Güncel Fiyat: {current_price} {currency}, Değişim: %{percent_change:.2f}"
-            stock_ans = ask_gemini_analysis(
-                prompt=stock_user_q,
-                system_instruction=(
-                    f"Seçilen Hisse: {selected_stock}. Bağlam"
-                    f" verileri:\n{stock_context_data}"
-                ),
-            )
-            st.markdown(stock_ans)
-        else:
-          st.warning("Lütfen bir soru yazın.")
+        if st.button("💬 Soruyu Gemini'ye İlet", key="stock_ai_btn"):
+            if stock_user_q:
+                with st.spinner("Gemini analiz ediyor..."):
+                    stock_context_data = f"Seçilen Hisse: {selected_stock}, Güncel Fiyat: {current_price} {currency}, Değişim: %{percent_change:.2f}"
+                    stock_ans = ask_gemini_analysis(
+                        prompt=stock_user_q,
+                        system_instruction=(
+                            f"Seçilen Hisse: {selected_stock}. Bağlam"
+                            f" verileri:\n{stock_context_data}"
+                        ),
+                    )
+                    st.markdown(stock_ans)
+            else:
+                st.warning("Lütfen bir soru yazın.")
 
 # =========================================================
 # ANA SEKMELER 2: KÜRESEL TAKVİM & AI CHAT
