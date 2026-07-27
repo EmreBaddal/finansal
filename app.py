@@ -142,9 +142,39 @@ st.sidebar.caption("Takip Listesi & Arama Paneli")
 
 user_input_ticker = st.sidebar.text_input("Hisse Arayın (Örn: THYAO, IVDA, BTC-USD):", placeholder="THYAO.IS")
 
-# Kayıtlı ve takip edilen tüm varlıklar varsayılan listeye geri yüklendi
+# Kayıtlı tüm varlıklar ve tematik listeler
 if "watchlist" not in st.session_state:
     st.session_state.watchlist = ["THYAO.IS", "KAPLM.IS", "KONTR.IS", "GARAN.IS", "AAPL", "NVDA", "BTC-USD", "ETH-USD"]
+
+# Tematik Sektör Dikey Seçimleri ve İçerikleri
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 🌐 Tematik Dikey Filtreler")
+sector_filter = st.sidebar.selectbox(
+    "Sektör Dikey Seçin:", 
+    ["Özel Liste (Manuel)", "Teknoloji & Enerji", "Bankacılık & Holding", "Kripto Varlıklar", "Uzay, Havacılık & Fiziksel AI"]
+)
+
+# Tematik seçime göre listeyi dinamik filtreleme veya güncelleme mantığı
+if sector_filter == "Teknoloji & Enerji":
+    thematic_stocks = ["KONTR.IS", "AAPL", "NVDA"]
+    for s in thematic_stocks:
+        if s not in st.session_state.watchlist:
+            st.session_state.watchlist.append(s)
+elif sector_filter == "Bankacılık & Holding":
+    thematic_stocks = ["GARAN.IS", "THYAO.IS"]
+    for s in thematic_stocks:
+        if s not in st.session_state.watchlist:
+            st.session_state.watchlist.append(s)
+elif sector_filter == "Kripto Varlıklar":
+    crypto_stocks = ["BTC-USD", "ETH-USD", "BNB-USD"]
+    for s in crypto_stocks:
+        if s not in st.session_state.watchlist:
+            st.session_state.watchlist.append(s)
+elif sector_filter == "Uzay, Havacılık & Fiziksel AI":
+    space_stocks = ["THYAO.IS", "NVDA"]
+    for s in space_stocks:
+        if s not in st.session_state.watchlist:
+            st.session_state.watchlist.append(s)
 
 if user_input_ticker:
     formatted_ticker = user_input_ticker.strip().upper()
@@ -157,10 +187,6 @@ if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
     if selected_stock in st.session_state.watchlist:
         st.session_state.watchlist.remove(selected_stock)
         st.rerun()
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🌐 Tematik Dikey Filtreler")
-sector_filter = st.sidebar.selectbox("Sektör Dikey Seçin:", ["Özel Liste (Manuel)", "Teknoloji & Enerji", "Bankacılık & Holding", "Kripto Varlıklar"])
 
 # --- ANA EKRAN ---
 st.title("🚀 Aylooper Finans & AI Paneli")
