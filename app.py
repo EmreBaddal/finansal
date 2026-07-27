@@ -5,8 +5,8 @@ from dateutil import parser
 import feedparser
 import google.generativeai as genai
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
@@ -462,7 +462,7 @@ with main_tab1:
 
     sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4 = st.tabs([
         "🎯 Pivot Noktaları",
-        "📉 Plotly Canlı Mum Grafik",
+        "📉 TradingView Canlı Grafik",
         "🏛️ KAP Bildirimleri (BIST)",
         "📰 Basın Haberleri",
         "🤖 Hisse Özel AI Soru Paneli",
@@ -488,41 +488,49 @@ with main_tab1:
           st.success(f"**S3:** {p_data.get('Destek 3 (S3)')}")
 
     with sub_tab_chart:
-      st.subheader(
-          f"📉 {selected_stock} - Plotly Interactive Candlestick Grafik"
-      )
-      try:
-        df_chart = yf.download(
-            selected_stock, period="6mo", interval="1d", progress=False
-        )
-        if isinstance(df_chart.columns, pd.MultiIndex):
-          df_chart.columns = df_chart.columns.get_level_values(0)
+      st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafik")
 
-        if not df_chart.empty:
-          fig = go.Figure(
-              data=[
-                  go.Candlestick(
-                      x=df_chart.index,
-                      open=df_chart["Open"],
-                      high=df_chart["High"],
-                      low=df_chart["Low"],
-                      close=df_chart["Close"],
-                      name="Mum Grafik",
-                  )
-              ]
-          )
-          fig.update_layout(
-              title=f"{selected_stock} Fiyat Grafiği",
-              yaxis_title="Fiyat",
-              xaxis_title="Tarih",
-              template="plotly_dark",
-              height=500,
-          )
-          st.plotly_chart(fig, use_container_width=True)
-        else:
-          st.warning("Grafik için yeterli veri bulunamadı.")
-      except Exception as ex:
-        st.error(f"Grafik yüklenirken hata oluştu: {ex}")
+      theme_mode = st.radio(
+          "Grafik Modu:",
+          ["Koyu Mod (Dark)", "Beyaz Mod (Light)"],
+          horizontal=True,
+          key="tv_theme_radio",
+      )
+      t_theme = "light" if "Beyaz" in theme_mode else "dark"
+
+      # TradingView sembol eşleştirme
+      tv_symbol = selected_stock
+      if selected_stock.endswith(".IS"):
+        tv_symbol = f"BIST:{selected_stock.replace('.IS', '')}"
+      elif "-" in selected_stock:
+        tv_symbol = f"BINANCE:{selected_stock.replace('-USD', 'USDT')}"
+      else:
+        tv_symbol = f"NASDAQ:{selected_stock}"
+
+      tv_html = f"""
+            <div class="tradingview-widget-container" style="height:550px;width:100%">
+              <div id="tradingview_chart" style="height:100%;width:100%"></div>
+              <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+              <script type="text/javascript">
+              new TradingView.widget(
+              {{
+                "autosize": true,
+                "symbol": "{tv_symbol}",
+                "interval": "D",
+                "timezone": "Europe/Istanbul",
+                "theme": "{t_theme}",
+                "style": "1",
+                "locale": "tr",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "allow_symbol_change": true,
+                "container_id": "tradingview_chart"
+              }}
+              );
+              </script>
+            </div>
+            """
+      components.html(tv_html, height=570)
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
