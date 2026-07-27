@@ -14,15 +14,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- AÇIK TEMA (WHITE MODE) ÖZEL CSS STİLLERİ ---
+# --- CSS STİLLERİ ---
 st.markdown("""
     <style>
     .main {
         background-color: #ffffff;
         color: #111111;
     }
-    .stSidebar {
-        background-color: #f0f2f6;
+    [data-testid="stSidebar"] {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
+        color: #ffffff !important;
     }
     div.stButton > button {
         background-color: #ff4b4b;
@@ -138,8 +142,9 @@ st.sidebar.caption("Takip Listesi & Arama Paneli")
 
 user_input_ticker = st.sidebar.text_input("Hisse Arayın (Örn: THYAO, IVDA, BTC-USD):", placeholder="THYAO.IS")
 
+# Kayıtlı ve takip edilen tüm varlıklar varsayılan listeye geri yüklendi
 if "watchlist" not in st.session_state:
-    st.session_state.watchlist = ["THYAO.IS", "KAPLM.IS", "KONTR.IS", "BTC-USD"]
+    st.session_state.watchlist = ["THYAO.IS", "KAPLM.IS", "KONTR.IS", "GARAN.IS", "AAPL", "NVDA", "BTC-USD", "ETH-USD"]
 
 if user_input_ticker:
     formatted_ticker = user_input_ticker.strip().upper()
@@ -232,7 +237,6 @@ with sub_tab_chart:
     st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
     tv_symbol = get_tradingview_symbol(selected_stock)
     
-    # theme=light yapılarak grafik arayüzü beyaz temaya çevrildi
     tv_html = f"""
     <div class="tradingview-widget-container" style="height:600px;width:100%">
       <iframe scrolling="no" allowtransparency="true" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups" src="https://s.tradingview.com/widgetembed/?symbol={tv_symbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=light&style=1&timezone=Europe%2FIstanbul&locale=tr" style="height:100%;width:100%;"></iframe>
