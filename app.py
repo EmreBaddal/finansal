@@ -5,8 +5,10 @@ from dateutil import parser
 import feedparser
 import google.generativeai as genai
 import pandas as pd
+import plotly.graph_objects as go
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
@@ -336,6 +338,278 @@ def calculate_pivot_points(ticker_symbol, timeframe):
     return None
 
 
+
+# ---------------------------------------------------------
+# TRADINGVIEW / YEREL GRAFIK YARDIMCILARI
+# ---------------------------------------------------------
+# TradingView finansal widget'lari sembolleri EXCHANGE:TICKER biçiminde bekler.
+# Borsa Istanbul verisi resmi web widget'larinda sunulmadigi için .IS sembollerinde
+# yfinance + Plotly ile yerel mum grafik kullanılır.
+
+TV_SYMBOL_OVERRIDES = {
+    # Nasdaq
+    "AAPL": "NASDAQ:AAPL",
+    "NVDA": "NASDAQ:NVDA",
+    "TSLA": "NASDAQ:TSLA",
+    "ASTS": "NASDAQ:ASTS",
+    "RKLB": "NASDAQ:RKLB",
+    "MRNA": "NASDAQ:MRNA",
+    "BNTX": "NASDAQ:BNTX",
+    # NYSE
+    "BA": "NYSE:BA",
+    "LMT": "NYSE:LMT",
+    "PFE": "NYSE:PFE",
+    "ABB": "NYSE:ABB",
+}
+
+YAHOO_EXCHANGE_TO_TV = {
+    "NMS": "NASDAQ",
+    "NGM": "NASDAQ",
+    "NCM": "NASDAQ",
+    "NAS": "NASDAQ",
+    "NYQ": "NYSE",
+    "ASE": "AMEX",
+    "PCX": "AMEX",
+    "BTS": "CBOE",
+    "PNK": "OTC",
+    "OBB": "OTC",
+    "LSE": "LSE",
+    "TOR": "TSX",
+    "VAN": "TSXV",
+    "GER": "XETR",
+    "FRA": "FWB",
+    "PAR": "EURONEXT",
+    "AMS": "EURONEXT",
+    "BRU": "EURONEXT",
+    "MIL": "MIL",
+    "SWX": "SIX",
+    "HKG": "HKEX",
+    "JPX": "TSE",
+    "ASX": "ASX",
+}
+
+YAHOO_SUFFIX_TO_TV = {
+    ".L": "LSE",
+    ".TO": "TSX",
+    ".V": "TSXV",
+    ".DE": "XETR",
+    ".F": "FWB",
+    ".PA": "EURONEXT",
+    ".AS": "EURONEXT",
+    ".BR": "EURONEXT",
+    ".MI": "MIL",
+    ".SW": "SIX",
+    ".HK": "HKEX",
+    ".T": "TSE",
+    ".AX": "ASX",
+}
+
+
+def tradingview_interval(timeframe):
+  return {
+      "Günlük": "D",
+      "Haftalık": "W",
+      "Aylık": "M",
+  }.get(timeframe, "D")
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def resolve_tradingview_symbol(yahoo_symbol):
+  """Yahoo sembolünü TradingView'in EXCHANGE:TICKER biçimine dönüştürür."""
+  symbol = yahoo_symbol.strip().upper()
+
+  # BIST, TradingView'in ücretsiz embed widget veri listesinde bulunmuyor.
+  if symbol.endswith(".IS"):
+    return None
+
+  # Kriptolarda Yahoo BTC-USD -> TradingView BINANCE:BTCUSDT
+  if symbol.endswith("-USD"):
+    base = symbol[:-4].replace("-", "")
+    return f"BINANCE:{base}USDT"
+
+  # Yahoo döviz çiftleri: EURUSD=X -> FX_IDC:EURUSD
+  if symbol.endswith("=X"):
+    pair = symbol[:-2].replace("-", "")
+    return f"FX_IDC:{pair}"
+
+  if symbol in TV_SYMBOL_OVERRIDES:
+    return TV_SYMBOL_OVERRIDES[symbol]
+
+  # Yahoo'nun ülke son eklerinden doğrudan eşleştirme.
+  for suffix, tv_exchange in YAHOO_SUFFIX_TO_TV.items():
+    if symbol.endswith(suffix):
+      ticker = symbol[:-len(suffix)]
+      return f"{tv_exchange}:{ticker}"
+
+  # ABD ve diğer piyasalarda borsa kodunu Yahoo fast_info üzerinden çöz.
+  try:
+    fast_info = yf.Ticker(symbol).fast_info
+    try:
+      yahoo_exchange = fast_info["exchange"]
+    except Exception:
+      yahoo_exchange = getattr(fast_info, "exchange", None)
+
+    tv_exchange = YAHOO_EXCHANGE_TO_TV.get(str(yahoo_exchange).upper())
+    if tv_exchange:
+      # Yahoo BRK-B, TradingView BRK.B biçimini kullanır.
+      tv_ticker = symbol.replace("-", ".")
+      return f"{tv_exchange}:{tv_ticker}"
+  except Exception:
+    pass
+
+  # Son çare. Kullanıcı grafikte üst arama alanından doğru sembolü seçebilir.
+  return f"NASDAQ:{symbol.replace('-', '.')}"
+
+
+def render_tradingview_chart(yahoo_symbol, timeframe, height=585):
+  """Resmi TradingView Advanced Chart widget'ını Streamlit içinde gösterir."""
+  tv_symbol = resolve_tradingview_symbol(yahoo_symbol)
+  if not tv_symbol:
+    return False
+
+  config = {
+      "autosize": True,
+      "symbol": tv_symbol,
+      "interval": tradingview_interval(timeframe),
+      "timezone": "Europe/Istanbul",
+      "theme": "light",
+      "style": "1",
+      "locale": "tr",
+      "allow_symbol_change": True,
+      "calendar": False,
+      "details": False,
+      "hide_side_toolbar": False,
+      "hide_top_toolbar": False,
+      "hide_legend": False,
+      "hide_volume": False,
+      "hotlist": False,
+      "save_image": True,
+      "withdateranges": True,
+      "support_host": "https://www.tradingview.com",
+  }
+
+  safe_config = json.dumps(config, ensure_ascii=False)
+  safe_link_symbol = tv_symbol.replace(":", "-").replace(".", "-")
+
+  widget_html = f"""
+  <!doctype html>
+  <html lang="tr">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <style>
+        html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; }}
+        .tradingview-widget-container {{ width: 100%; height: {height - 8}px; }}
+        .tradingview-widget-container__widget {{ width: 100%; height: calc(100% - 28px); }}
+        .tradingview-widget-copyright {{
+          height: 22px; font: 12px Arial, sans-serif; padding-top: 4px;
+        }}
+        .tradingview-widget-copyright a {{ color: #2962ff; text-decoration: none; }}
+      </style>
+    </head>
+    <body>
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <div class="tradingview-widget-copyright">
+          <a href="https://www.tradingview.com/symbols/{safe_link_symbol}/"
+             rel="noopener nofollow" target="_blank">{tv_symbol} grafiği</a>
+          <span> TradingView tarafından sağlanır</span>
+        </div>
+        <script type="text/javascript"
+                src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+                async>{safe_config}</script>
+      </div>
+    </body>
+  </html>
+  """
+
+  components.html(widget_html, height=height, scrolling=False)
+  return True
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_chart_history(ticker_symbol, timeframe):
+  """Plotly yedek grafiği için fiyat geçmişini getirir."""
+  if timeframe == "Günlük":
+    period, interval = "6mo", "1d"
+  elif timeframe == "Haftalık":
+    period, interval = "2y", "1wk"
+  else:
+    period, interval = "5y", "1mo"
+
+  df = yf.Ticker(ticker_symbol).history(period=period, interval=interval)
+  if df is None or df.empty:
+    return pd.DataFrame()
+
+  needed = ["Open", "High", "Low", "Close", "Volume"]
+  existing = [col for col in needed if col in df.columns]
+  return df[existing].dropna(subset=["Open", "High", "Low", "Close"])
+
+
+def render_local_candlestick(ticker_symbol, timeframe, pivot_data, currency):
+  """TradingView widget'ının gösteremediği semboller için interaktif mum grafik."""
+  df = get_chart_history(ticker_symbol, timeframe)
+  if df.empty:
+    st.warning("Grafik verisi alınamadı. Birkaç dakika sonra tekrar deneyin.")
+    return
+
+  fig = go.Figure(
+      data=[
+          go.Candlestick(
+              x=df.index,
+              open=df["Open"],
+              high=df["High"],
+              low=df["Low"],
+              close=df["Close"],
+              name=ticker_symbol,
+          )
+      ]
+  )
+
+  pivot_lines = [
+      ("R3", pivot_data.get("Direnç 3 (R3)"), "#b91c1c"),
+      ("R2", pivot_data.get("Direnç 2 (R2)"), "#dc2626"),
+      ("R1", pivot_data.get("Direnç 1 (R1)"), "#ef4444"),
+      ("P", pivot_data.get("Pivot (P)"), "#64748b"),
+      ("S1", pivot_data.get("Destek 1 (S1)"), "#22c55e"),
+      ("S2", pivot_data.get("Destek 2 (S2)"), "#16a34a"),
+      ("S3", pivot_data.get("Destek 3 (S3)"), "#15803d"),
+  ]
+
+  for label, value, color in pivot_lines:
+    if value is None:
+      continue
+    fig.add_hline(
+        y=float(value),
+        line_dash="dot",
+        line_width=1,
+        line_color=color,
+        annotation_text=f"{label}: {value:.2f}",
+        annotation_position="top right",
+        annotation_font_color=color,
+    )
+
+  fig.update_layout(
+      title=f"{ticker_symbol} — {timeframe} Mum Grafik",
+      height=585,
+      margin=dict(l=8, r=8, t=50, b=8),
+      xaxis_rangeslider_visible=False,
+      template="plotly_white",
+      hovermode="x unified",
+      yaxis_title=currency or "Fiyat",
+      showlegend=False,
+  )
+  fig.update_xaxes(showgrid=True)
+  fig.update_yaxes(showgrid=True, side="right")
+
+  st.plotly_chart(
+      fig,
+      use_container_width=True,
+      key=f"local_chart_{ticker_symbol}_{timeframe}",
+      config={"displaylogo": False, "scrollZoom": True},
+  )
+
+
 def get_crypto_yf_stats(symbol="BTC-USD"):
   yf_symbol = symbol.replace("USDT", "-USD")
   try:
@@ -583,7 +857,7 @@ with main_tab1:
     ])
 
     with sub_tab1:
-      st.write("##### Standart (Klasik) Pivot Seviyeleri")
+      st.write("##### Pivot Seviyeleri ve Fiyat Grafiği")
       timeframe_choice = st.radio(
           "Zaman Dilimi Seçin:", ["Günlük", "Haftalık", "Aylık"], horizontal=True
       )
@@ -596,20 +870,45 @@ with main_tab1:
       p_data = calculate_pivot_points(selected_stock, timeframe_choice)
 
       if p_data and isinstance(p_data, dict):
-        c1, c2, c3 = st.columns(3)
-        with c1:
+        pivot_col, chart_col = st.columns([1, 2.45], gap="large")
+
+        with pivot_col:
           st.markdown("### 🔴 Dirençler")
           st.error(f"**R3:** {p_data.get('Direnç 3 (R3)', 'N/A')} {currency}")
           st.error(f"**R2:** {p_data.get('Direnç 2 (R2)', 'N/A')} {currency}")
           st.error(f"**R1:** {p_data.get('Direnç 1 (R1)', 'N/A')} {currency}")
-        with c2:
-          st.markdown("### ⚪ Pivot Seviyesi")
-          st.info(f"**Pivot (P):** {p_data.get('Pivot (P)', 'N/A')} {currency}")
-        with c3:
+
+          st.markdown("### ⚪ Pivot")
+          st.info(f"**P:** {p_data.get('Pivot (P)', 'N/A')} {currency}")
+
           st.markdown("### 🟢 Destekler")
           st.success(f"**S1:** {p_data.get('Destek 1 (S1)', 'N/A')} {currency}")
           st.success(f"**S2:** {p_data.get('Destek 2 (S2)', 'N/A')} {currency}")
           st.success(f"**S3:** {p_data.get('Destek 3 (S3)', 'N/A')} {currency}")
+
+        with chart_col:
+          if selected_stock.endswith(".IS"):
+            st.caption(
+                "BIST sembolleri TradingView'in dış site widget'ında lisans nedeniyle "
+                "gösterilemiyor. Bu nedenle aynı alanda interaktif mum grafik ve pivot "
+                "çizgileri Yahoo Finance verisiyle oluşturuldu."
+            )
+            render_local_candlestick(
+                selected_stock, timeframe_choice, p_data, currency
+            )
+          else:
+            rendered = render_tradingview_chart(
+                selected_stock, timeframe_choice
+            )
+            if not rendered:
+              render_local_candlestick(
+                  selected_stock, timeframe_choice, p_data, currency
+              )
+
+            with st.expander("TradingView açılmazsa yedek grafiği göster"):
+              render_local_candlestick(
+                  selected_stock, timeframe_choice, p_data, currency
+              )
       else:
         st.warning(
             "Yahoo Finance geçici olarak çok fazla istek aldığından veriler"
