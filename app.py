@@ -362,6 +362,19 @@ def get_crypto_yf_stats(symbol="BTC-USD"):
   return None
 
 
+# TradingView Sembol Dönüştürücü Yardımcısı
+def get_tradingview_symbol(ticker):
+  ticker_upper = ticker.upper()
+  if ticker_upper.endswith(".IS"):
+    base = ticker_upper.replace(".IS", "")
+    return f"BIST:{base}"
+  elif "-USD" in ticker_upper:
+    base = ticker_upper.replace("-USD", "USDT")
+    return f"BINANCE:{base}"
+  else:
+    return ticker_upper
+
+
 # ---------------------------------------------------------
 # SOL MENÜ - HİSSE YÖNETİMİ & TEMATİK DİKEYLER
 # ---------------------------------------------------------
@@ -499,7 +512,6 @@ with main_tab1:
       with col2:
         st.subheader("🔔 Fiyat Alarmı Yönetimi")
 
-        # Mevcut hisse için kayıtlı alarm varsa çek
         existing_alarm = st.session_state.alarms.get(selected_stock, {})
         default_target = existing_alarm.get(
             "target", float(round(current_price, 2))
@@ -543,7 +555,6 @@ with main_tab1:
               st.warning("Alarm silindi.")
               st.rerun()
 
-        # Kayıtlı Alarm Durum Kontrolü
         if selected_stock in st.session_state.alarms:
           saved_t = st.session_state.alarms[selected_stock]["target"]
           saved_c = st.session_state.alarms[selected_stock]["condition"]
@@ -574,8 +585,9 @@ with main_tab1:
     st.markdown("---")
     clean_ticker = selected_stock.replace(".IS", "")
 
-    sub_tab1, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
+    sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
         "🎯 Pivot Noktaları",
+        "📉 TradingView Canlı Grafik",
         "🏛️ KAP Bildirimleri (BIST)",
         "📰 Basın Haberleri",
         "🌐 Yahoo Finance",
@@ -615,6 +627,37 @@ with main_tab1:
             "Yahoo Finance geçici olarak çok fazla istek aldığından veriler"
             " alınamadı. Lütfen 1-2 dakika bekleyip sayfayı yenileyin."
         )
+
+    with sub_tab_chart:
+      st.subheader(f"📉 {selected_stock} - TradingView Canlı Teknik Grafiği")
+      tv_symbol = get_tradingview_symbol(selected_stock)
+
+      # TradingView Gelişmiş Grafik Widget HTML Kodu
+      tv_html = f"""
+      <div class="tradingview-widget-container" style="height:600px;width:100%">
+        <div id="tradingview_chart" style="height:100%;width:100%"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+        <script type="text/javascript">
+        new TradingView.widget(
+        {{
+          "width": "100%",
+          "height": "600",
+          "symbol": "{tv_symbol}",
+          "interval": "D",
+          "timezone": "Europe/Istanbul",
+          "theme": "dark",
+          "style": "1",
+          "locale": "tr",
+          "toolbar_bg": "#f1f3f6",
+          "enable_publishing": false,
+          "allow_symbol_change": true,
+          "container_id": "tradingview_chart"
+        }}
+        );
+        </script>
+      </div>
+      """
+      st.components.v1.html(tv_html, height=620)
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):
@@ -778,7 +821,7 @@ with main_tab2:
         )
         st.markdown(analysis_res)
 
-    st.markdown("### 💬 Gemini'ye Soru Sorun")
+    st.markdown("### 💬 Gemini'ye Soru Sorون")
     user_q = st.text_input(
         f"'{matched_event['title']}' gelişmesiyle ilgili sorunuz:",
         placeholder=(
