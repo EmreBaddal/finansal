@@ -543,7 +543,7 @@ with main_tab1:
               <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
               <script type="text/javascript">
               new TradingView.widget(
-              {
+              {{
                 "autosize": true,
                 "symbol": "{tv_symbol}",
                 "interval": "D",
@@ -555,7 +555,7 @@ with main_tab1:
                 "enable_publishing": false,
                 "allow_symbol_change": true,
                 "container_id": "tradingview_chart"
-              }
+              }}
               );
               </script>
             </div>
@@ -594,7 +594,6 @@ with main_tab2:
       " sorun."
   )
 
-  # DataFrame gösterimi
   df_cal = pd.DataFrame(FINANCIAL_CALENDAR_EVENTS)[
       ["date", "country", "title", "importance", "forecast", "previous"]
   ]
