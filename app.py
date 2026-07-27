@@ -365,10 +365,13 @@ def get_crypto_yf_stats(symbol="BTC-USD"):
 # ---------------------------------------------------------
 # TRADINGVIEW SEMBOL YARDIMCISI
 # ---------------------------------------------------------
+# MEVCUT FONKSİYONU DEĞİŞTİRİN:
 def get_tradingview_symbol(ticker):
   ticker = ticker.upper().strip()
   if ticker.endswith(".IS"):
-    return f"BIST:{ticker.replace('.IS', '')}"
+    # .IS ekini kaldırıp sadece BIST:KOD şeklinde veriyoruz
+    clean_code = ticker.replace(".IS", "")
+    return f"BIST:{clean_code}"
   elif "-" in ticker or "USD" in ticker or "BTC" in ticker or "ETH" in ticker:
     return f"BINANCE:{ticker.replace('-','').replace('/','')}"
   else:
@@ -633,7 +636,7 @@ with main_tab1:
       tv_symbol = get_tradingview_symbol(selected_stock)
       
       theme_mode = st.radio("Grafik Modu:", ["Koyu Mod (Dark)", "Beyaz Mod (Light)"], horizontal=True, key="tv_theme_radio")
-      t_theme = "light" if "Beyaz" in theme_mode else "light"
+      t_theme = "light" if "Beyaz" in theme_mode else "dark"
 
       tv_html = f"""
       <div class="tradingview-widget-container" style="height:600px;width:100%">
