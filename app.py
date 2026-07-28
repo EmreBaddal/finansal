@@ -3,7 +3,8 @@ import os
 import urllib.parse
 from dateutil import parser
 import feedparser
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -11,6 +12,9 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 import yfinance as yf
+
+from alert_engine import fetch_current_price, process_alerts, send_ntfy_notification
+from finance_storage import FinanceStorage
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
 st.set_page_config(
@@ -69,15 +73,57 @@ st.markdown(
 st.title("📈 Aylooper Finans & Yapay Zeka Paneli")
 
 # ---------------------------------------------------------
-# SABİT API KEY TANIMLAMASI
+# GİZLİ ANAHTARLAR, ERİŞİM VE KALICI VERİ KATMANI
 # ---------------------------------------------------------
-FIXED_GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 
-# ---------------------------------------------------------
-# KALICI TAKİP LİSTESİ & ALARM YÖNETİMİ
-# ---------------------------------------------------------
-JSON_FILE = "takip_listesi.json"
-ALARM_FILE = "alarmlar.json"
+
+def get_secret(name, default=None):
+  """Streamlit secrets veya ortam değişkeninden güvenli değer okur."""
+  try:
+    return st.secrets.get(name, os.getenv(name, default))
+  except Exception:
+    return os.getenv(name, default)
+
+
+FIXED_GEMINI_API_KEY = get_secret("GEMINI_API_KEY", "")
+GEMINI_MODEL = get_secret("GEMINI_MODEL", "gemini-3.6-flash")
+SUPABASE_URL = get_secret("SUPABASE_URL", "")
+SUPABASE_KEY = get_secret("SUPABASE_SERVICE_ROLE_KEY", "")
+NTFY_TOPIC = get_secret("NTFY_TOPIC", "")
+NTFY_SERVER = get_secret("NTFY_SERVER", "https://ntfy.sh")
+APP_PASSWORD = get_secret("APP_PASSWORD", "")
+
+
+@st.cache_resource
+def get_storage():
+  return FinanceStorage(
+      supabase_url=SUPABASE_URL,
+      supabase_key=SUPABASE_KEY,
+  )
+
+
+storage = get_storage()
+
+
+# İsteğe bağlı basit parola kapısı. APP_PASSWORD boşsa uygulama doğrudan açılır.
+def require_app_password():
+  if not APP_PASSWORD:
+    return
+  if st.session_state.get("aylooper_authenticated"):
+    return
+
+  st.subheader("🔐 Aylooper Finans Girişi")
+  entered = st.text_input("Uygulama parolası", type="password")
+  if st.button("Giriş Yap", type="primary"):
+    if entered == APP_PASSWORD:
+      st.session_state.aylooper_authenticated = True
+      st.rerun()
+    else:
+      st.error("Parola hatalı.")
+  st.stop()
+
+
+require_app_password()
 
 DEFAULT_WATCHLIST = [
     "KONTR.IS",
@@ -89,52 +135,19 @@ DEFAULT_WATCHLIST = [
     "ETH-USD",
 ]
 
-
-def load_watchlist():
-  if os.path.exists(JSON_FILE):
-    try:
-      with open(JSON_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        if isinstance(data, list) and len(data) > 0:
-          if "BTC-USD" not in data:
-            data.append("BTC-USD")
-          return data
-    except Exception:
-      pass
-  return DEFAULT_WATCHLIST
-
-
-def save_watchlist(watchlist):
-  try:
-    with open(JSON_FILE, "w", encoding="utf-8") as f:
-      json.dump(watchlist, f, ensure_ascii=False, indent=2)
-  except Exception:
-    pass
-
-
-def load_alarms():
-  if os.path.exists(ALARM_FILE):
-    try:
-      with open(ALARM_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-    except Exception:
-      pass
-  return {}
-
-
-def save_alarms(alarms):
-  try:
-    with open(ALARM_FILE, "w", encoding="utf-8") as f:
-      json.dump(alarms, f, ensure_ascii=False, indent=2)
-  except Exception:
-    pass
-
+# Repo ile gelen eski listeyi ilk Supabase kurulumunda otomatik devral.
+try:
+  legacy_path = "takip_listesi.json"
+  if os.path.exists(legacy_path):
+    with open(legacy_path, "r", encoding="utf-8") as legacy_file:
+      legacy_watchlist = json.load(legacy_file)
+    if isinstance(legacy_watchlist, list) and legacy_watchlist:
+      DEFAULT_WATCHLIST = [str(item).upper() for item in legacy_watchlist]
+except Exception:
+  pass
 
 if "watch_list" not in st.session_state:
-  st.session_state.watch_list = load_watchlist()
-
-if "alarms" not in st.session_state:
-  st.session_state.alarms = load_alarms()
+  st.session_state.watch_list = storage.get_watchlist(DEFAULT_WATCHLIST)
 
 # ---------------------------------------------------------
 # TEMATİK SEKTÖR / DİKEY VERİ TABANI (BIST & NASDAQ)
@@ -859,10 +872,12 @@ if search_input:
 
     if st.sidebar.button("➕ Listeye Ekle", key="add_btn"):
       if ticker_to_add not in st.session_state.watch_list:
-        st.session_state.watch_list.append(ticker_to_add)
-        save_watchlist(st.session_state.watch_list)
-        st.sidebar.success(f"{ticker_to_add} eklendi!")
-        st.rerun()
+        if storage.add_watchlist_symbol(ticker_to_add):
+          st.session_state.watch_list.append(ticker_to_add)
+          st.sidebar.success(f"{ticker_to_add} eklendi!")
+          st.rerun()
+        else:
+          st.sidebar.error(f"Kayıt başarısız: {storage.last_error}")
 
 st.sidebar.markdown("---")
 selected_stock = st.sidebar.selectbox(
@@ -871,10 +886,14 @@ selected_stock = st.sidebar.selectbox(
 
 if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
   if len(st.session_state.watch_list) > 1:
-    st.session_state.watch_list.remove(selected_stock)
-    save_watchlist(st.session_state.watch_list)
-    st.sidebar.warning(f"{selected_stock} çıkarıldı.")
-    st.rerun()
+    if storage.remove_watchlist_symbol(selected_stock):
+      st.session_state.watch_list.remove(selected_stock)
+      st.sidebar.warning(
+          f"{selected_stock} listeden çıkarıldı. Günlük ve alarm geçmişi korunuyor."
+      )
+      st.rerun()
+    else:
+      st.sidebar.error(f"Silme başarısız: {storage.last_error}")
   else:
     st.sidebar.error("Listenizde en az 1 hisse kalmalıdır.")
 
@@ -895,38 +914,538 @@ if selected_sector_key != "Özel Liste (Manuel)":
   quick_add_ticker = sec_choice.split(" - ")[0].strip()
   if st.sidebar.button("➕ Dikey Hisseyi Listeye Ekle"):
     if quick_add_ticker not in st.session_state.watch_list:
-      st.session_state.watch_list.append(quick_add_ticker)
-      save_watchlist(st.session_state.watch_list)
-      st.sidebar.success(f"{quick_add_ticker} eklendi!")
-      st.rerun()
+      if storage.add_watchlist_symbol(quick_add_ticker):
+        st.session_state.watch_list.append(quick_add_ticker)
+        st.sidebar.success(f"{quick_add_ticker} eklendi!")
+        st.rerun()
+      else:
+        st.sidebar.error(f"Kayıt başarısız: {storage.last_error}")
 
 st.sidebar.markdown("---")
-st.sidebar.success("🔑 Sabit API Key Aktif")
+if storage.is_supabase:
+  st.sidebar.success("☁️ Kalıcı veri: Supabase aktif")
+else:
+  st.sidebar.warning(
+      "💾 Yerel kayıt modu aktif. Supabase bağlantısı kurulamadı."
+  )
+  if storage.last_error:
+    with st.sidebar.expander("Supabase hata ayrıntısı"):
+      st.code(storage.last_error)
+if FIXED_GEMINI_API_KEY:
+  st.sidebar.success("🤖 Gemini API aktif")
+else:
+  st.sidebar.info("🤖 Gemini API anahtarı tanımlı değil")
+if NTFY_TOPIC:
+  st.sidebar.success("🔔 ntfy bildirimi aktif")
+else:
+  st.sidebar.info("🔕 ntfy konusu henüz tanımlanmadı")
 
 # ---------------------------------------------------------
 # GEMINI ANALİZ FONKSİYONU
 # ---------------------------------------------------------
 import time
-from google.api_core import exceptions
 
 
 def ask_gemini_analysis(prompt, system_instruction):
+  if not FIXED_GEMINI_API_KEY:
+    return "Gemini API anahtarı tanımlı değil."
+
   max_retries = 3
   for attempt in range(max_retries):
     try:
-      model = genai.GenerativeModel(
-          model_name="gemini-2.0-flash", system_instruction=system_instruction
+      client = genai.Client(api_key=FIXED_GEMINI_API_KEY)
+      response = client.models.generate_content(
+          model=GEMINI_MODEL,
+          contents=prompt,
+          config=types.GenerateContentConfig(
+              system_instruction=system_instruction,
+          ),
       )
-      response = model.generate_content(prompt)
-      return response.text
-    except exceptions.ResourceExhausted as e:
-      if attempt < max_retries - 1:
+      return response.text or "Gemini boş yanıt döndürdü."
+    except Exception as exc:
+      error_text = str(exc)
+      retryable = any(code in error_text for code in ("429", "RESOURCE_EXHAUSTED", "503"))
+      if retryable and attempt < max_retries - 1:
         time.sleep(5 * (attempt + 1))
         continue
+      if retryable:
+        return "Kota veya servis yoğunluğu hatası: Lütfen birkaç dakika sonra tekrar deneyin."
+      return f"Hata oluştu: {error_text}"
+
+
+def optional_price(value):
+  try:
+    number = float(value)
+    return number if number > 0 else None
+  except (TypeError, ValueError):
+    return None
+
+
+def parse_tags(tags_text):
+  return [item.strip() for item in str(tags_text).split(",") if item.strip()]
+
+
+def tags_to_text(tags):
+  if isinstance(tags, list):
+    return ", ".join(str(item) for item in tags)
+  if tags is None:
+    return ""
+  return str(tags)
+
+
+def format_record_datetime(value):
+  if not value:
+    return "Tarih yok"
+  try:
+    dt = parser.parse(str(value))
+    return dt.astimezone().strftime("%d.%m.%Y %H:%M")
+  except Exception:
+    return str(value)
+
+
+def render_journal_tab(symbol, current_price, currency):
+  st.subheader(f"📝 {symbol} Varlık Günlüğü")
+  st.caption(
+      "Buraya eklenen kayıtlar takip listesinden bağımsızdır. Varlığı listeden "
+      "çıkarıp yeniden eklesen de Supabase üzerinde korunur."
+  )
+
+  with st.expander("➕ Yeni analiz / not ekle", expanded=True):
+    with st.form(f"new_journal_{symbol}", clear_on_submit=True):
+      form_col1, form_col2 = st.columns(2)
+      with form_col1:
+        entry_type = st.selectbox(
+            "Kayıt türü",
+            ["Analiz", "İşlem Planı", "Bilanço Notu", "Haber Notu", "Genel Not"],
+        )
+        title = st.text_input("Başlık", placeholder="Örn: Orta vadeli kırılım planı")
+        status = st.selectbox("Durum", ["Açık", "İzlemede", "Gerçekleşti", "İptal"])
+        tags_text = st.text_input(
+            "Etiketler",
+            placeholder="orta vade, teknik analiz, bilanço",
+        )
+      with form_col2:
+        price_at_entry = st.number_input(
+            f"Not anındaki fiyat ({currency or 'fiyat'})",
+            min_value=0.0,
+            value=float(current_price or 0.0),
+            step=0.01,
+            format="%.4f",
+        )
+        target_price = st.number_input(
+            "Hedef fiyat (boş bırakmak için 0)",
+            min_value=0.0,
+            value=0.0,
+            step=0.01,
+            format="%.4f",
+        )
+        stop_price = st.number_input(
+            "Stop fiyatı (boş bırakmak için 0)",
+            min_value=0.0,
+            value=0.0,
+            step=0.01,
+            format="%.4f",
+        )
+
+      content = st.text_area(
+          "Analiz / not",
+          height=180,
+          placeholder=(
+              "Beklentini, dayanaklarını, destek-direnç seviyelerini, riskleri "
+              "ve daha sonra kontrol etmek istediğin noktaları yaz."
+          ),
+      )
+
+      alert_col1, alert_col2, alert_col3 = st.columns(3)
+      with alert_col1:
+        create_target_alert = st.checkbox("Hedef için alarm oluştur")
+      with alert_col2:
+        create_stop_alert = st.checkbox("Stop için alarm oluştur")
+      with alert_col3:
+        notify_ntfy = st.checkbox(
+            "Telefona ntfy bildirimi",
+            value=bool(NTFY_TOPIC),
+            disabled=not bool(NTFY_TOPIC),
+        )
+
+      submitted = st.form_submit_button("💾 Günlüğe Kaydet", type="primary")
+
+    if submitted:
+      if not title.strip() or not content.strip():
+        st.error("Başlık ve analiz/not alanı zorunludur.")
       else:
-        return "Kota Sınırı Hatası: Lütfen birkaç dakika sonra tekrar deneyin."
-    except Exception as e:
-      return f"Hata oluştu: {e}"
+        created = storage.create_journal_entry(
+            {
+                "symbol": symbol,
+                "title": title,
+                "content": content,
+                "entry_type": entry_type,
+                "price_at_entry": optional_price(price_at_entry),
+                "target_price": optional_price(target_price),
+                "stop_price": optional_price(stop_price),
+                "status": status,
+                "tags": parse_tags(tags_text),
+            }
+        )
+        if created:
+          created_alerts = 0
+          if create_target_alert and optional_price(target_price):
+            if storage.create_alert(
+                {
+                    "symbol": symbol,
+                    "label": f"{title} — Hedef",
+                    "target_price": optional_price(target_price),
+                    "condition": "above",
+                    "repeat_mode": "once",
+                    "last_checked_price": current_price,
+                    "journal_entry_id": created.get("id"),
+                    "notify_ntfy": notify_ntfy,
+                }
+            ):
+              created_alerts += 1
+          if create_stop_alert and optional_price(stop_price):
+            if storage.create_alert(
+                {
+                    "symbol": symbol,
+                    "label": f"{title} — Stop",
+                    "target_price": optional_price(stop_price),
+                    "condition": "below",
+                    "repeat_mode": "once",
+                    "last_checked_price": current_price,
+                    "journal_entry_id": created.get("id"),
+                    "notify_ntfy": notify_ntfy,
+                }
+            ):
+              created_alerts += 1
+          st.success(
+              f"Günlük kaydı oluşturuldu. Eklenen alarm sayısı: {created_alerts}."
+          )
+          st.rerun()
+        else:
+          st.error(f"Kayıt oluşturulamadı: {storage.last_error}")
+
+  entries = storage.list_journal_entries(symbol)
+  st.markdown(f"### Geçmiş kayıtlar ({len(entries)})")
+  if not entries:
+    st.info("Bu varlık için henüz günlük kaydı bulunmuyor.")
+    return
+
+  for entry in entries:
+    entry_id = str(entry.get("id"))
+    heading = (
+        f"{format_record_datetime(entry.get('created_at'))} · "
+        f"{entry.get('title', 'Başlıksız')} · {entry.get('status', 'Açık')}"
+    )
+    with st.expander(heading):
+      st.markdown(str(entry.get("content", "")))
+      info_col1, info_col2, info_col3 = st.columns(3)
+      info_col1.metric(
+          "Not fiyatı",
+          f"{float(entry.get('price_at_entry') or 0):.4f} {currency}",
+      )
+      info_col2.metric(
+          "Hedef",
+          f"{float(entry.get('target_price') or 0):.4f} {currency}"
+          if entry.get("target_price") is not None else "—",
+      )
+      info_col3.metric(
+          "Stop",
+          f"{float(entry.get('stop_price') or 0):.4f} {currency}"
+          if entry.get("stop_price") is not None else "—",
+      )
+      if entry.get("tags"):
+        st.caption(f"Etiketler: {tags_to_text(entry.get('tags'))}")
+
+      with st.form(f"edit_journal_{entry_id}"):
+        edit_col1, edit_col2 = st.columns(2)
+        with edit_col1:
+          edit_title = st.text_input("Başlık", value=str(entry.get("title", "")))
+          types_list = ["Analiz", "İşlem Planı", "Bilanço Notu", "Haber Notu", "Genel Not"]
+          current_type = str(entry.get("entry_type", "Analiz"))
+          edit_type = st.selectbox(
+              "Kayıt türü",
+              types_list,
+              index=types_list.index(current_type) if current_type in types_list else 0,
+          )
+          statuses = ["Açık", "İzlemede", "Gerçekleşti", "İptal"]
+          current_status = str(entry.get("status", "Açık"))
+          edit_status = st.selectbox(
+              "Durum",
+              statuses,
+              index=statuses.index(current_status) if current_status in statuses else 0,
+          )
+          edit_tags = st.text_input("Etiketler", value=tags_to_text(entry.get("tags")))
+        with edit_col2:
+          edit_entry_price = st.number_input(
+              "Not fiyatı",
+              min_value=0.0,
+              value=float(entry.get("price_at_entry") or 0.0),
+              step=0.01,
+              format="%.4f",
+          )
+          edit_target = st.number_input(
+              "Hedef",
+              min_value=0.0,
+              value=float(entry.get("target_price") or 0.0),
+              step=0.01,
+              format="%.4f",
+          )
+          edit_stop = st.number_input(
+              "Stop",
+              min_value=0.0,
+              value=float(entry.get("stop_price") or 0.0),
+              step=0.01,
+              format="%.4f",
+          )
+        edit_content = st.text_area(
+            "Analiz / not",
+            value=str(entry.get("content", "")),
+            height=180,
+        )
+        action_col1, action_col2 = st.columns(2)
+        with action_col1:
+          update_clicked = st.form_submit_button("💾 Değişiklikleri Kaydet")
+        with action_col2:
+          delete_clicked = st.form_submit_button("🗑️ Kaydı Sil")
+
+      if update_clicked:
+        ok = storage.update_journal_entry(
+            entry_id,
+            {
+                "title": edit_title,
+                "content": edit_content,
+                "entry_type": edit_type,
+                "price_at_entry": optional_price(edit_entry_price),
+                "target_price": optional_price(edit_target),
+                "stop_price": optional_price(edit_stop),
+                "status": edit_status,
+                "tags": parse_tags(edit_tags),
+            },
+        )
+        if ok:
+          st.success("Kayıt güncellendi.")
+          st.rerun()
+        st.error(f"Güncelleme başarısız: {storage.last_error}")
+
+      if delete_clicked:
+        if storage.delete_journal_entry(entry_id):
+          st.warning("Günlük kaydı silindi.")
+          st.rerun()
+        st.error(f"Silme başarısız: {storage.last_error}")
+
+
+def render_alerts_tab(symbol, current_price, currency):
+  st.subheader(f"🔔 {symbol} Fiyat Alarmları")
+  st.caption(
+      "Uygulama açıkken alarmlar dakikada bir kontrol edilir. GitHub Actions "
+      "kurulduğunda uygulama kapalıyken de ücretsiz arka plan kontrolü çalışır."
+  )
+
+  top_col1, top_col2 = st.columns(2)
+  with top_col1:
+    if st.button("🔄 Alarmları Şimdi Kontrol Et", key=f"check_alerts_{symbol}"):
+      results = process_alerts(
+          storage=storage,
+          alerts=storage.list_alerts(symbol=symbol, active_only=True),
+          ntfy_topic=NTFY_TOPIC,
+          ntfy_server=NTFY_SERVER,
+      )
+      if results:
+        st.success(f"{len(results)} alarm tetiklendi.")
+      else:
+        st.info("Bu kontrolde tetiklenen alarm olmadı.")
+      st.rerun()
+  with top_col2:
+    if NTFY_TOPIC:
+      if st.button("📲 Test Bildirimi Gönder", key=f"test_ntfy_{symbol}"):
+        sent, detail = send_ntfy_notification(
+            topic=NTFY_TOPIC,
+            server=NTFY_SERVER,
+            title="Aylooper test bildirimi",
+            message=f"{symbol} için ntfy bağlantısı başarıyla test edildi.",
+        )
+        if sent:
+          st.success("Test bildirimi gönderildi.")
+        else:
+          st.error(f"Bildirim gönderilemedi: {detail}")
+    else:
+      st.info("Test için önce NTFY_TOPIC secret değerini tanımla.")
+
+  with st.expander("➕ Yeni bağımsız alarm oluştur", expanded=True):
+    with st.form(f"new_alert_{symbol}", clear_on_submit=True):
+      alert_col1, alert_col2 = st.columns(2)
+      with alert_col1:
+        label = st.text_input("Alarm adı", value=f"{symbol} fiyat alarmı")
+        target = st.number_input(
+            f"Hedef fiyat ({currency or 'fiyat'})",
+            min_value=0.0001,
+            value=float(current_price or 1.0),
+            step=0.01,
+            format="%.4f",
+        )
+        condition_text = st.selectbox("Koşul", ["Üzerine çıkınca", "Altına düşünce"])
+      with alert_col2:
+        repeat_text = st.selectbox("Tekrar", ["Bir kez", "Her seviye geçişinde"])
+        notify = st.checkbox(
+            "ntfy telefon bildirimi",
+            value=bool(NTFY_TOPIC),
+            disabled=not bool(NTFY_TOPIC),
+        )
+        st.caption(f"Başlangıç karşılaştırma fiyatı: {float(current_price or 0):.4f}")
+      create_clicked = st.form_submit_button("🔔 Alarmı Kaydet", type="primary")
+
+    if create_clicked:
+      created = storage.create_alert(
+          {
+              "symbol": symbol,
+              "label": label,
+              "target_price": float(target),
+              "condition": "above" if condition_text == "Üzerine çıkınca" else "below",
+              "repeat_mode": "once" if repeat_text == "Bir kez" else "cross",
+              "last_checked_price": current_price,
+              "notify_ntfy": notify,
+          }
+      )
+      if created:
+        st.success("Alarm kaydedildi.")
+        st.rerun()
+      st.error(f"Alarm kaydedilemedi: {storage.last_error}")
+
+  alerts = storage.list_alerts(symbol=symbol)
+  st.markdown(f"### Kayıtlı alarmlar ({len(alerts)})")
+  if not alerts:
+    st.info("Bu varlık için kayıtlı alarm bulunmuyor.")
+  for alert in alerts:
+    alert_id = str(alert.get("id"))
+    condition_label = "≥" if alert.get("condition") == "above" else "≤"
+    state_label = "Aktif" if alert.get("is_active") else "Pasif"
+    with st.expander(
+        f"{state_label} · {alert.get('label', 'Alarm')} · "
+        f"{condition_label} {float(alert.get('target_price') or 0):.4f} {currency}"
+    ):
+      st.caption(
+          f"Son kontrol fiyatı: {alert.get('last_checked_price') or '—'} · "
+          f"Son tetiklenme: {format_record_datetime(alert.get('last_triggered_at'))}"
+      )
+      with st.form(f"edit_alert_{alert_id}"):
+        alert_edit_col1, alert_edit_col2 = st.columns(2)
+        with alert_edit_col1:
+          edit_label = st.text_input("Alarm adı", value=str(alert.get("label", "")))
+          edit_target = st.number_input(
+              "Hedef fiyat",
+              min_value=0.0001,
+              value=float(alert.get("target_price") or 0.0001),
+              step=0.01,
+              format="%.4f",
+          )
+          conditions = ["Üzerine çıkınca", "Altına düşünce"]
+          edit_condition = st.selectbox(
+              "Koşul",
+              conditions,
+              index=0 if alert.get("condition") == "above" else 1,
+          )
+        with alert_edit_col2:
+          repeats = ["Bir kez", "Her seviye geçişinde"]
+          edit_repeat = st.selectbox(
+              "Tekrar",
+              repeats,
+              index=0 if alert.get("repeat_mode") == "once" else 1,
+          )
+          edit_active = st.checkbox("Aktif", value=bool(alert.get("is_active", True)))
+          edit_notify = st.checkbox(
+              "ntfy bildirimi",
+              value=bool(alert.get("notify_ntfy", False) and NTFY_TOPIC),
+              disabled=not bool(NTFY_TOPIC),
+          )
+        edit_action1, edit_action2 = st.columns(2)
+        with edit_action1:
+          alert_update = st.form_submit_button("💾 Alarmı Güncelle")
+        with edit_action2:
+          alert_delete = st.form_submit_button("🗑️ Alarmı Sil")
+
+      if alert_update:
+        ok = storage.update_alert(
+            alert_id,
+            {
+                "label": edit_label,
+                "target_price": float(edit_target),
+                "condition": "above" if edit_condition == "Üzerine çıkınca" else "below",
+                "repeat_mode": "once" if edit_repeat == "Bir kez" else "cross",
+                "is_active": edit_active,
+                "notify_ntfy": edit_notify,
+                # Yeniden aktif edilen alarm için yeni başlangıç noktası.
+                "last_checked_price": current_price if edit_active else alert.get("last_checked_price"),
+            },
+        )
+        if ok:
+          st.success("Alarm güncellendi.")
+          st.rerun()
+        st.error(f"Güncelleme başarısız: {storage.last_error}")
+
+      if alert_delete:
+        if storage.delete_alert(alert_id):
+          st.warning("Alarm silindi.")
+          st.rerun()
+        st.error(f"Silme başarısız: {storage.last_error}")
+
+  history = storage.list_alert_history(symbol=symbol, limit=50)
+  st.markdown(f"### Alarm geçmişi ({len(history)})")
+  if history:
+    history_df = pd.DataFrame(
+        [
+            {
+                "Tarih": format_record_datetime(item.get("triggered_at")),
+                "Alarm": item.get("label"),
+                "Hedef": item.get("target_price"),
+                "Tetiklenen Fiyat": item.get("triggered_price"),
+                "Bildirim": item.get("notification_status"),
+            }
+            for item in history
+        ]
+    )
+    st.dataframe(history_df, use_container_width=True, hide_index=True)
+  else:
+    st.info("Henüz tetiklenmiş alarm bulunmuyor.")
+
+
+@st.fragment(run_every="60s")
+def live_alert_checker(symbol):
+  """Uygulama açıkken seçili varlığın alarmlarını dakikada bir kontrol eder."""
+  active_alerts = storage.list_alerts(symbol=symbol, active_only=True)
+  if not active_alerts:
+    return
+
+  triggered = process_alerts(
+      storage=storage,
+      alerts=active_alerts,
+      ntfy_topic=NTFY_TOPIC,
+      ntfy_server=NTFY_SERVER,
+  )
+  for result in triggered:
+    st.toast(
+        f"🚨 {symbol}: {result['current_price']:.4f} seviyesinde alarm tetiklendi!",
+        icon="🚨",
+    )
+    st.error(result["message"].replace("\n", "  \n"))
+    # Tarayıcı izin verirse kısa bir ses üretir.
+    components.html(
+        """
+        <script>
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          const ctx = new AudioContext();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.frequency.value = 880;
+          gain.gain.value = 0.08;
+          osc.start();
+          setTimeout(() => { osc.stop(); ctx.close(); }, 450);
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
 
 
 # ---------------------------------------------------------
@@ -943,6 +1462,10 @@ main_tab1, main_tab2, main_tab3 = st.tabs([
 # =========================================================
 with main_tab1:
   if selected_stock:
+    current_price = None
+    previous_close = None
+    price_change = 0.0
+    percent_change = 0.0
     try:
       if "-" in selected_stock:
         crypto_data = get_crypto_yf_stats(selected_stock)
@@ -967,86 +1490,25 @@ with main_tab1:
           else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
       )
 
-      col1, col2 = st.columns([1, 2])
+      active_alerts_summary = storage.list_alerts(
+          symbol=selected_stock,
+          active_only=True,
+      )
+      journal_summary = storage.list_journal_entries(selected_stock)
 
-      with col1:
+      metric_col1, metric_col2, metric_col3 = st.columns(3)
+      with metric_col1:
         st.metric(
             label=f"Anlık Fiyat ({selected_stock})",
             value=f"{current_price:.2f} {currency}",
             delta=f"{price_change:+.2f} {currency} (%{percent_change:+.2f})",
         )
+      with metric_col2:
+        st.metric("Aktif Alarm", len(active_alerts_summary))
+      with metric_col3:
+        st.metric("Günlük Kaydı", len(journal_summary))
 
-      with col2:
-        st.subheader("🔔 Fiyat Alarmı Yönetimi")
-
-        # Mevcut hisse için kayıtlı alarm varsa çek
-        existing_alarm = st.session_state.alarms.get(selected_stock, {})
-        default_target = existing_alarm.get(
-            "target", float(round(current_price, 2))
-        )
-        default_cond_idx = (
-            0
-            if existing_alarm.get("condition", "Üzerine Çıkınca")
-            == "Üzerine Çıkınca"
-            else 1
-        )
-
-        target_price = st.number_input(
-            "Hedef Fiyat:",
-            value=float(default_target),
-            step=0.5,
-            key=f"alarm_input_{selected_stock}",
-        )
-        condition = st.selectbox(
-            "Koşul:",
-            ["Üzerine Çıkınca", "Altına Düşünce"],
-            index=default_cond_idx,
-            key=f"alarm_cond_{selected_stock}",
-        )
-
-        col_a, col_b = st.columns(2)
-        with col_a:
-          if st.button("💾 Alarmı Kaydet", key=f"save_alarm_{selected_stock}"):
-            st.session_state.alarms[selected_stock] = {
-                "target": target_price,
-                "condition": condition,
-            }
-            save_alarms(st.session_state.alarms)
-            st.success(f"✅ {selected_stock} için alarm kaydedildi!")
-            st.rerun()
-
-        with col_b:
-          if selected_stock in st.session_state.alarms:
-            if st.button("🗑️ Alarmı Sil", key=f"del_alarm_{selected_stock}"):
-              del st.session_state.alarms[selected_stock]
-              save_alarms(st.session_state.alarms)
-              st.warning("Alarm silindi.")
-              st.rerun()
-
-        # Kayıtlı Alarm Durum Kontrolü
-        if selected_stock in st.session_state.alarms:
-          saved_t = st.session_state.alarms[selected_stock]["target"]
-          saved_c = st.session_state.alarms[selected_stock]["condition"]
-
-          st.info(
-              f"📌 Aktif Kayıtlı Alarm: **{saved_t} {currency}** ({saved_c})"
-          )
-
-          if saved_c == "Üzerine Çıkınca" and current_price >= saved_t:
-            st.error(
-                f"🚨 **ALARM TETİKLENDİ!** {selected_stock} fiyatı ({current_price:.2f}"
-                f" {currency}) hedef seviyeyi geçti!"
-            )
-          elif saved_c == "Altına Düşünce" and current_price <= saved_t:
-            st.warning(
-                f"🚨 **ALARM TETİKLENDİ!** {selected_stock} fiyatı ({current_price:.2f}"
-                f" {currency}) hedef seviyenin altına düştü!"
-            )
-        else:
-          st.caption(
-              "Bu varlık için kayıtlı aktif bir alarm bulunmuyor. Hedef"
-              " belirleyip 'Alarmı Kaydet'e basın."
-          )
+      live_alert_checker(selected_stock)
 
     except Exception as e:
       st.error(f"Veri çekilemedi: {e}")
@@ -1054,9 +1516,20 @@ with main_tab1:
     st.markdown("---")
     clean_ticker = selected_stock.replace(".IS", "")
 
-    sub_tab1, sub_tab_chart, sub_tab2, sub_tab3, sub_tab4, sub_tab5 = st.tabs([
+    (
+        sub_tab1,
+        sub_tab_chart,
+        sub_tab_journal,
+        sub_tab_alerts,
+        sub_tab2,
+        sub_tab3,
+        sub_tab4,
+        sub_tab5,
+    ) = st.tabs([
         "🎯 Pivot Noktaları",
         "📈 Grafik",
+        "📝 Varlık Günlüğü",
+        "🔔 Alarmlar",
         "🏛️ KAP Bildirimleri (BIST)",
         "📰 Basın Haberleri",
         "🌐 Yahoo Finance",
@@ -1172,6 +1645,20 @@ with main_tab1:
         )
         if not rendered:
           st.error("Bu sembol için TradingView grafik eşleştirmesi yapılamadı.")
+
+    with sub_tab_journal:
+      render_journal_tab(
+          symbol=selected_stock,
+          current_price=current_price,
+          currency=currency,
+      )
+
+    with sub_tab_alerts:
+      render_alerts_tab(
+          symbol=selected_stock,
+          current_price=current_price,
+          currency=currency,
+      )
 
     with sub_tab2:
       if selected_stock.endswith(".IS"):

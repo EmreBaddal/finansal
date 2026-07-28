@@ -1,0 +1,7 @@
+.streamlit/secrets.toml
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.aylooper_data/
+.github/workflows/price-alerts.yml
