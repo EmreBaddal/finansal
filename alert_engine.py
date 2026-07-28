@@ -5,8 +5,9 @@ from __future__ import annotations
 import math
 import os
 from datetime import datetime, timezone
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Mapping, Optional
 
+import pandas as pd
 import requests
 import yfinance as yf
 
@@ -60,13 +61,111 @@ def fetch_current_price(symbol: str) -> Optional[float]:
     return None
 
 
+def _extract_last_close_from_download(
+    frame: pd.DataFrame,
+    symbol: str,
+    multi_symbol: bool,
+) -> Optional[float]:
+    """yf.download çıktısından son geçerli kapanışı güvenli biçimde çıkarır."""
+    try:
+        if multi_symbol:
+            # yfinance sürümüne göre ilk seviye sembol veya fiyat alanı olabilir.
+            if isinstance(frame.columns, pd.MultiIndex):
+                level0 = set(map(str, frame.columns.get_level_values(0)))
+                level1 = set(map(str, frame.columns.get_level_values(1)))
+                if symbol in level0:
+                    series = frame[symbol]["Close"]
+                elif symbol in level1:
+                    series = frame["Close"][symbol]
+                else:
+                    return None
+            else:
+                return None
+        else:
+            if isinstance(frame.columns, pd.MultiIndex):
+                if "Close" in frame.columns.get_level_values(0):
+                    close_block = frame["Close"]
+                    series = (
+                        close_block[symbol]
+                        if symbol in close_block.columns
+                        else close_block.iloc[:, 0]
+                    )
+                else:
+                    series = frame[symbol]["Close"]
+            else:
+                series = frame["Close"]
+
+        series = series.dropna()
+        if series.empty:
+            return None
+        value = normalize_float(series.iloc[-1])
+        return value if value and value > 0 else None
+    except Exception:
+        return None
+
+
+def fetch_current_prices(symbols: Iterable[str]) -> dict[str, Optional[float]]:
+    """Birden fazla sembolün fiyatını mümkün olduğunca tek Yahoo isteğiyle getirir.
+
+    Toplu istek başarısız olan semboller için tekil güvenli yedek yöntem kullanılır.
+    Bu yaklaşım, uygulama açıkken bütün aktif alarmları kontrol ederken Yahoo'ya
+    gereksiz sayıda istek gönderilmesini azaltır.
+    """
+    unique_symbols = list(
+        dict.fromkeys(
+            str(symbol).strip().upper()
+            for symbol in symbols
+            if str(symbol).strip()
+        )
+    )
+    result: dict[str, Optional[float]] = {symbol: None for symbol in unique_symbols}
+    if not unique_symbols:
+        return result
+
+    # Dakikalık veri oran sınırına takılırsa 5 dakikalık veri ve sonra günlük veri denenir.
+    for period, interval in (("1d", "5m"), ("5d", "15m"), ("5d", "1d")):
+        missing = [symbol for symbol, price in result.items() if price is None]
+        if not missing:
+            break
+        try:
+            downloaded = yf.download(
+                tickers=" ".join(missing),
+                period=period,
+                interval=interval,
+                auto_adjust=False,
+                progress=False,
+                group_by="ticker",
+                threads=False,
+            )
+            if downloaded is None or downloaded.empty:
+                continue
+            multi_symbol = len(missing) > 1
+            for symbol in missing:
+                value = _extract_last_close_from_download(
+                    downloaded,
+                    symbol,
+                    multi_symbol=multi_symbol,
+                )
+                if value is not None:
+                    result[symbol] = value
+        except Exception:
+            continue
+
+    # Hâlâ eksik kalanları tek tek dene.
+    for symbol, value in list(result.items()):
+        if value is None:
+            result[symbol] = fetch_current_price(symbol)
+
+    return result
+
+
 def should_trigger(
     condition: str,
     previous_price: Optional[float],
     current_price: float,
     target_price: float,
 ) -> bool:
-    """Alarmın yalnızca hedef seviyesi geçildiğinde tetiklenmesini sağlar."""
+    """Alarmın hedef seviyesi ilk kez sağlandığında/geçildiğinde tetiklenmesini sağlar."""
     if condition == "below":
         if previous_price is None:
             return current_price <= target_price
@@ -130,10 +229,16 @@ def process_alerts(
     alerts: Optional[Iterable[dict[str, Any]]] = None,
     ntfy_topic: Optional[str] = None,
     ntfy_server: Optional[str] = None,
+    price_overrides: Optional[Mapping[str, Optional[float]]] = None,
 ) -> list[dict[str, Any]]:
-    """Aktif alarmları kontrol eder, tetiklenenleri kaydeder ve bildirir."""
+    """Aktif alarmları kontrol eder, tetiklenenleri kaydeder ve bildirir.
+
+    Aynı sembole ait birden fazla alarm için fiyat yalnızca bir kez alınır. Uygulama
+    seçili varlığın fiyatını zaten çekmişse ``price_overrides`` ile tekrar kullanabilir.
+    """
     if alerts is None:
         alerts = storage.list_alerts(active_only=True)
+    alert_list = list(alerts)
 
     topic = ntfy_topic if ntfy_topic is not None else os.getenv("NTFY_TOPIC", "")
     server = ntfy_server if ntfy_server is not None else os.getenv(
@@ -141,9 +246,26 @@ def process_alerts(
     )
 
     triggered_results: list[dict[str, Any]] = []
-    price_cache: dict[str, Optional[float]] = {}
+    price_cache: dict[str, Optional[float]] = {
+        str(symbol).strip().upper(): normalize_float(value)
+        for symbol, value in (price_overrides or {}).items()
+        if str(symbol).strip()
+    }
 
-    for alert in alerts:
+    symbols_needed = {
+        str(alert.get("symbol", "")).strip().upper()
+        for alert in alert_list
+        if alert.get("is_active", False) and str(alert.get("symbol", "")).strip()
+    }
+    missing_symbols = [
+        symbol
+        for symbol in symbols_needed
+        if symbol not in price_cache or price_cache[symbol] is None
+    ]
+    if missing_symbols:
+        price_cache.update(fetch_current_prices(missing_symbols))
+
+    for alert in alert_list:
         if not alert.get("is_active", False):
             continue
 
@@ -152,9 +274,7 @@ def process_alerts(
         if not symbol or target_price is None:
             continue
 
-        if symbol not in price_cache:
-            price_cache[symbol] = fetch_current_price(symbol)
-        current_price = price_cache[symbol]
+        current_price = normalize_float(price_cache.get(symbol))
         if current_price is None:
             continue
 

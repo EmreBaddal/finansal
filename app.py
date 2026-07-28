@@ -1,6 +1,8 @@
 import json
 import os
 import urllib.parse
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dateutil import parser
 import feedparser
 from google import genai
@@ -855,6 +857,64 @@ def get_crypto_yf_stats(symbol="BTC-USD"):
   return None
 
 
+@st.cache_data(ttl=50, show_spinner=False)
+def get_market_snapshot(symbol):
+  """Seçili varlık için fiyat, önceki kapanış ve günlük değişimi getirir."""
+  symbol = symbol.strip().upper()
+  current_price = fetch_current_price(symbol)
+  previous_close = None
+
+  try:
+    fast_info = yf.Ticker(symbol).fast_info
+    try:
+      previous_close = fast_info["previousClose"]
+    except Exception:
+      previous_close = getattr(fast_info, "previousClose", None)
+    previous_close = float(previous_close) if previous_close else None
+  except Exception:
+    previous_close = None
+
+  if previous_close is None:
+    try:
+      daily = yf.Ticker(symbol).history(period="5d", interval="1d")
+      closes = daily["Close"].dropna() if daily is not None and not daily.empty else []
+      if len(closes) >= 2:
+        previous_close = float(closes.iloc[-2])
+      elif len(closes) == 1:
+        previous_close = float(closes.iloc[-1])
+    except Exception:
+      previous_close = None
+
+  if current_price is None:
+    return {
+        "current_price": None,
+        "previous_close": previous_close,
+        "price_change": 0.0,
+        "percent_change": 0.0,
+    }
+
+  price_change = (
+      float(current_price) - float(previous_close)
+      if previous_close not in (None, 0)
+      else 0.0
+  )
+  percent_change = (
+      (price_change / float(previous_close)) * 100
+      if previous_close not in (None, 0)
+      else 0.0
+  )
+  return {
+      "current_price": float(current_price),
+      "previous_close": previous_close,
+      "price_change": price_change,
+      "percent_change": percent_change,
+  }
+
+
+def istanbul_now_text():
+  return datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%d.%m.%Y %H:%M:%S")
+
+
 # ---------------------------------------------------------
 # SOL MENÜ - HİSSE YÖNETİMİ & TEMATİK DİKEYLER
 # ---------------------------------------------------------
@@ -926,11 +986,9 @@ if storage.is_supabase:
   st.sidebar.success("☁️ Kalıcı veri: Supabase aktif")
 else:
   st.sidebar.warning(
-      "💾 Yerel kayıt modu aktif. Supabase bağlantısı kurulamadı."
+      "💾 Yerel kayıt modu aktif. Supabase kurulana kadar bulut yeniden "
+      "başlatmalarında kayıtlar kaybolabilir."
   )
-  if storage.last_error:
-    with st.sidebar.expander("Supabase hata ayrıntısı"):
-      st.code(storage.last_error)
 if FIXED_GEMINI_API_KEY:
   st.sidebar.success("🤖 Gemini API aktif")
 else:
@@ -1097,7 +1155,7 @@ def render_journal_tab(symbol, current_price, currency):
                     "target_price": optional_price(target_price),
                     "condition": "above",
                     "repeat_mode": "once",
-                    "last_checked_price": current_price,
+                    "last_checked_price": None,
                     "journal_entry_id": created.get("id"),
                     "notify_ntfy": notify_ntfy,
                 }
@@ -1111,7 +1169,7 @@ def render_journal_tab(symbol, current_price, currency):
                     "target_price": optional_price(stop_price),
                     "condition": "below",
                     "repeat_mode": "once",
-                    "last_checked_price": current_price,
+                    "last_checked_price": None,
                     "journal_entry_id": created.get("id"),
                     "notify_ntfy": notify_ntfy,
                 }
@@ -1237,23 +1295,27 @@ def render_journal_tab(symbol, current_price, currency):
 def render_alerts_tab(symbol, current_price, currency):
   st.subheader(f"🔔 {symbol} Fiyat Alarmları")
   st.caption(
-      "Uygulama açıkken alarmlar dakikada bir kontrol edilir. GitHub Actions "
-      "kurulduğunda uygulama kapalıyken de ücretsiz arka plan kontrolü çalışır."
+      "Uygulama açıkken bütün aktif alarmlar ve seçili varlığın fiyatı 60 saniyede "
+      "bir yenilenir. GitHub Actions etkinleştirildiğinde uygulama kapalıyken de "
+      "yaklaşık 30 dakikada bir ücretsiz arka plan kontrolü çalışır."
   )
 
   top_col1, top_col2 = st.columns(2)
   with top_col1:
-    if st.button("🔄 Alarmları Şimdi Kontrol Et", key=f"check_alerts_{symbol}"):
+    if st.button("🔄 Tüm Aktif Alarmları Şimdi Kontrol Et", key=f"check_alerts_{symbol}"):
+      active_now = storage.list_alerts(active_only=True)
       results = process_alerts(
           storage=storage,
-          alerts=storage.list_alerts(symbol=symbol, active_only=True),
+          alerts=active_now,
           ntfy_topic=NTFY_TOPIC,
           ntfy_server=NTFY_SERVER,
+          price_overrides={symbol: current_price} if current_price is not None else None,
       )
       if results:
         st.success(f"{len(results)} alarm tetiklendi.")
       else:
-        st.info("Bu kontrolde tetiklenen alarm olmadı.")
+        st.info(f"{len(active_now)} aktif alarm kontrol edildi; tetiklenen olmadı.")
+      get_market_snapshot.clear()
       st.rerun()
   with top_col2:
     if NTFY_TOPIC:
@@ -1302,12 +1364,22 @@ def render_alerts_tab(symbol, current_price, currency):
               "target_price": float(target),
               "condition": "above" if condition_text == "Üzerine çıkınca" else "below",
               "repeat_mode": "once" if repeat_text == "Bir kez" else "cross",
-              "last_checked_price": current_price,
+              "last_checked_price": None,
               "notify_ntfy": notify,
           }
       )
       if created:
-        st.success("Alarm kaydedildi.")
+        immediate_results = process_alerts(
+            storage=storage,
+            alerts=[created],
+            ntfy_topic=NTFY_TOPIC,
+            ntfy_server=NTFY_SERVER,
+            price_overrides={symbol: current_price} if current_price is not None else None,
+        )
+        if immediate_results:
+          st.warning("Koşul zaten sağlandığı için alarm hemen tetiklendi ve bildirim gönderildi.")
+        else:
+          st.success("Alarm kaydedildi; otomatik kontrole alındı.")
         st.rerun()
       st.error(f"Alarm kaydedilemedi: {storage.last_error}")
 
@@ -1409,21 +1481,56 @@ def render_alerts_tab(symbol, current_price, currency):
 
 
 @st.fragment(run_every="60s")
-def live_alert_checker(symbol):
-  """Uygulama açıkken seçili varlığın alarmlarını dakikada bir kontrol eder."""
-  active_alerts = storage.list_alerts(symbol=symbol, active_only=True)
-  if not active_alerts:
-    return
+def live_market_and_alert_checker(symbol, currency):
+  """Açık oturumda fiyatı ve bütün aktif alarmları dakikada bir yeniler."""
+  # TTL 50 saniye olduğu için her fragment çalışmasında yeni fiyat alınır; aynı
+  # dakika içinde gereksiz tekrar istekleri önlenir.
+  snapshot = get_market_snapshot(symbol)
+  current_price = snapshot.get("current_price")
+  price_change = float(snapshot.get("price_change") or 0.0)
+  percent_change = float(snapshot.get("percent_change") or 0.0)
 
+  all_active_alerts = storage.list_alerts(active_only=True)
+  selected_active_count = sum(
+      1 for alert in all_active_alerts
+      if str(alert.get("symbol", "")).upper() == symbol.upper()
+  )
+  journal_count = len(storage.list_journal_entries(symbol))
+
+  metric_col1, metric_col2, metric_col3 = st.columns(3)
+  with metric_col1:
+    if current_price is not None:
+      st.metric(
+          label=f"Anlık Fiyat ({symbol})",
+          value=f"{current_price:.2f} {currency}",
+          delta=f"{price_change:+.2f} {currency} (%{percent_change:+.2f})",
+      )
+    else:
+      st.metric(label=f"Anlık Fiyat ({symbol})", value="Veri alınamadı")
+  with metric_col2:
+    st.metric("Aktif Alarm", selected_active_count)
+  with metric_col3:
+    st.metric("Günlük Kaydı", journal_count)
+
+  price_overrides = {symbol: current_price} if current_price is not None else None
   triggered = process_alerts(
       storage=storage,
-      alerts=active_alerts,
+      alerts=all_active_alerts,
       ntfy_topic=NTFY_TOPIC,
       ntfy_server=NTFY_SERVER,
+      price_overrides=price_overrides,
   )
+
+  st.caption(
+      f"Son otomatik yenileme: {istanbul_now_text()} · "
+      f"Kontrol edilen aktif alarm: {len(all_active_alerts)} · "
+      "Otomatik aralık: 60 saniye"
+  )
+
   for result in triggered:
+    triggered_symbol = str(result["alert"].get("symbol", symbol))
     st.toast(
-        f"🚨 {symbol}: {result['current_price']:.4f} seviyesinde alarm tetiklendi!",
+        f"🚨 {triggered_symbol}: {result['current_price']:.4f} seviyesinde alarm tetiklendi!",
         icon="🚨",
     )
     st.error(result["message"].replace("\n", "  \n"))
@@ -1462,56 +1569,21 @@ main_tab1, main_tab2, main_tab3 = st.tabs([
 # =========================================================
 with main_tab1:
   if selected_stock:
-    current_price = None
-    previous_close = None
-    price_change = 0.0
-    percent_change = 0.0
-    try:
-      if "-" in selected_stock:
-        crypto_data = get_crypto_yf_stats(selected_stock)
-        if crypto_data:
-          current_price = crypto_data["lastPrice"]
-          percent_change = crypto_data["priceChangePercent"]
-          previous_close = current_price / (1 + percent_change / 100)
-          price_change = current_price - previous_close
-        else:
-          raise Exception("Kripto verisi alınamadı.")
-      else:
-        ticker_obj = yf.Ticker(selected_stock)
-        fast_info = ticker_obj.fast_info
-        current_price = fast_info["lastPrice"]
-        previous_close = fast_info["previousClose"]
-        price_change = current_price - previous_close
-        percent_change = (price_change / previous_close) * 100
+    currency = (
+        "TRY"
+        if selected_stock.endswith(".IS")
+        else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
+    )
 
-      currency = (
-          "TRY"
-          if selected_stock.endswith(".IS")
-          else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
-      )
+    # Formların başlangıç fiyatı için ilk anlık görüntü. Üst metrik ve tüm aktif
+    # alarmlar aşağıdaki fragment içinde 60 saniyede bir kendiliğinden yenilenir.
+    initial_snapshot = get_market_snapshot(selected_stock)
+    current_price = initial_snapshot.get("current_price")
+    previous_close = initial_snapshot.get("previous_close")
+    price_change = float(initial_snapshot.get("price_change") or 0.0)
+    percent_change = float(initial_snapshot.get("percent_change") or 0.0)
 
-      active_alerts_summary = storage.list_alerts(
-          symbol=selected_stock,
-          active_only=True,
-      )
-      journal_summary = storage.list_journal_entries(selected_stock)
-
-      metric_col1, metric_col2, metric_col3 = st.columns(3)
-      with metric_col1:
-        st.metric(
-            label=f"Anlık Fiyat ({selected_stock})",
-            value=f"{current_price:.2f} {currency}",
-            delta=f"{price_change:+.2f} {currency} (%{percent_change:+.2f})",
-        )
-      with metric_col2:
-        st.metric("Aktif Alarm", len(active_alerts_summary))
-      with metric_col3:
-        st.metric("Günlük Kaydı", len(journal_summary))
-
-      live_alert_checker(selected_stock)
-
-    except Exception as e:
-      st.error(f"Veri çekilemedi: {e}")
+    live_market_and_alert_checker(selected_stock, currency)
 
     st.markdown("---")
     clean_ticker = selected_stock.replace(".IS", "")
