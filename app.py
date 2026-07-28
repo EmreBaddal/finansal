@@ -26,11 +26,11 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 
-# Mobil Ekranlar İçin Yazı Boyutu, Padding ve Üst Boşluğu Azaltma (Özel CSS)
+# Masaüstünü etkilemeden mobil ekranlarda yazıları ve boşlukları küçültür.
 st.markdown(
     """
     <style>
-    /* Sayfa üstündeki boşluğu ve header padding'ini azaltır */
+    /* Masaüstü varsayılanları */
     .block-container {
         padding-top: 1.2rem !important;
         padding-bottom: 2rem !important;
@@ -39,32 +39,132 @@ st.markdown(
         background: transparent;
     }
 
-    /* Sidebar içerisinin mobilde taşmasını önlemek ve scroll kazandırmak */
     [data-testid="stSidebar"] > div:first-child {
         overflow-y: auto;
         max-height: 100vh;
         padding-bottom: 80px;
     }
 
-    @media (max-width: 768px) {
+    /* Yalnızca telefon ve dar ekranlar */
+    @media screen and (max-width: 768px) {
+        html {
+            font-size: 12px !important;
+        }
+
         .block-container {
-            padding-top: 0.8rem !important;
+            padding-top: 0.45rem !important;
+            padding-left: 0.65rem !important;
+            padding-right: 0.65rem !important;
+            padding-bottom: 1.5rem !important;
         }
-        .stMetric {
-            font-size: 14px !important;
-        }
+
+        /* Ana başlıklar */
         h1 {
-            font-size: 22px !important;
+            font-size: 1.55rem !important;
+            line-height: 1.15 !important;
+            margin-bottom: 0.45rem !important;
         }
         h2 {
-            font-size: 18px !important;
+            font-size: 1.30rem !important;
+            line-height: 1.20 !important;
         }
         h3 {
-            font-size: 16px !important;
+            font-size: 1.15rem !important;
+            line-height: 1.20 !important;
+        }
+
+        /* Normal metinler, etiketler ve form alanları */
+        p,
+        label,
+        [data-testid="stMarkdownContainer"],
+        [data-testid="stCaptionContainer"],
+        .stTextInput input,
+        .stTextArea textarea,
+        .stNumberInput input,
+        [data-baseweb="select"] *,
+        [data-baseweb="input"] input,
+        button {
+            font-size: 0.92rem !important;
+        }
+
+        /* Metrikler */
+        [data-testid="stMetricLabel"] {
+            font-size: 0.82rem !important;
+        }
+        [data-testid="stMetricValue"] {
+            font-size: 1.65rem !important;
+            line-height: 1.05 !important;
+        }
+        [data-testid="stMetricDelta"] {
+            font-size: 0.82rem !important;
+        }
+
+        /* Sekmeler yatay kayabilsin ve daha az yer kaplasın */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 0.12rem !important;
+            overflow-x: auto !important;
+            scrollbar-width: thin;
         }
         .stTabs [data-baseweb="tab"] {
-            font-size: 12px !important;
-            padding: 6px 8px !important;
+            min-width: max-content !important;
+            min-height: 2.35rem !important;
+            padding: 0.28rem 0.48rem !important;
+            font-size: 0.82rem !important;
+        }
+
+        /* Buton, expander ve bilgi kutuları */
+        .stButton button,
+        .stDownloadButton button,
+        .stFormSubmitButton button {
+            min-height: 2.35rem !important;
+            padding: 0.30rem 0.58rem !important;
+        }
+        [data-testid="stExpander"] summary {
+            font-size: 0.88rem !important;
+        }
+        [data-testid="stAlert"] {
+            padding: 0.55rem 0.65rem !important;
+        }
+
+        /* Sidebar mobilde daha kompakt */
+        [data-testid="stSidebar"] {
+            min-width: 238px !important;
+            max-width: 238px !important;
+        }
+        [data-testid="stSidebar"] * {
+            font-size: 0.90rem !important;
+        }
+        [data-testid="stSidebar"] h1 {
+            font-size: 1.28rem !important;
+        }
+        [data-testid="stSidebar"] h2 {
+            font-size: 1.15rem !important;
+        }
+        [data-testid="stSidebar"] h3 {
+            font-size: 1.05rem !important;
+        }
+
+        /* Tablolar */
+        [data-testid="stDataFrame"],
+        [data-testid="stTable"] {
+            font-size: 0.78rem !important;
+        }
+    }
+
+    /* Çok dar telefonlar için bir kademe daha küçük */
+    @media screen and (max-width: 430px) {
+        html {
+            font-size: 11px !important;
+        }
+        .block-container {
+            padding-left: 0.45rem !important;
+            padding-right: 0.45rem !important;
+        }
+        h1 {
+            font-size: 1.42rem !important;
+        }
+        [data-testid="stMetricValue"] {
+            font-size: 1.48rem !important;
         }
     }
     </style>
