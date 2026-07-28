@@ -200,22 +200,38 @@ def send_ntfy_notification(
     server: str = "https://ntfy.sh",
     priority: str = "high",
 ) -> tuple[bool, str]:
-    """ntfy konu adresine ücretsiz push bildirimi yollar."""
+    """ntfy konu adresine UTF-8 uyumlu JSON gövdesiyle bildirim yollar.
+
+    Emoji ve Türkçe karakterleri HTTP başlıklarına yazmak bazı Python/requests
+    sürümlerinde latin-1 kodlama hatasına yol açar. ntfy'nin JSON yayınlama
+    biçimi kullanılarak başlık ve mesaj güvenli biçimde UTF-8 gönderilir.
+    """
     topic = (topic or "").strip()
     if not topic:
         return False, "NTFY_TOPIC tanımlı değil"
 
-    url = f"{server.rstrip('/')}/{topic}"
+    priority_map = {
+        "min": 1,
+        "low": 2,
+        "default": 3,
+        "high": 4,
+        "max": 5,
+        "urgent": 5,
+    }
+    priority_value = priority_map.get(str(priority).strip().lower(), 4)
+
+    payload = {
+        "topic": topic,
+        "title": title,
+        "message": message,
+        "priority": priority_value,
+        "tags": ["chart_with_upwards_trend", "warning"],
+    }
+
     try:
         response = requests.post(
-            url,
-            data=message.encode("utf-8"),
-            headers={
-                "Title": title,
-                "Priority": priority,
-                "Tags": "chart_with_upwards_trend,warning",
-                "Content-Type": "text/plain; charset=utf-8",
-            },
+            f"{server.rstrip('/')}/",
+            json=payload,
             timeout=10,
         )
         response.raise_for_status()
