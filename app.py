@@ -1865,21 +1865,11 @@ with main_tab1:
 # ANA SEKMELER 2: ÜCRETSİZ KÜRESEL TAKVİM & AI CHAT
 # =========================================================
 with main_tab2:
-  st.header("📅 Küresel Makroekonomik Takvim & Gemini AI Portal")
+  st.subheader("📅 Küresel Makroekonomik Takvim")
   st.caption(
-      "Takvim, TradingView'in resmi ücretsiz ekonomik takvim bileşeninden gelir. "
-      "Türkiye, ABD, Euro Bölgesi, büyük Avrupa ve Asya ekonomileri ile yüksek ve "
-      "orta önem düzeyleri varsayılan olarak gösterilir."
-  )
-
-  source_col1, source_col2, source_col3 = st.columns(3)
-  source_col1.metric("Takvim Kaynağı", "TradingView")
-  source_col2.metric("Ücret", "Ücretsiz")
-  source_col3.metric("Güncelleme", "Canlı / otomatik")
-
-  st.info(
-      "Bu sürüm harici ücretli API kullanmaz ve API kotası tüketmez. "
-      "Takvimin kendi filtre simgesinden ülke ve önem seçimini değiştirebilirsin."
+      "Türkiye, ABD, Euro Bölgesi, büyük Avrupa ve Asya ekonomilerindeki "
+      "yüksek ve orta önem düzeyindeki gelişmeler. Filtreleri takvimdeki "
+      "ayar simgesinden değiştirebilirsin."
   )
 
   calendar_config = {
@@ -1889,7 +1879,7 @@ with main_tab2:
       "countryFilter": "tr,us,eu,de,fr,it,es,nl,gb,jp,cn,ca,au,ch,kr,in",
       "importanceFilter": "0,1",
       "width": "100%",
-      "height": 720,
+      "height": 760,
   }
   calendar_config_json = json.dumps(calendar_config, ensure_ascii=False)
   calendar_html = f"""
@@ -1907,46 +1897,91 @@ with main_tab2:
           overflow: hidden;
           background: transparent;
         }}
+        .calendar-viewport {{
+          width: 100%;
+          height: 650px;
+          overflow: hidden;
+        }}
+        .calendar-scale {{
+          width: 111.12%;
+          height: 720px;
+          transform: scale(0.90);
+          transform-origin: top left;
+        }}
         .tradingview-widget-container {{
           width: 100%;
           height: 720px;
         }}
         .tradingview-widget-container__widget {{
           width: 100%;
-          height: calc(100% - 26px);
+          height: calc(100% - 22px);
         }}
         .tradingview-widget-copyright {{
-          height: 22px;
-          padding-top: 4px;
+          height: 18px;
+          padding-top: 2px;
           text-align: right;
-          font: 11px Arial, sans-serif;
+          font: 9px Arial, sans-serif;
         }}
         .tradingview-widget-copyright a {{
           color: #2962ff;
           text-decoration: none;
         }}
+
+        @media (max-width: 768px) {{
+          .calendar-viewport {{
+            height: 560px;
+          }}
+          .calendar-scale {{
+            width: 128.21%;
+            height: 710px;
+            transform: scale(0.78);
+          }}
+          .tradingview-widget-container {{
+            height: 710px;
+          }}
+          .tradingview-widget-copyright {{
+            font-size: 8px;
+          }}
+        }}
+
+        @media (max-width: 430px) {{
+          .calendar-viewport {{
+            height: 525px;
+          }}
+          .calendar-scale {{
+            width: 138.89%;
+            height: 720px;
+            transform: scale(0.72);
+          }}
+          .tradingview-widget-container {{
+            height: 720px;
+          }}
+        }}
       </style>
     </head>
     <body>
-      <div class="tradingview-widget-container">
-        <div class="tradingview-widget-container__widget"></div>
-        <div class="tradingview-widget-copyright">
-          <a href="https://www.tradingview.com/economic-calendar/"
-             rel="noopener nofollow" target="_blank">Ekonomik Takvim</a>
-          <span> TradingView tarafından sağlanır</span>
+      <div class="calendar-viewport">
+        <div class="calendar-scale">
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <div class="tradingview-widget-copyright">
+              <a href="https://www.tradingview.com/economic-calendar/"
+                 rel="noopener nofollow" target="_blank">Ekonomik Takvim</a>
+              <span> · TradingView</span>
+            </div>
+            <script type="text/javascript"
+                    src="https://s3.tradingview.com/external-embedding/embed-widget-events.js"
+                    async>{calendar_config_json}</script>
+          </div>
         </div>
-        <script type="text/javascript"
-                src="https://s3.tradingview.com/external-embedding/embed-widget-events.js"
-                async>{calendar_config_json}</script>
       </div>
     </body>
   </html>
   """
-  components.html(calendar_html, height=735, scrolling=False)
+  components.html(calendar_html, height=655, scrolling=False)
 
   st.caption(
-      "TradingView bileşeni güvenlik nedeniyle uygulama koduna satır verisi aktarmaz. "
-      "Bu nedenle Gemini analizi için takvimde gördüğün gelişmenin bilgilerini aşağıya yaz."
+      "Gemini analizi için takvimde gördüğün gelişmenin bilgilerini aşağıya yaz."
   )
 
   st.markdown("---")
