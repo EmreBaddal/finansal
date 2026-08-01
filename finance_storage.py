@@ -198,6 +198,25 @@ class FinanceStorage:
             reverse=True,
         )
 
+    def list_all_journal_entries(self) -> list[dict[str, Any]]:
+        """Bütün varlıklara ait günlük kayıtlarını en yeniden eskiye getirir."""
+        if self.is_supabase:
+            try:
+                return self._execute(
+                    self.client.table("journal_entries")
+                    .select("*")
+                    .order("created_at", desc=True)
+                )
+            except Exception:
+                return []
+
+        rows = _read_json(self._local_path("journal_entries.json"), [])
+        return sorted(
+            rows,
+            key=lambda row: row.get("created_at", ""),
+            reverse=True,
+        )
+
     def create_journal_entry(self, payload: dict[str, Any]) -> Optional[dict[str, Any]]:
         now = utc_now_iso()
         row = {

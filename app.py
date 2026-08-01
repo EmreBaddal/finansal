@@ -15,7 +15,12 @@ import streamlit as st
 import streamlit.components.v1 as components
 import yfinance as yf
 
-from alert_engine import fetch_current_price, process_alerts, send_ntfy_notification
+from alert_engine import (
+    fetch_current_price,
+    fetch_current_prices,
+    process_alerts,
+    send_ntfy_notification,
+)
 from finance_storage import FinanceStorage
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
@@ -1627,11 +1632,342 @@ def live_market_and_alert_checker(symbol, currency):
     )
 
 
+
+# ---------------------------------------------------------
+# TÜM PLANLARIM - TOPLU GÜNLÜK GÖRÜNÜMÜ
+# ---------------------------------------------------------
+
+
+def journal_currency(symbol):
+  symbol = str(symbol or "").strip().upper()
+  if symbol.endswith(".IS"):
+    return "TRY"
+  if symbol.endswith("-USD") or symbol.endswith("=X") or len(symbol) <= 5:
+    return "USD"
+  return ""
+
+
+def price_value(value):
+  try:
+    number = float(value)
+    return number if number > 0 else None
+  except (TypeError, ValueError):
+    return None
+
+
+def percent_change_between(base, value):
+  base_value = price_value(base)
+  target_value = price_value(value)
+  if base_value is None or target_value is None:
+    return None
+  return ((target_value - base_value) / base_value) * 100
+
+
+def risk_reward_ratio(entry_price, target_price, stop_price):
+  entry_value = price_value(entry_price)
+  target_value = price_value(target_price)
+  stop_value = price_value(stop_price)
+  if entry_value is None or target_value is None or stop_value is None:
+    return None
+  reward = target_value - entry_value
+  risk = entry_value - stop_value
+  if reward <= 0 or risk <= 0:
+    return None
+  return reward / risk
+
+
+def format_optional_price(value, currency=""):
+  number = price_value(value)
+  if number is None:
+    return "—"
+  suffix = f" {currency}" if currency else ""
+  return f"{number:,.4f}{suffix}"
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_all_plan_current_prices(symbols_tuple):
+  """Planlar görünümü için sembolleri toplu ve beş dakika önbellekli çeker."""
+  return fetch_current_prices(symbols_tuple)
+
+
+def render_all_plans_tab():
+  st.subheader("📚 Tüm Planlarım")
+  st.caption(
+      "Her varlığın kendi günlüğü yalnız o varlığa özel kalır. Bu ekran ise "
+      "bütün analiz ve işlem planlarını tek yerde toplar."
+  )
+
+  entries = storage.list_all_journal_entries()
+  if not entries:
+    st.info("Henüz herhangi bir varlık için günlük kaydı bulunmuyor.")
+    return
+
+  all_symbols = sorted({str(item.get("symbol", "")).upper() for item in entries if item.get("symbol")})
+  all_statuses = ["Açık", "İzlemede", "Gerçekleşti", "İptal"]
+  all_types = ["Analiz", "İşlem Planı", "Bilanço Notu", "Haber Notu", "Genel Not"]
+
+  active_count = sum(str(item.get("status", "Açık")) in {"Açık", "İzlemede"} for item in entries)
+  completed_count = sum(str(item.get("status", "")) == "Gerçekleşti" for item in entries)
+
+  metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+  metric_col1.metric("Toplam kayıt", len(entries))
+  metric_col2.metric("Aktif / izlenen", active_count)
+  metric_col3.metric("Gerçekleşen", completed_count)
+  metric_col4.metric("Varlık sayısı", len(all_symbols))
+
+  st.markdown("#### 🔎 Filtreler")
+  filter_col1, filter_col2 = st.columns(2)
+  with filter_col1:
+    symbol_filter = st.multiselect(
+        "Hisse / varlık",
+        all_symbols,
+        placeholder="Boş bırakırsan tümü gösterilir",
+        key="all_plans_symbol_filter",
+    )
+    status_filter = st.multiselect(
+        "Durum",
+        all_statuses,
+        default=all_statuses,
+        key="all_plans_status_filter",
+    )
+  with filter_col2:
+    type_filter = st.multiselect(
+        "Kayıt türü",
+        all_types,
+        default=all_types,
+        key="all_plans_type_filter",
+    )
+    text_filter = st.text_input(
+        "Başlık, analiz veya etikette ara",
+        placeholder="Örn: bilanço, orta vade, kırılım",
+        key="all_plans_text_filter",
+    ).strip().lower()
+
+  filtered_entries = []
+  for entry in entries:
+    symbol = str(entry.get("symbol", "")).upper()
+    status = str(entry.get("status", "Açık"))
+    entry_type = str(entry.get("entry_type", "Analiz"))
+    searchable = " ".join([
+        symbol,
+        str(entry.get("title", "")),
+        str(entry.get("content", "")),
+        tags_to_text(entry.get("tags")),
+    ]).lower()
+
+    if symbol_filter and symbol not in symbol_filter:
+      continue
+    if status_filter and status not in status_filter:
+      continue
+    if type_filter and entry_type not in type_filter:
+      continue
+    if text_filter and text_filter not in searchable:
+      continue
+    filtered_entries.append(entry)
+
+  st.caption(f"Gösterilen kayıt: {len(filtered_entries)} / {len(entries)}")
+  if not filtered_entries:
+    st.info("Seçilen filtrelere uygun plan bulunamadı.")
+    return
+
+  filtered_symbols = tuple(sorted({str(item.get("symbol", "")).upper() for item in filtered_entries if item.get("symbol")}))
+  current_prices = get_all_plan_current_prices(filtered_symbols)
+
+  summary_rows = []
+  for entry in filtered_entries:
+    symbol = str(entry.get("symbol", "")).upper()
+    entry_price = price_value(entry.get("price_at_entry"))
+    current_price = price_value(current_prices.get(symbol))
+    target_price = price_value(entry.get("target_price"))
+    stop_price = price_value(entry.get("stop_price"))
+    summary_rows.append({
+        "Varlık": symbol,
+        "Başlık": str(entry.get("title", "Başlıksız")),
+        "Tür": str(entry.get("entry_type", "Analiz")),
+        "Durum": str(entry.get("status", "Açık")),
+        "Giriş": entry_price,
+        "Güncel": current_price,
+        "Hedef": target_price,
+        "Stop": stop_price,
+        "Güncel K/Z %": percent_change_between(entry_price, current_price),
+        "Hedef Pot. %": percent_change_between(entry_price, target_price),
+        "Stop Riski %": percent_change_between(entry_price, stop_price),
+        "Risk/Getiri": risk_reward_ratio(entry_price, target_price, stop_price),
+        "Tarih": format_record_datetime(entry.get("created_at")),
+    })
+
+  st.markdown("#### 📋 Toplu görünüm")
+  summary_df = pd.DataFrame(summary_rows)
+  st.dataframe(
+      summary_df,
+      use_container_width=True,
+      hide_index=True,
+      height=min(620, 44 + len(summary_df) * 36),
+      column_config={
+          "Giriş": st.column_config.NumberColumn(format="%.4f"),
+          "Güncel": st.column_config.NumberColumn(format="%.4f"),
+          "Hedef": st.column_config.NumberColumn(format="%.4f"),
+          "Stop": st.column_config.NumberColumn(format="%.4f"),
+          "Güncel K/Z %": st.column_config.NumberColumn(format="%.2f%%"),
+          "Hedef Pot. %": st.column_config.NumberColumn(format="%.2f%%"),
+          "Stop Riski %": st.column_config.NumberColumn(format="%.2f%%"),
+          "Risk/Getiri": st.column_config.NumberColumn(format="%.2f"),
+      },
+  )
+
+  st.markdown("#### 🗂️ Plan ayrıntıları")
+  for entry in filtered_entries:
+    entry_id = str(entry.get("id"))
+    symbol = str(entry.get("symbol", "")).upper()
+    currency = journal_currency(symbol)
+    current_price = price_value(current_prices.get(symbol))
+    entry_price = price_value(entry.get("price_at_entry"))
+    target_price = price_value(entry.get("target_price"))
+    stop_price = price_value(entry.get("stop_price"))
+    current_pnl = percent_change_between(entry_price, current_price)
+    target_potential = percent_change_between(entry_price, target_price)
+    stop_risk = percent_change_between(entry_price, stop_price)
+    rr_ratio = risk_reward_ratio(entry_price, target_price, stop_price)
+
+    heading = (
+        f"{symbol} · {entry.get('title', 'Başlıksız')} · "
+        f"{entry.get('status', 'Açık')}"
+    )
+    with st.expander(heading):
+      st.caption(
+          f"{format_record_datetime(entry.get('created_at'))} · "
+          f"{entry.get('entry_type', 'Analiz')}"
+      )
+      st.markdown(str(entry.get("content", "")))
+      if entry.get("tags"):
+        st.caption(f"Etiketler: {tags_to_text(entry.get('tags'))}")
+
+      price_col1, price_col2, price_col3 = st.columns(3)
+      price_col1.metric("İşleme giriş", format_optional_price(entry_price, currency))
+      price_col2.metric("Güncel fiyat", format_optional_price(current_price, currency))
+      price_col3.metric("Not anındaki fiyat", format_optional_price(entry.get("market_price_at_note"), currency))
+
+      plan_col1, plan_col2 = st.columns(2)
+      plan_col1.metric("Hedef", format_optional_price(target_price, currency))
+      plan_col2.metric("Stop", format_optional_price(stop_price, currency))
+
+      ratio_col1, ratio_col2, ratio_col3, ratio_col4 = st.columns(4)
+      ratio_col1.metric("Güncel K/Z", f"{current_pnl:+.2f}%" if current_pnl is not None else "—")
+      ratio_col2.metric("Hedef potansiyeli", f"{target_potential:+.2f}%" if target_potential is not None else "—")
+      ratio_col3.metric("Stop mesafesi", f"{stop_risk:+.2f}%" if stop_risk is not None else "—")
+      ratio_col4.metric("Risk / getiri", f"{rr_ratio:.2f}" if rr_ratio is not None else "—")
+
+      show_edit = st.checkbox(
+          "Bu kaydı düzenle",
+          key=f"all_plans_show_edit_{entry_id}",
+      )
+      if show_edit:
+        with st.form(f"all_plans_edit_journal_{entry_id}"):
+          edit_col1, edit_col2 = st.columns(2)
+          with edit_col1:
+            edit_title = st.text_input(
+                "Başlık",
+                value=str(entry.get("title", "")),
+                key=f"all_plans_title_{entry_id}",
+            )
+            current_type = str(entry.get("entry_type", "Analiz"))
+            edit_type = st.selectbox(
+                "Kayıt türü",
+                all_types,
+                index=all_types.index(current_type) if current_type in all_types else 0,
+                key=f"all_plans_type_{entry_id}",
+            )
+            current_status = str(entry.get("status", "Açık"))
+            edit_status = st.selectbox(
+                "Durum",
+                all_statuses,
+                index=all_statuses.index(current_status) if current_status in all_statuses else 0,
+                key=f"all_plans_status_{entry_id}",
+            )
+            edit_tags = st.text_input(
+                "Etiketler",
+                value=tags_to_text(entry.get("tags")),
+                key=f"all_plans_tags_{entry_id}",
+            )
+          with edit_col2:
+            edit_market_price = st.number_input(
+                "Not anındaki piyasa fiyatı",
+                min_value=0.0,
+                value=float(entry.get("market_price_at_note") or 0.0),
+                step=0.01,
+                format="%.4f",
+                key=f"all_plans_market_{entry_id}",
+            )
+            edit_entry_price = st.number_input(
+                "İşleme giriş fiyatım",
+                min_value=0.0,
+                value=float(entry.get("price_at_entry") or 0.0),
+                step=0.01,
+                format="%.4f",
+                key=f"all_plans_entry_{entry_id}",
+            )
+            edit_target = st.number_input(
+                "Hedef",
+                min_value=0.0,
+                value=float(entry.get("target_price") or 0.0),
+                step=0.01,
+                format="%.4f",
+                key=f"all_plans_target_{entry_id}",
+            )
+            edit_stop = st.number_input(
+                "Stop",
+                min_value=0.0,
+                value=float(entry.get("stop_price") or 0.0),
+                step=0.01,
+                format="%.4f",
+                key=f"all_plans_stop_{entry_id}",
+            )
+          edit_content = st.text_area(
+              "Analiz / not",
+              value=str(entry.get("content", "")),
+              height=170,
+              key=f"all_plans_content_{entry_id}",
+          )
+          action_col1, action_col2 = st.columns(2)
+          with action_col1:
+            update_clicked = st.form_submit_button("💾 Değişiklikleri Kaydet")
+          with action_col2:
+            delete_clicked = st.form_submit_button("🗑️ Kaydı Sil")
+
+        if update_clicked:
+          ok = storage.update_journal_entry(
+              entry_id,
+              {
+                  "title": edit_title,
+                  "content": edit_content,
+                  "entry_type": edit_type,
+                  "market_price_at_note": optional_price(edit_market_price),
+                  "price_at_entry": optional_price(edit_entry_price),
+                  "target_price": optional_price(edit_target),
+                  "stop_price": optional_price(edit_stop),
+                  "status": edit_status,
+                  "tags": parse_tags(edit_tags),
+              },
+          )
+          if ok:
+            st.success("Kayıt güncellendi.")
+            st.rerun()
+          else:
+            st.error(f"Güncelleme başarısız: {storage.last_error}")
+
+        if delete_clicked:
+          if storage.delete_journal_entry(entry_id):
+            st.success("Kayıt silindi.")
+            st.rerun()
+          else:
+            st.error(f"Silme başarısız: {storage.last_error}")
+
 # ---------------------------------------------------------
 # ÜST DÜZEY ANA SEKMELER
 # ---------------------------------------------------------
-main_tab1, main_tab2, main_tab3 = st.tabs([
+main_tab1, main_tab_plans, main_tab2, main_tab3 = st.tabs([
     "📊 Hisse Analiz Paneli",
+    "📚 Planlarım",
     "📅 Makro Finansal Takvim & AI",
     "🪙 Kripto Piyasası",
 ])
@@ -1887,7 +2223,13 @@ with main_tab1:
           st.warning("Lütfen bir soru yazın.")
 
 # =========================================================
-# ANA SEKMELER 2: ÜCRETSİZ KÜRESEL TAKVİM & AI CHAT
+# ANA SEKMELER 2: TÜM PLANLARIM
+# =========================================================
+with main_tab_plans:
+  render_all_plans_tab()
+
+# =========================================================
+# ANA SEKMELER 3: ÜCRETSİZ KÜRESEL TAKVİM & AI CHAT
 # =========================================================
 with main_tab2:
   st.subheader("📅 Küresel Makroekonomik Takvim")
@@ -2110,7 +2452,7 @@ with main_tab2:
         st.markdown(macro_answer)
 
 # =========================================================
-# ANA SEKMELER 3: KRİPTO PİYASASI (YFINANCE)
+# ANA SEKMELER 4: KRİPTO PİYASASI (YFINANCE)
 # =========================================================
 with main_tab3:
   st.header("🪙 Kripto Piyasası Canlı Takibi")
