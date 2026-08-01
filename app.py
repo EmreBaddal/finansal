@@ -1130,12 +1130,21 @@ def render_journal_tab(symbol, current_price, currency):
             placeholder="orta vade, teknik analiz, bilanço",
         )
       with form_col2:
-        price_at_entry = st.number_input(
-            f"Not anındaki fiyat ({currency or 'fiyat'})",
+        market_price_at_note = st.number_input(
+            f"Not anındaki piyasa fiyatı ({currency or 'fiyat'})",
             min_value=0.0,
             value=float(current_price or 0.0),
             step=0.01,
             format="%.4f",
+            help="Kaydı oluşturduğun sıradaki piyasa fiyatının sabit görüntüsüdür.",
+        )
+        price_at_entry = st.number_input(
+            f"İşleme giriş fiyatım ({currency or 'fiyat'})",
+            min_value=0.0,
+            value=0.0,
+            step=0.01,
+            format="%.4f",
+            help="İşlemi gerçekten açtığın ortalama maliyet/giriş fiyatıdır.",
         )
         target_price = st.number_input(
             "Hedef fiyat (boş bırakmak için 0)",
@@ -1185,6 +1194,7 @@ def render_journal_tab(symbol, current_price, currency):
                 "title": title,
                 "content": content,
                 "entry_type": entry_type,
+                "market_price_at_note": optional_price(market_price_at_note),
                 "price_at_entry": optional_price(price_at_entry),
                 "target_price": optional_price(target_price),
                 "stop_price": optional_price(stop_price),
@@ -1243,17 +1253,24 @@ def render_journal_tab(symbol, current_price, currency):
     )
     with st.expander(heading):
       st.markdown(str(entry.get("content", "")))
-      info_col1, info_col2, info_col3 = st.columns(3)
-      info_col1.metric(
-          "Not fiyatı",
-          f"{float(entry.get('price_at_entry') or 0):.4f} {currency}",
+      price_row1_col1, price_row1_col2 = st.columns(2)
+      price_row1_col1.metric(
+          "Not anındaki piyasa fiyatı",
+          f"{float(entry.get('market_price_at_note') or 0):.4f} {currency}"
+          if entry.get("market_price_at_note") is not None else "—",
       )
-      info_col2.metric(
+      price_row1_col2.metric(
+          "İşleme giriş fiyatım",
+          f"{float(entry.get('price_at_entry') or 0):.4f} {currency}"
+          if entry.get("price_at_entry") is not None else "—",
+      )
+      price_row2_col1, price_row2_col2 = st.columns(2)
+      price_row2_col1.metric(
           "Hedef",
           f"{float(entry.get('target_price') or 0):.4f} {currency}"
           if entry.get("target_price") is not None else "—",
       )
-      info_col3.metric(
+      price_row2_col2.metric(
           "Stop",
           f"{float(entry.get('stop_price') or 0):.4f} {currency}"
           if entry.get("stop_price") is not None else "—",
@@ -1281,8 +1298,15 @@ def render_journal_tab(symbol, current_price, currency):
           )
           edit_tags = st.text_input("Etiketler", value=tags_to_text(entry.get("tags")))
         with edit_col2:
+          edit_market_price = st.number_input(
+              "Not anındaki piyasa fiyatı",
+              min_value=0.0,
+              value=float(entry.get("market_price_at_note") or 0.0),
+              step=0.01,
+              format="%.4f",
+          )
           edit_entry_price = st.number_input(
-              "Not fiyatı",
+              "İşleme giriş fiyatım",
               min_value=0.0,
               value=float(entry.get("price_at_entry") or 0.0),
               step=0.01,
@@ -1320,6 +1344,7 @@ def render_journal_tab(symbol, current_price, currency):
                 "title": edit_title,
                 "content": edit_content,
                 "entry_type": edit_type,
+                "market_price_at_note": optional_price(edit_market_price),
                 "price_at_entry": optional_price(edit_entry_price),
                 "target_price": optional_price(edit_target),
                 "stop_price": optional_price(edit_stop),

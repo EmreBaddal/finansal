@@ -206,6 +206,7 @@ class FinanceStorage:
             "title": str(payload.get("title", "")).strip(),
             "content": str(payload.get("content", "")).strip(),
             "entry_type": payload.get("entry_type", "Analiz"),
+            "market_price_at_note": payload.get("market_price_at_note"),
             "price_at_entry": payload.get("price_at_entry"),
             "target_price": payload.get("target_price"),
             "stop_price": payload.get("stop_price"),
@@ -222,7 +223,8 @@ class FinanceStorage:
                     self.client.table("journal_entries").insert(row).select("*")
                 )
                 return data[0] if data else None
-            except Exception:
+            except Exception as exc:
+                self.last_error = str(exc)
                 return None
 
         path = self._local_path("journal_entries.json")
@@ -240,6 +242,7 @@ class FinanceStorage:
             "title",
             "content",
             "entry_type",
+            "market_price_at_note",
             "price_at_entry",
             "target_price",
             "stop_price",
