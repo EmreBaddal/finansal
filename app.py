@@ -17,6 +17,12 @@ import yfinance as yf
 
 from alert_engine import fetch_current_price, process_alerts, send_ntfy_notification
 from finance_storage import FinanceStorage
+from macro_calendar import (
+    REGION_ORDER,
+    filter_calendar_events,
+    format_fetch_time,
+    load_economic_calendar,
+)
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
 st.set_page_config(
@@ -193,6 +199,7 @@ SUPABASE_URL = get_secret("SUPABASE_URL", "")
 SUPABASE_KEY = get_secret("SUPABASE_SERVICE_ROLE_KEY", "")
 NTFY_TOPIC = get_secret("NTFY_TOPIC", "")
 NTFY_SERVER = get_secret("NTFY_SERVER", "https://ntfy.sh")
+FMP_API_KEY = get_secret("FMP_API_KEY", "")
 APP_PASSWORD = get_secret("APP_PASSWORD", "")
 
 
@@ -280,63 +287,10 @@ THEMATIC_SECTORS = {
 }
 
 # ---------------------------------------------------------
-# KÜRESEL FİNANSAL TAKVİM VERİ TABANI
+# CANLI KÜRESEL MAKROEKONOMİK TAKVİM
 # ---------------------------------------------------------
-FINANCIAL_CALENDAR_EVENTS = [
-    {
-        "id": "tr_1",
-        "country": "🇹🇷 TR",
-        "title": "TCMB Politika Faizi Kararı (PPK)",
-        "importance": "🔴 Yüksek",
-        "date": "2026-07-30 14:00",
-        "forecast": "%45.00",
-        "previous": "%45.00",
-        "impact_desc": (
-            "BIST 100, Bankacılık (XBANK) ve Dolar/TL'yi anlık sarsar."
-        ),
-        "summary": "Faiz kararı ve açıklama metni borsa ve döviz yönünü belirler.",
-    },
-    {
-        "id": "tr_2",
-        "country": "🇹🇷 TR",
-        "title": "Türkiye Enflasyon Verisi (TÜFE Yıllık)",
-        "importance": "🔴 Yüksek",
-        "date": "2026-08-03 10:00",
-        "forecast": "%38.20",
-        "previous": "%41.60",
-        "impact_desc": (
-            "BIST perakende, gıda ve faiz beklentilerini doğrudan etkiler."
-        ),
-        "summary": (
-            "Düşüş trendinin sürmesi borsaya yabancı girişini artırabilir."
-        ),
-    },
-    {
-        "id": "us_1",
-        "country": "🇺🇸 US",
-        "title": "ABD Tarım Dışı İstihdam (NFP)",
-        "importance": "🔴 Yüksek",
-        "date": "2026-08-07 15:30",
-        "forecast": "180K",
-        "previous": "206K",
-        "impact_desc": "Dolar Endeksi (DXY), Altın ve S&P 500/NASDAQ'ı etkiler.",
-        "summary": "İşgücü piyasasının durumu Fed'in faiz patikasını çizer.",
-    },
-    {
-        "id": "us_2",
-        "country": "🇺🇸 US",
-        "title": "ABD Tüketici Fiyat Endeksi (CPI Enflasyon)",
-        "importance": "🔴 Yüksek",
-        "date": "2026-08-12 15:30",
-        "forecast": "%3.10",
-        "previous": "%3.30",
-        "impact_desc": (
-            "Küresel borsalar ve teknoloji hisseleri (NVDA, AAPL) için en kritik"
-            " veri."
-        ),
-        "summary": "Beklenti altı enflasyon faiz indirim beklentisini kuvvetlendirir.",
-    },
-]
+# Takvim verisi macro_calendar.py içinden FMP stable API ile alınır.
+# Başarılı yanıtlar 1 saat önbellekte tutulur; düşük önem olayları gösterilmez.
 
 headers = {
     "User-Agent": (
@@ -1097,6 +1051,10 @@ if NTFY_TOPIC:
   st.sidebar.success("🔔 ntfy bildirimi aktif")
 else:
   st.sidebar.info("🔕 ntfy konusu henüz tanımlanmadı")
+if FMP_API_KEY:
+  st.sidebar.success("🌍 FMP makro takvim aktif")
+else:
+  st.sidebar.info("🌍 FMP makro takvim anahtarı tanımlı değil")
 
 # ---------------------------------------------------------
 # GEMINI ANALİZ FONKSİYONU
@@ -1919,70 +1877,189 @@ with main_tab1:
 # =========================================================
 with main_tab2:
   st.header("📅 Küresel Makroekonomik Takvim & Gemini AI Portal")
-  f_col1, f_col2 = st.columns(2)
+  st.caption(
+      "FMP ekonomik takvimi Türkiye saatine çevrilir. Yalnız büyük ekonomilerdeki "
+      "yüksek ve orta önem olayları gösterilir. Veri en fazla saatte bir çekilir."
+  )
 
-  with f_col1:
-    country_filter = st.selectbox(
-        "🌎 Ülke / Bölge Filtresi:",
-        ["Tümü", "🇹🇷 TR", "🇺🇸 US", "🇪🇺 EU", "🇬🇧 UK", "🇨🇳 CN", "🇯🇵 JP"],
+  calendar_result = load_economic_calendar(
+      api_key=FMP_API_KEY,
+      lookback_days=1,
+      lookahead_days=14,
+  )
+  calendar_events = calendar_result.get("events", [])
+  calendar_source = calendar_result.get("source", "none")
+  calendar_error = calendar_result.get("error", "")
+
+  source_col1, source_col2, source_col3 = st.columns(3)
+  with source_col1:
+    source_text = (
+        "FMP canlı veri"
+        if calendar_source == "fmp"
+        else ("Son başarılı önbellek" if calendar_source == "cache" else "Veri yok")
     )
-  with f_col2:
-    importance_filter = st.selectbox(
-        "🎯 Önem Derecesi Filtresi:", ["Tümü", "🔴 Yüksek", "🟡 Orta"]
+    st.metric("Takvim Kaynağı", source_text)
+  with source_col2:
+    st.metric(
+        "Son Başarılı Çekim",
+        format_fetch_time(calendar_result.get("fetched_at")),
+    )
+  with source_col3:
+    st.metric("Otomatik Yenileme", "60 dakika")
+
+  if not FMP_API_KEY:
+    st.warning(
+        "Canlı makro takvim için Streamlit Secrets içine FMP_API_KEY eklenmelidir. "
+        "Anahtar eklenene kadar yalnız varsa son başarılı önbellek gösterilir."
+    )
+  elif calendar_error and calendar_source == "cache":
+    st.warning(
+        "FMP şu anda yanıt vermedi. Uygulama son başarılı takvim kopyasını gösteriyor. "
+        f"Teknik ayrıntı: {calendar_error}"
+    )
+  elif calendar_error:
+    st.error(
+        "Makro takvim verisi alınamadı ve kullanılabilir eski veri bulunamadı. "
+        f"Teknik ayrıntı: {calendar_error}"
     )
 
-  filtered_events = FINANCIAL_CALENDAR_EVENTS
-  if country_filter != "Tümü":
-    filtered_events = [
-        e for e in filtered_events if e["country"] == country_filter
-    ]
-  if importance_filter != "Tümü":
-    filtered_events = [
-        e for e in filtered_events if e["importance"] == importance_filter
-    ]
+  st.markdown("### 🔎 Takvim Filtreleri")
+  filter_col1, filter_col2 = st.columns(2)
+
+  with filter_col1:
+    selected_regions = st.multiselect(
+        "🌎 Ülke / Bölge",
+        options=REGION_ORDER,
+        default=[
+            "Türkiye",
+            "ABD",
+            "Euro Bölgesi",
+            "Avrupa",
+            "İngiltere",
+            "Japonya",
+            "Çin",
+        ],
+        help=(
+            "Avrupa seçimi Almanya, Fransa, İtalya, İspanya ve Hollanda gibi "
+            "büyük Avrupa ekonomilerini kapsar."
+        ),
+    )
+
+  with filter_col2:
+    selected_importance = st.multiselect(
+        "🎯 Önem Derecesi",
+        options=["🔴 Yüksek", "🟡 Orta"],
+        default=["🔴 Yüksek", "🟡 Orta"],
+    )
+
+  filter_col3, filter_col4 = st.columns(2)
+  with filter_col3:
+    period_filter = st.selectbox(
+        "🗓️ Zaman Aralığı",
+        ["Bugün", "Önümüzdeki 3 Gün", "Önümüzdeki 7 Gün", "Önümüzdeki 14 Gün"],
+        index=2,
+    )
+  with filter_col4:
+    only_upcoming = st.checkbox(
+        "Yalnız henüz gerçekleşmemiş olayları göster",
+        value=False,
+    )
+
+  filtered_events = filter_calendar_events(
+      events=calendar_events,
+      regions=selected_regions,
+      importance_levels=selected_importance,
+      period_label=period_filter,
+      only_upcoming=only_upcoming,
+  )
 
   st.subheader("📋 Genel Takvim Görünümü")
+  st.caption(
+      f"Gösterilen olay: {len(filtered_events)} · "
+      "Saat dilimi: Türkiye (Europe/Istanbul) · "
+      "Düşük önem olayları listeye alınmaz."
+  )
+
   if filtered_events:
     df_cal = pd.DataFrame(filtered_events)[
-        ["date", "country", "title", "importance", "forecast", "previous"]
+        [
+            "date",
+            "country",
+            "title",
+            "importance",
+            "status",
+            "actual",
+            "forecast",
+            "previous",
+        ]
     ]
     df_cal.columns = [
         "Tarih / Saat",
         "Ülke",
-        "Açıklama / Gelişme",
+        "Ekonomik Veri / Gelişme",
         "Önem",
+        "Durum",
+        "Açıklanan",
         "Beklenti",
         "Önceki",
     ]
-    st.dataframe(df_cal, use_container_width=True, hide_index=True)
+    st.dataframe(
+        df_cal,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Tarih / Saat": st.column_config.TextColumn(width="small"),
+            "Ülke": st.column_config.TextColumn(width="small"),
+            "Ekonomik Veri / Gelişme": st.column_config.TextColumn(width="large"),
+            "Önem": st.column_config.TextColumn(width="small"),
+            "Durum": st.column_config.TextColumn(width="small"),
+            "Açıklanan": st.column_config.TextColumn(width="small"),
+            "Beklenti": st.column_config.TextColumn(width="small"),
+            "Önceki": st.column_config.TextColumn(width="small"),
+        },
+    )
+  else:
+    st.info(
+        "Seçilen filtrelerde yüksek veya orta önem seviyesinde takvim olayı bulunamadı."
+    )
 
   st.markdown("---")
-  st.subheader("🤖 AI Analiz Ve Soru Paneli")
+  st.subheader("🤖 AI Analiz ve Soru Paneli")
 
   event_options = [
-      f"{e['country']} | {e['title']} ({e['date']})" for e in filtered_events
+      f"{event['country']} | {event['title']} ({event['date']})"
+      for event in filtered_events
   ]
+
   if event_options:
     selected_event_str = st.selectbox(
-        "Analiz Edilecek Veya Soru Sorulacak Gelişmeyi Seçin:", event_options
+        "Analiz edilecek gelişmeyi seçin:",
+        event_options,
     )
     matched_event = next(
         (
-            e
-            for e in filtered_events
-            if f"{e['country']} | {e['title']} ({e['date']})"
-            == selected_event_str
+            event
+            for event in filtered_events
+            if (
+                f"{event['country']} | {event['title']} ({event['date']})"
+                == selected_event_str
+            )
         ),
         filtered_events[0],
     )
 
     with st.expander("📌 Seçili Gelişme Detaylarını Gör", expanded=True):
-      mc1, mc2, mc3 = st.columns(3)
-      mc1.info(f"**Tarih:** {matched_event['date']}")
-      mc2.warning(f"**Önem:** {matched_event['importance']}")
-      mc3.success(
-          f"**Beklenen / Önceki:** {matched_event['forecast']} /"
-          f" {matched_event['previous']}"
+      detail_col1, detail_col2, detail_col3, detail_col4 = st.columns(4)
+      detail_col1.info(f"**Tarih:** {matched_event['date']}")
+      detail_col2.warning(f"**Önem:** {matched_event['importance']}")
+      detail_col3.success(f"**Durum:** {matched_event['status']}")
+      detail_col4.info(
+          f"**Açıklanan / Beklenen:** "
+          f"{matched_event['actual']} / {matched_event['forecast']}"
+      )
+      st.caption(
+          f"**Önceki:** {matched_event['previous']} · "
+          f"**Para Birimi:** {matched_event.get('currency') or '—'}"
       )
       st.caption(f"**Genel Etki Özeti:** {matched_event['impact_desc']}")
 
@@ -1990,26 +2067,45 @@ with main_tab2:
     if st.button("🚀 Bu Gelişmeyi Gemini ile Analiz Et"):
       with st.spinner("Gemini piyasa analizini hazırlıyor..."):
         analysis_res = ask_gemini_analysis(
-            matched_event["title"], str(matched_event)
+            prompt=(
+                "Aşağıdaki ekonomik gelişmenin Türkiye, küresel hisse piyasaları, "
+                "döviz, faiz ve ilgili sektörler üzerindeki olası etkilerini "
+                "senaryolar halinde değerlendir. Açıklanan değer varsa beklenti ve "
+                "önceki değerle karşılaştır.\n\n"
+                f"{matched_event}"
+            ),
+            system_instruction=(
+                "Finansal piyasa analisti gibi yaz. Kesin getiri vaadi verme. "
+                "Veride olmayan bilgi uydurma; belirsizlikleri açıkça belirt."
+            ),
         )
         st.markdown(analysis_res)
 
-    st.markdown("### 💬 Gemini'ye Soru Sorun")
+    st.markdown("### 💬 Gemini'ye Soru Sor")
     user_q = st.text_input(
-        f"'{matched_event['title']}' gelişmesiyle ilgili sorunuz:",
+        f"'{matched_event['title']}' gelişmesiyle ilgili sorun:",
         placeholder=(
-            "Örn: Bu enflasyon verisi BIST bankacılık ve perakende hisselerine"
-            " nasıl yansır?"
+            "Örn: Bu veri BIST bankacılık, teknoloji hisseleri ve dolar/TL için "
+            "hangi senaryoları oluşturabilir?"
         ),
     )
 
     if st.button("Soruyu Gemini'ye Gönder", type="primary"):
       if user_q:
         with st.spinner("Gemini yanıtlıyor..."):
-          ans = ask_gemini_analysis(user_q, str(matched_event))
+          ans = ask_gemini_analysis(
+              prompt=user_q,
+              system_instruction=(
+                  "Aşağıdaki ekonomik takvim kaydını bağlam olarak kullan. "
+                  "Kaydın içermediği güncel verileri varmış gibi gösterme.\n\n"
+                  f"{matched_event}"
+              ),
+          )
           st.markdown(ans)
       else:
         st.warning("Lütfen soru alanını doldurun.")
+  else:
+    st.info("Gemini analizi için önce filtrelerde en az bir takvim olayı görünmelidir.")
 
 # =========================================================
 # ANA SEKMELER 3: KRİPTO PİYASASI (YFINANCE)
