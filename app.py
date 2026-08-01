@@ -1697,7 +1697,34 @@ def render_all_plans_tab():
       "bütün analiz ve işlem planlarını tek yerde toplar."
   )
 
-  entries = storage.list_all_journal_entries()
+  # Streamlit Cloud bazen eski FinanceStorage sınıfını önbellekten yükleyebilir.
+  # Yeni yardımcı metot bulunmazsa aynı veriyi doğrudan mevcut Supabase
+  # bağlantısından okuyarak Planlarım ekranının çalışmasını sürdür.
+  list_all_method = getattr(storage, "list_all_journal_entries", None)
+  if callable(list_all_method):
+    entries = list_all_method()
+  elif storage.is_supabase and getattr(storage, "client", None) is not None:
+    try:
+      response = (
+          storage.client.table("journal_entries")
+          .select("*")
+          .order("created_at", desc=True)
+          .execute()
+      )
+      entries = list(response.data or [])
+    except Exception as exc:
+      st.error(f"Plan kayıtları alınamadı: {exc}")
+      entries = []
+  else:
+    # Yerel modda eski sınıf kullanılıyorsa sembol bazlı kayıtları birleştir.
+    entries = []
+    for symbol in st.session_state.get("watch_list", []):
+      try:
+        entries.extend(storage.list_journal_entries(symbol))
+      except Exception:
+        continue
+    entries.sort(key=lambda item: item.get("created_at", ""), reverse=True)
+
   if not entries:
     st.info("Henüz herhangi bir varlık için günlük kaydı bulunmuyor.")
     return
