@@ -1,7 +1,7 @@
 {
-  "version": 1,
-  "title": "Aylooper Rehber Sözlük",
-  "description": "Yeni yatırımcıların uygulamadaki verileri ve piyasa gelişmelerini sade dille anlaması için hazırlanmış eğitim içeriği.",
+  "version": 2,
+  "title": "Aylooper Rehber ve Piyasa Dili",
+  "description": "Yeni yatırımcının uygulamada, ekonomik takvimde ve haberlerde karşılaştığı kavramları sade ve katmanlı biçimde açıklar.",
   "terms": [
     {
       "id": "hisse_senedi",
@@ -15,7 +15,19 @@
       "common_mistake": "Hisseyi yalnız ekrandaki fiyat olarak görmek; şirketin faaliyetini, finansal durumunu ve pay sayısını göz ardı etmek.",
       "in_app": "Takip listesi, şirket özeti, portföy ve plan ekranlarında temel varlık türüdür.",
       "source_name": "Investor.gov — Stocks",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/stocks"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/stocks",
+      "aliases": [
+        "pay senedi",
+        "stock",
+        "share"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "lot_adet",
@@ -29,7 +41,19 @@
       "common_mistake": "Toplam para ile adet bilgisini birbirine karıştırmak.",
       "in_app": "Portföyüm ekranında alış ve satış işlemlerinde girilir.",
       "source_name": "Borsa İstanbul",
-      "source_url": "https://www.borsaistanbul.com/"
+      "source_url": "https://www.borsaistanbul.com/",
+      "aliases": [
+        "lot",
+        "adet",
+        "quantity"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "portfoy",
@@ -43,7 +67,17 @@
       "common_mistake": "Her yatırımı ayrı düşünerek toplam yoğunlaşmayı ve ortak riskleri görmemek.",
       "in_app": "Portföyüm ve Seçimlerimin Özeti ekranlarının ana konusudur.",
       "source_name": "Investor.gov — Glossary",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary",
+      "aliases": [
+        "portfolio"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "maliyet",
@@ -57,7 +91,19 @@
       "common_mistake": "Farklı tarihlerdeki alımları tek tek düşünmek ve ağırlıklı ortalamayı yanlış hesaplamak.",
       "in_app": "Portföyüm ekranında işlemlerden otomatik hesaplanır.",
       "source_name": "Investor.gov — Investing Basics",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics",
+      "aliases": [
+        "ortalama maliyet",
+        "average cost",
+        "maliyet fiyatı"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "guncel_deger",
@@ -71,7 +117,18 @@
       "common_mistake": "Güncel değeri yatırılan para ile aynı sanmak.",
       "in_app": "Portföyüm özetinde ve açık pozisyonlar tablosunda gösterilir.",
       "source_name": "Investor.gov — Glossary",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary",
+      "aliases": [
+        "market value",
+        "bugünkü değer"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "gerceklesmemis_kar_zarar",
@@ -85,7 +142,20 @@
       "common_mistake": "Satış yapılmadan bu tutarı kesinleşmiş kazanç veya kayıp sanmak.",
       "in_app": "Portföyüm üst özetinde ve pozisyon tablosunda gösterilir.",
       "source_name": "Investor.gov — Glossary",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary",
+      "aliases": [
+        "unrealized pnl",
+        "unrealized profit",
+        "unrealized loss",
+        "açık kâr zarar"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "gerceklesmis_kar_zarar",
@@ -99,7 +169,19 @@
       "common_mistake": "Açık pozisyon ile satılmış kısmın sonuçlarını birlikte değerlendirmek.",
       "in_app": "Portföyüm ekranında satış işlemleri sonrasında hesaplanır.",
       "source_name": "Investor.gov — Glossary",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary",
+      "aliases": [
+        "realized pnl",
+        "realized profit",
+        "realized loss"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "piyasa_degeri",
@@ -113,7 +195,18 @@
       "common_mistake": "Fiyatı düşük olan hissenin şirketinin de küçük veya ucuz olduğunu düşünmek.",
       "in_app": "Teknik veriler ve şirket karşılaştırmalarında kullanılabilir.",
       "source_name": "Investor.gov — Market Capitalization",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/market-capitalization"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/market-capitalization",
+      "aliases": [
+        "market cap",
+        "market capitalization"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "endeks",
@@ -127,7 +220,18 @@
       "common_mistake": "Endeks yükselirken her hissenin yükseleceğini varsaymak.",
       "in_app": "Hisse performansını genel piyasa ile karşılaştırırken kullanılır.",
       "source_name": "Investor.gov — Market Index",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/market-index"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/market-index",
+      "aliases": [
+        "index",
+        "benchmark"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "temettu",
@@ -141,7 +245,18 @@
       "common_mistake": "Temettüyü karşılıksız ek kazanç sanmak; fiyat temettü tarihindeki düzeltmeden etkilenebilir.",
       "in_app": "KAP ve şirket gelişmeleri rehberinde açıklanır.",
       "source_name": "Investor.gov — Dividends",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dividend"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dividend",
+      "aliases": [
+        "dividend",
+        "kâr payı"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "piyasa_emri",
@@ -155,7 +270,17 @@
       "common_mistake": "Piyasa emrinin ekrandaki son fiyattan kesin gerçekleşeceğini düşünmek.",
       "in_app": "İşlem planı hazırlarken emir türünü anlamak için kullanılır.",
       "source_name": "Investor.gov — Market Order",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/market-order"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/market-order",
+      "aliases": [
+        "market order"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "limit_emir",
@@ -169,7 +294,17 @@
       "common_mistake": "Limit fiyat görülünce emrin mutlaka tamamlanacağını sanmak; sırada başka emirler olabilir.",
       "in_app": "Giriş fiyatı planlarken temel emir türüdür.",
       "source_name": "Investor.gov — Limit Orders",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/limit-orders"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/limit-orders",
+      "aliases": [
+        "limit order"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "stop_emri",
@@ -183,7 +318,18 @@
       "common_mistake": "Stop seviyesinin kesin satış fiyatı olduğunu düşünmek.",
       "in_app": "Planım ve Alarmlar ekranındaki stop kavramıyla ilişkilidir.",
       "source_name": "Investor.gov — Stop Order",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/stop-order"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/stop-order",
+      "aliases": [
+        "stop order",
+        "stop loss order"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "alis_satis_farki",
@@ -197,7 +343,18 @@
       "common_mistake": "Sadece komisyona bakıp fiyat farkının maliyetini göz ardı etmek.",
       "in_app": "Likiditesi düşük varlıklarda işlem planı yaparken önemlidir.",
       "source_name": "FINRA — Bid-Ask Spread",
-      "source_url": "https://www.finra.org/investors/investing/investment-products/exchange-traded-funds-and-products"
+      "source_url": "https://www.finra.org/investors/investing/investment-products/exchange-traded-funds-and-products",
+      "aliases": [
+        "bid ask spread",
+        "alış satış makası"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "likidite",
@@ -211,7 +368,17 @@
       "common_mistake": "Ekranda fiyat olduğu için istenen miktarın aynı fiyattan satılabileceğini varsaymak.",
       "in_app": "Hacim ve fiyat hareketiyle birlikte değerlendirilmelidir.",
       "source_name": "FINRA — Liquidity and Spreads",
-      "source_url": "https://www.finra.org/investors/insights/smart-beta-what-you-need-know"
+      "source_url": "https://www.finra.org/investors/insights/smart-beta-what-you-need-know",
+      "aliases": [
+        "liquidity"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "islem_hacmi",
@@ -225,7 +392,18 @@
       "common_mistake": "Yüksek hacmi tek başına yükseliş işareti saymak.",
       "in_app": "Teknik grafikte fiyatın altında gösterilebilir.",
       "source_name": "Investor.gov — Glossary",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary",
+      "aliases": [
+        "volume",
+        "trading volume"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "komisyon",
@@ -239,7 +417,19 @@
       "common_mistake": "Kâr/zararı sadece alış ve satış fiyatından hesaplamak.",
       "in_app": "Portföy işlem formunda komisyon alanı bulunur.",
       "source_name": "Investor.gov — Fees and Expenses",
-      "source_url": "https://www.investor.gov/introduction-investing/getting-started/understanding-fees"
+      "source_url": "https://www.investor.gov/introduction-investing/getting-started/understanding-fees",
+      "aliases": [
+        "commission",
+        "fee",
+        "işlem ücreti"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "takas_valor",
@@ -253,7 +443,19 @@
       "common_mistake": "Gerçekleşme anı ile takasın tamamlanmasını aynı kabul etmek.",
       "in_app": "Portföy işlem tarihi kaydıyla dolaylı olarak ilişkilidir.",
       "source_name": "Investor.gov — Settlement",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/settlement-date"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/settlement-date",
+      "aliases": [
+        "settlement",
+        "valör",
+        "takas süresi"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "giris_fiyati",
@@ -267,7 +469,18 @@
       "common_mistake": "Not aldığın günkü piyasa fiyatı ile gerçek alış maliyetini karıştırmak.",
       "in_app": "Planım ekranında ayrı alan olarak tutulur.",
       "source_name": "Investor.gov — Investing Basics",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics",
+      "aliases": [
+        "entry price",
+        "maliyet fiyatım"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "hedef_fiyat",
@@ -281,7 +494,18 @@
       "common_mistake": "Hedefi kesin ulaşılacak fiyat veya analist garantisi gibi görmek.",
       "in_app": "Planım, Alarmlar ve Portföy raporunda kullanılır.",
       "source_name": "Investor.gov — Investing Basics",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics",
+      "aliases": [
+        "target price",
+        "price target"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "stop_seviyesi",
@@ -295,7 +519,18 @@
       "common_mistake": "Stopu rastgele yakın koymak veya fiyat düştükçe sürekli aşağı taşımak.",
       "in_app": "Planım ve alarm sisteminde kaydedilir.",
       "source_name": "Investor.gov — Stop Order",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/stop-order"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/stop-order",
+      "aliases": [
+        "stop loss",
+        "zarar kes"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "pozisyon_buyuklugu",
@@ -309,7 +544,18 @@
       "common_mistake": "Sadece hissenin riskine bakıp ayrılan tutarın etkisini unutmak.",
       "in_app": "Portföy ağırlığı ve en büyük pozisyon kartlarında gösterilir.",
       "source_name": "FINRA — Investing Basics",
-      "source_url": "https://www.finra.org/investors/investing/investing-basics"
+      "source_url": "https://www.finra.org/investors/investing/investing-basics",
+      "aliases": [
+        "position size",
+        "position sizing"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "risk_getiri",
@@ -323,7 +569,18 @@
       "common_mistake": "Oran iyi görünüyorsa hedefe ulaşma olasılığının da yüksek olduğunu varsaymak.",
       "in_app": "Planlarım ve Portföy raporunda hesaplanabilir.",
       "source_name": "Investor.gov — Risk and Return",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/what-risk"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/what-risk",
+      "aliases": [
+        "risk reward",
+        "risk/reward"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "volatilite",
@@ -337,7 +594,18 @@
       "common_mistake": "Yüksek volatiliteyi otomatik olarak kötü şirket veya kesin yükseliş fırsatı saymak.",
       "in_app": "Seçimlerimin Özeti ve portföy hap bilgilerinde kullanılır.",
       "source_name": "FINRA — Volatility",
-      "source_url": "https://www.finra.org/investors/investing/investing-basics/volatility"
+      "source_url": "https://www.finra.org/investors/investing/investing-basics/volatility",
+      "aliases": [
+        "volatility",
+        "oynaklık"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "maksimum_dusus",
@@ -351,7 +619,19 @@
       "common_mistake": "Bu değeri gelecekteki en kötü kaybın sınırı kabul etmek.",
       "in_app": "Tercih profili teknik ayrıntılarında kullanılabilir.",
       "source_name": "Investor.gov — Risk",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/what-risk"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/what-risk",
+      "aliases": [
+        "maximum drawdown",
+        "max drawdown",
+        "drawdown"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "cesitlendirme",
@@ -365,7 +645,17 @@
       "common_mistake": "Hisse sayısı arttıkça otomatik olarak çeşitlendirildiğini düşünmek.",
       "in_app": "Sektör ve piyasa dağılım grafikleriyle izlenir.",
       "source_name": "Investor.gov — Diversification",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/diversification"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/diversification",
+      "aliases": [
+        "diversification"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "yogunlasma",
@@ -379,7 +669,18 @@
       "common_mistake": "Farklı şirket adlarının farklı riskler anlamına geldiğini varsaymak.",
       "in_app": "En büyük pozisyon ve en yoğun sektör kartlarında gösterilir.",
       "source_name": "FINRA — Diversification",
-      "source_url": "https://www.finra.org/investors/insights/asset-allocation-diversification"
+      "source_url": "https://www.finra.org/investors/insights/asset-allocation-diversification",
+      "aliases": [
+        "concentration",
+        "concentration risk"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "korelasyon",
@@ -393,7 +694,17 @@
       "common_mistake": "Geçmiş korelasyonun her dönemde aynı kalacağını düşünmek.",
       "in_app": "İleri sürümde portföy ortak hareket analizi için kullanılabilir.",
       "source_name": "Investor.gov — Diversification",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/diversification"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/diversification",
+      "aliases": [
+        "correlation"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "kur_riski",
@@ -407,7 +718,19 @@
       "common_mistake": "TL getirisinin tamamını hissenin performansı sanmak.",
       "in_app": "Yabancı işlemler Portföyüm ekranında TL'ye çevrilirken kullanılır.",
       "source_name": "Investor.gov — Currency Risk",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/currency-risk"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/currency-risk",
+      "aliases": [
+        "currency risk",
+        "fx risk",
+        "kur etkisi"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "İlk Adımlar",
+      "contexts": [
+        "guide",
+        "portfolio"
+      ]
     },
     {
       "id": "ciro",
@@ -421,7 +744,20 @@
       "common_mistake": "Yüksek satış gelirini yüksek kârla aynı kabul etmek.",
       "in_app": "Şirket finansal özetlerinde büyüme göstergesi olarak kullanılabilir.",
       "source_name": "Investor.gov — Financial Statements",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "revenue",
+        "sales",
+        "satış geliri"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "brut_kar",
@@ -435,7 +771,18 @@
       "common_mistake": "Brüt kârı şirketin kasasında kalan nihai kâr sanmak.",
       "in_app": "İleri finansal karşılaştırmalarda kullanılabilir.",
       "source_name": "Investor.gov — Income Statement",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "gross profit"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "faaliyet_kari",
@@ -449,7 +796,19 @@
       "common_mistake": "Net kârdaki her değişimi faaliyet performansı sanmak.",
       "in_app": "Bilanço ve gelir tablosu değerlendirmelerinde kullanılabilir.",
       "source_name": "Investor.gov — Income Statement",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "operating profit",
+        "ebit"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "favok",
@@ -463,7 +822,19 @@
       "common_mistake": "FAVÖK'ü kasaya giren serbest nakit veya dağıtılabilir kâr sanmak.",
       "in_app": "FD/FAVÖK değerleme oranının paydasında kullanılır.",
       "source_name": "Investor.gov — Financial Statements",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "ebitda",
+        "fvaök"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "net_kar",
@@ -477,7 +848,19 @@
       "common_mistake": "Tek çeyreklik net kârı şirketin kalıcı kazanç gücü kabul etmek.",
       "in_app": "Şirket finansal özeti ve değerleme oranlarında kullanılır.",
       "source_name": "Investor.gov — Income Statement",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "net income",
+        "net profit"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "kar_marji",
@@ -491,7 +874,19 @@
       "common_mistake": "Farklı sektörlerin marjlarını doğrudan karşılaştırmak.",
       "in_app": "Seçimlerimin Özeti finansal ayrımlarında kullanılabilir.",
       "source_name": "Investor.gov — Financial Statements",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "profit margin",
+        "margin"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "nakit_akisi",
@@ -505,7 +900,18 @@
       "common_mistake": "Net kâr pozitifse nakit akışının da mutlaka pozitif olduğunu düşünmek.",
       "in_app": "Şirketin finansal dayanıklılığını açıklayan temel kavramdır.",
       "source_name": "Investor.gov — Cash Flow Statement",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "cash flow"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "serbest_nakit_akisi",
@@ -519,7 +925,19 @@
       "common_mistake": "Negatif serbest nakit akışını her zaman kötü kabul etmek; büyüme yatırımlarının nedeni incelenmelidir.",
       "in_app": "Finansal odak kartlarında 'şirket gerçekten nakit üretiyor mu?' sorusuna karşılık gelir.",
       "source_name": "Investor.gov — Financial Statements",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "free cash flow",
+        "fcf"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "borc_ozkaynak",
@@ -533,7 +951,19 @@
       "common_mistake": "Bankaları sanayi şirketleriyle aynı borç oranıyla değerlendirmek.",
       "in_app": "Seçimlerimin Özeti teknik ayrıntılarında kullanılabilir.",
       "source_name": "Investor.gov — Balance Sheet",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "debt to equity",
+        "d/e"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "cari_oran",
@@ -547,7 +977,18 @@
       "common_mistake": "Oran 1'in üzerindeyse şirketin kesinlikle güvenli olduğunu düşünmek.",
       "in_app": "Şirket finansal karşılaştırmalarında kullanılabilir.",
       "source_name": "Investor.gov — Balance Sheet",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "current ratio"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "fk",
@@ -561,7 +1002,20 @@
       "common_mistake": "Düşük F/K'yı otomatik ucuz, yüksek F/K'yı otomatik pahalı saymak.",
       "in_app": "Teknik veriler ve şirket karşılaştırmalarında kullanılabilir.",
       "source_name": "Investor.gov — P/E Ratio",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/price-earnings-pe-ratio"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/price-earnings-pe-ratio",
+      "aliases": [
+        "p/e",
+        "pe ratio",
+        "price earnings"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "pddd",
@@ -575,7 +1029,20 @@
       "common_mistake": "Her sektör için aynı PD/DD seviyesini normal kabul etmek.",
       "in_app": "Değerleme karşılaştırmalarında kullanılabilir.",
       "source_name": "Investor.gov — Glossary",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary",
+      "aliases": [
+        "p/b",
+        "price to book",
+        "pd/dd"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "firma_degeri",
@@ -589,7 +1056,19 @@
       "common_mistake": "Firma değerini pay sahiplerinin bugün alacağı nakit değer sanmak.",
       "in_app": "FD/FAVÖK hesabında kullanılır.",
       "source_name": "Investor.gov — Glossary",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary",
+      "aliases": [
+        "enterprise value",
+        "ev"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "fd_favok",
@@ -603,7 +1082,19 @@
       "common_mistake": "Negatif veya sürdürülemez FAVÖK bulunan şirketlerde oranı anlamlı kabul etmek.",
       "in_app": "İleri şirket karşılaştırmalarında kullanılabilir.",
       "source_name": "Investor.gov — Financial Statements",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "ev/ebitda",
+        "fd/favök"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "roe",
@@ -617,7 +1108,19 @@
       "common_mistake": "ROE'yi borçluluk ve tek seferlik kârları kontrol etmeden yorumlamak.",
       "in_app": "Finansal karşılaştırmalarda kullanılabilir.",
       "source_name": "Investor.gov — Financial Statements",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "return on equity",
+        "özkaynak kârlılığı"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "temettu_verimi",
@@ -631,7 +1134,18 @@
       "common_mistake": "Geçmiş yüksek verimin gelecekte de aynı kalacağını varsaymak.",
       "in_app": "Temettü odaklı şirketleri karşılaştırırken kullanılabilir.",
       "source_name": "Investor.gov — Dividends",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dividend"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/dividend",
+      "aliases": [
+        "dividend yield"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Şirketi Anla",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "kap",
@@ -645,7 +1159,19 @@
       "common_mistake": "Başlığı okuyup ekleri, koşulları ve önceki açıklamalarla bağlantıyı incelememek.",
       "in_app": "Hisseyi İncele > Şirket Bildirimleri bölümünde gösterilir.",
       "source_name": "Kamuyu Aydınlatma Platformu",
-      "source_url": "https://www.kap.org.tr/tr/"
+      "source_url": "https://www.kap.org.tr/tr/",
+      "aliases": [
+        "kamuyu aydınlatma platformu",
+        "public disclosure platform"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "bilanco_aciklamasi",
@@ -659,7 +1185,20 @@
       "common_mistake": "Yalnız net kâra bakmak ve dipnotlarla nakit akışını atlamak.",
       "in_app": "KAP bildirimleri ve Planım içindeki bilanço notlarıyla ilişkilidir.",
       "source_name": "Investor.gov — Financial Statements",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/how-read-company-financial-statements",
+      "aliases": [
+        "financial results",
+        "earnings release",
+        "finansal sonuçlar"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "bedelli_sermaye",
@@ -673,7 +1212,22 @@
       "common_mistake": "Sermaye artışını otomatik iyi veya kötü saymak; kaynak kullanımını ve sulanmayı incelememek.",
       "in_app": "KAP şirket gelişmelerinde açıklanır.",
       "source_name": "KAP — Sermaye artırımı bildirimleri",
-      "source_url": "https://www.kap.org.tr/tr/"
+      "source_url": "https://www.kap.org.tr/tr/",
+      "aliases": [
+        "rights issue",
+        "nakit sermaye artırımı"
+      ],
+      "seen_as": "",
+      "related": [
+        "ruchan_hakki",
+        "sulanma"
+      ],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "bedelsiz_sermaye",
@@ -687,7 +1241,19 @@
       "common_mistake": "Ek pay geldiği için servetin otomatik iki katına çıktığını düşünmek.",
       "in_app": "KAP açıklamalarını yorumlarken kullanılır.",
       "source_name": "KAP — Bedelsiz sermaye artırımı",
-      "source_url": "https://www.kap.org.tr/tr/"
+      "source_url": "https://www.kap.org.tr/tr/",
+      "aliases": [
+        "bonus issue",
+        "bedelsiz"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "ruchan_hakki",
@@ -701,7 +1267,21 @@
       "common_mistake": "Rüçhan hakkının süresiz olduğunu düşünmek.",
       "in_app": "KAP gelişmeleri rehberinde kullanılır.",
       "source_name": "KAP — Yeni pay alma hakları",
-      "source_url": "https://www.kap.org.tr/tr/"
+      "source_url": "https://www.kap.org.tr/tr/",
+      "aliases": [
+        "rights entitlement",
+        "yeni pay alma hakkı",
+        "rüçhan",
+        "rüçhan hakkı"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "geri_alim",
@@ -715,7 +1295,19 @@
       "common_mistake": "Geri alım kararını kesin fiyat yükselişi garantisi saymak.",
       "in_app": "KAP şirket bildirimlerinde takip edilir.",
       "source_name": "KAP — Geri alınan paylar",
-      "source_url": "https://www.kap.org.tr/tr/"
+      "source_url": "https://www.kap.org.tr/tr/",
+      "aliases": [
+        "share buyback",
+        "stock repurchase"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "halka_arz",
@@ -729,7 +1321,19 @@
       "common_mistake": "Yeni işlem görmeye başlayan her şirketin fiyatının sürekli yükseleceğini varsaymak.",
       "in_app": "Kısa borsa geçmişi ve şirket yaşam evresi konularıyla ilişkilidir.",
       "source_name": "Investor.gov — IPO",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/initial-public-offering-ipo"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/glossary/initial-public-offering-ipo",
+      "aliases": [
+        "ipo",
+        "initial public offering"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "sozlesme_siparis",
@@ -743,7 +1347,20 @@
       "common_mistake": "Sözleşme tutarını doğrudan net kâr kabul etmek.",
       "in_app": "Şirket Bildirimleri ve Haberler bölümünde görülebilir.",
       "source_name": "Kamuyu Aydınlatma Platformu",
-      "source_url": "https://www.kap.org.tr/tr/"
+      "source_url": "https://www.kap.org.tr/tr/",
+      "aliases": [
+        "new contract",
+        "order win",
+        "yeni iş ilişkisi"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "backlog",
@@ -757,7 +1374,20 @@
       "common_mistake": "Bekleyen iş tutarını kesin ve hemen elde edilecek gelir saymak.",
       "in_app": "Sözleşme yoğun şirketlerin değerlendirilmesinde kullanılır.",
       "source_name": "KAP — Şirket bildirimleri",
-      "source_url": "https://www.kap.org.tr/tr/"
+      "source_url": "https://www.kap.org.tr/tr/",
+      "aliases": [
+        "order backlog",
+        "sipariş bakiyesi",
+        "bekleyen işler"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "ortak_satisi",
@@ -771,7 +1401,19 @@
       "common_mistake": "Her ortak satışını şirketin kötü olduğuna dair kesin sinyal saymak.",
       "in_app": "KAP bildirimlerinden takip edilir.",
       "source_name": "Kamuyu Aydınlatma Platformu",
-      "source_url": "https://www.kap.org.tr/tr/"
+      "source_url": "https://www.kap.org.tr/tr/",
+      "aliases": [
+        "insider sale",
+        "shareholder sale"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "borclanma_ihraci",
@@ -785,7 +1427,20 @@
       "common_mistake": "Borçlanmayı tek başına olumsuz görmek; yatırımın getirisi ve ödeme kapasitesi birlikte incelenmelidir.",
       "in_app": "Borç yükü ve nakit akışı değerlendirmesinde kullanılır.",
       "source_name": "Investor.gov — Bonds",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products",
+      "aliases": [
+        "bond issuance",
+        "debt issuance",
+        "tahvil ihracı"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Haber ve KAP Dili",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ]
     },
     {
       "id": "enflasyon",
@@ -799,7 +1454,18 @@
       "common_mistake": "Tek bir ürünün fiyat artışını genel enflasyonla aynı kabul etmek.",
       "in_app": "Ekonomik Takvim bölümündeki temel gelişmelerden biridir.",
       "source_name": "TCMB — Enflasyon",
-      "source_url": "https://www.tcmb.gov.tr/"
+      "source_url": "https://www.tcmb.gov.tr/",
+      "aliases": [
+        "inflation"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "politika_faizi",
@@ -813,7 +1479,18 @@
       "common_mistake": "Faiz değiştiğinde tüm hisselerin aynı yönde ve aynı ölçüde hareket edeceğini düşünmek.",
       "in_app": "Ekonomik Takvim ve makro analiz bölümünde izlenir.",
       "source_name": "TCMB — Para Politikası Kurulu",
-      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Temel+Faaliyetler/Para+Politikasi/PPK/"
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Temel+Faaliyetler/Para+Politikasi/PPK/",
+      "aliases": [
+        "policy rate"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "merkez_bankasi_karari",
@@ -827,7 +1504,19 @@
       "common_mistake": "Sadece manşet faiz değişimine bakıp karar metnini okumamak.",
       "in_app": "Ekonomik Takvimde yüksek önem düzeyinde gösterilir.",
       "source_name": "TCMB — PPK Kararları",
-      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Temel+Faaliyetler/Para+Politikasi/PPK/"
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Temel+Faaliyetler/Para+Politikasi/PPK/",
+      "aliases": [
+        "central bank decision",
+        "rate decision"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "gsyh",
@@ -841,7 +1530,19 @@
       "common_mistake": "Ekonomi büyürken her şirketin kârının artacağını varsaymak.",
       "in_app": "Ekonomik Takvimde ülke ve bölge verisi olarak izlenir.",
       "source_name": "World Bank — GDP",
-      "source_url": "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD"
+      "source_url": "https://data.worldbank.org/indicator/NY.GDP.MKTP.CD",
+      "aliases": [
+        "gdp",
+        "gross domestic product"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "issizlik",
@@ -855,7 +1556,18 @@
       "common_mistake": "Tek aylık değişimi kalıcı eğilim kabul etmek.",
       "in_app": "Ekonomik Takvimde orta veya yüksek önemle izlenir.",
       "source_name": "OECD — Unemployment",
-      "source_url": "https://data.oecd.org/unemp/unemployment-rate.htm"
+      "source_url": "https://data.oecd.org/unemp/unemployment-rate.htm",
+      "aliases": [
+        "unemployment rate"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "pmi",
@@ -869,7 +1581,19 @@
       "common_mistake": "PMI 50'nin üzerinde diye büyüme hızının mutlaka arttığını düşünmek.",
       "in_app": "Ekonomik Takvimde orta önem düzeyindeki verilerden biridir.",
       "source_name": "S&P Global — PMI",
-      "source_url": "https://www.spglobal.com/marketintelligence/en/mi/products/pmi.html"
+      "source_url": "https://www.spglobal.com/marketintelligence/en/mi/products/pmi.html",
+      "aliases": [
+        "purchasing managers index",
+        "satın alma yöneticileri endeksi"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "sanayi_uretimi",
@@ -883,7 +1607,18 @@
       "common_mistake": "Tek aylık veriyi mevsimsellikten arındırmadan yorumlamak.",
       "in_app": "Ekonomik Takvimde orta önem düzeyinde izlenir.",
       "source_name": "TÜİK",
-      "source_url": "https://data.tuik.gov.tr/"
+      "source_url": "https://data.tuik.gov.tr/",
+      "aliases": [
+        "industrial production"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "doviz_kuru",
@@ -897,7 +1632,19 @@
       "common_mistake": "Kur yükselişinin tüm ihracatçılar için otomatik olumlu olduğunu düşünmek.",
       "in_app": "Yabancı portföy işlemlerinin TL karşılığı hesaplanırken kullanılır.",
       "source_name": "TCMB — Döviz Kurları",
-      "source_url": "https://www.tcmb.gov.tr/kurlar/kurlar_tr.html"
+      "source_url": "https://www.tcmb.gov.tr/kurlar/kurlar_tr.html",
+      "aliases": [
+        "exchange rate",
+        "fx rate"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "tahvil_faizi",
@@ -911,7 +1658,19 @@
       "common_mistake": "Tahvil kupon oranı ile piyasadaki güncel getiriyi aynı sanmak.",
       "in_app": "Makro gelişmelerin hisse piyasasına aktarımını anlamada kullanılır.",
       "source_name": "Investor.gov — Bonds",
-      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products"
+      "source_url": "https://www.investor.gov/introduction-investing/investing-basics/investment-products/bonds-or-fixed-income-products",
+      "aliases": [
+        "bond yield",
+        "treasury yield"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
     },
     {
       "id": "tarim_disi_istihdam",
@@ -925,7 +1684,2885 @@
       "common_mistake": "Tek veriyi ücret artışı, işsizlik ve önceki ay revizyonlarından bağımsız yorumlamak.",
       "in_app": "Ekonomik Takvimde yüksek önem düzeyinde izlenir.",
       "source_name": "U.S. Bureau of Labor Statistics",
-      "source_url": "https://www.bls.gov/ces/"
+      "source_url": "https://www.bls.gov/ces/",
+      "aliases": [
+        "nonfarm payrolls",
+        "nfp",
+        "non-farm payrolls"
+      ],
+      "seen_as": "",
+      "related": [],
+      "track": "Ekonomik Takvim Dili",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ]
+    },
+    {
+      "id": "yatirim_fonu",
+      "term": "Yatırım fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Birçok yatırımcının parasını belirli bir stratejiyle ortak bir portföyde toplayan yatırım aracıdır.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Bir hisse fonu ağırlıklı olarak paylara; para piyasası fonu kısa vadeli araçlara yatırım yapabilir.",
+      "common_mistake": "Bütün fonların aynı riskte ve aynı gün nakde dönebildiğini düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "mutual fund",
+        "fon"
+      ],
+      "seen_as": "“Yatırım fonu”, “fon katılma payı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": [
+        "yatirimci_bilgi_formu",
+        "fon_valoru",
+        "fon_risk_degeri"
+      ]
+    },
+    {
+      "id": "katilma_payi",
+      "term": "Fon katılma payı",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Fon portföyündeki yatırımcı payını gösteren birimdir.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "10.000 TL ile pay fiyatı 2 TL olan fondan yaklaşık 5.000 pay alınır; işlem kuralları ayrıca dikkate alınır.",
+      "common_mistake": "Katılma payını şirket hissesiyle aynı şey sanmak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "fund unit",
+        "katılma payı"
+      ],
+      "seen_as": "“Katılma payı fiyatı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "tefas",
+      "term": "TEFAS",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Türkiye’de birçok yatırım fonunun karşılaştırılabildiği ve dağıtılabildiği elektronik platformdur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Bir fonun getiri geçmişi, risk değeri ve portföy bilgileri TEFAS üzerinden incelenebilir.",
+      "common_mistake": "Sadece geçmiş getirisi yüksek fonu seçmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "Türkiye Elektronik Fon Alım Satım Platformu"
+      ],
+      "seen_as": "“TEFAS’ta işlem görüyor”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "fon_fiyati",
+      "term": "Fon fiyatı",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Fonun toplam değerinin dolaşımdaki pay sayısına bölünmesiyle oluşan katılma payı fiyatıdır.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Talimat verdiğin anda ekranda gördüğün fiyat ile işlemin gerçekleşeceği fiyat farklı olabilir.",
+      "common_mistake": "Emir anındaki fiyatın kesin işlem fiyatı olduğunu düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "katılma payı fiyatı",
+        "fund price"
+      ],
+      "seen_as": "“Fon fiyatı T+1’de belli olur”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "fon_valoru",
+      "term": "Fon valörü",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Fon alım veya satım talimatının kaç iş günü sonra gerçekleşeceğini ya da hesaba geçeceğini anlatır.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Pazartesi satılan bir fonun parası fon kuralına göre çarşamba hesaba geçebilir.",
+      "common_mistake": "Valörü yalnız fiyat tarihi sanmak; nakde geçiş süresini gözden kaçırmak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "fon valör",
+        "t+1",
+        "t+2",
+        "t+3"
+      ],
+      "seen_as": "“Alım valörü T+1, satım valörü T+2”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "fon_emir_saati",
+      "term": "Fon alım-satım saati",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Talimatın hangi günün fiyatıyla işleme alınacağını etkileyen son saattir.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Kesim saatinden sonra verilen talimat bir sonraki iş gününün sürecine kalabilir.",
+      "common_mistake": "Günün her saatinde aynı fiyat ve valörle işlem olacağını varsaymak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "fon kesim saati",
+        "talimat saati",
+        "cut-off"
+      ],
+      "seen_as": "“Saat 13.30’a kadar verilen talimatlar”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "yonetim_ucreti",
+      "term": "Yönetim ücreti",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Fonun yönetimi için fon varlığından düzenli olarak düşülen ücrettir.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Brüt performans aynı olsa bile yönetim ücreti daha yüksek fonun net getirisi daha düşük olabilir.",
+      "common_mistake": "Ücret hesabından ayrıca çekilmediği için maliyet olmadığını düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "management fee"
+      ],
+      "seen_as": "“Yıllık yönetim ücreti”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "toplam_gider_orani",
+      "term": "Toplam gider oranı",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Fonun belirli dönemde taşıdığı yönetim ve diğer giderlerin fon değerine oranıdır.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "İki benzer fon karşılaştırılırken yalnız getiriye değil toplam gider oranına da bakılır.",
+      "common_mistake": "Tek başına düşük gider oranının fonu mutlaka daha iyi yaptığını düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "total expense ratio",
+        "ter"
+      ],
+      "seen_as": "“Toplam gider oranı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "fon_risk_degeri",
+      "term": "Fon risk değeri",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Fonun geçmiş fiyat hareketlerinden türetilen, genellikle 1 ile 7 arasında gösterilen risk sınıfıdır.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Risk değeri 1 olan fon ile 7 olan fonun fiyat hareketleri aynı ölçekte beklenmez.",
+      "common_mistake": "Risk değerini garanti edilen maksimum zarar sanmak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "risk value",
+        "risk class",
+        "risk değeri"
+      ],
+      "seen_as": "“Risk değeri 6/7”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "yatirimci_bilgi_formu",
+      "term": "Yatırımcı bilgi formu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Fonun amacı, stratejisi, riskleri, giderleri ve alım-satım kurallarını özetleyen temel belgedir.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Fon adında “teknoloji” yazsa bile gerçek portföy sınırları bu belgede görülür.",
+      "common_mistake": "Fonun yalnız adına bakarak içeriğini bildiğini düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "key investor information",
+        "kısa yatırımcı bilgi formu"
+      ],
+      "seen_as": "“Yatırımcı bilgi formunu inceleyiniz”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "fon_izahnamesi",
+      "term": "Fon izahnamesi",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Fonun ayrıntılı hukuki ve operasyonel kurallarını açıklayan belgedir.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Alım-satım esasları, riskler ve yatırım sınırlamaları izahnamede ayrıntılı yer alır.",
+      "common_mistake": "Yatırımcı bilgi formu ile izahnameyi aynı ayrıntı düzeyinde sanmak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "prospectus",
+        "izahname"
+      ],
+      "seen_as": "“Fon izahnamesi”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "para_piyasasi_fonu",
+      "term": "Para piyasası fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Portföyü ağırlıklı olarak kısa vadeli ve likit para piyasası araçlarından oluşan fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Kısa süreli nakit bekletme amacıyla tercih edilebilir; yine de mevduatla aynı ürün değildir.",
+      "common_mistake": "Getirisinin sabit ve devlet garantili olduğunu düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "money market fund",
+        "ppf"
+      ],
+      "seen_as": "“Para piyasası fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "borclanma_fonu",
+      "term": "Borçlanma araçları fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Tahvil, bono ve benzeri borçlanma araçlarına ağırlık veren fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Piyasa faizleri yükseldiğinde fondaki uzun vadeli tahvillerin fiyatı baskılanabilir.",
+      "common_mistake": "Tahvil fonunda fiyat kaybı olmayacağını düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "bond fund",
+        "borçlanma araçları"
+      ],
+      "seen_as": "“Borçlanma araçları fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "hisse_fonu",
+      "term": "Hisse senedi fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Portföyünde pay senetlerine belirli ölçüde ağırlık veren fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Endeks yükselirken fonun seçtiği hisseler nedeniyle endeksten farklı performans oluşabilir.",
+      "common_mistake": "Bütün hisse fonlarının BIST 100’ü aynen izleyeceğini sanmak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "equity fund",
+        "stock fund"
+      ],
+      "seen_as": "“Hisse senedi fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "hisse_yogun_fon",
+      "term": "Hisse senedi yoğun fon",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Mevzuatta belirlenen yüksek pay senedi ağırlığı koşullarını sağlayan fon türüdür.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Fonun pay piyasası hareketlerine duyarlılığı genellikle daha yüksektir.",
+      "common_mistake": "Adındaki “yoğun” ifadesini kısa vadeli yüksek getiri garantisi sanmak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "hisse yoğun fon"
+      ],
+      "seen_as": "“Hisse senedi yoğun fon”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "degisken_fon",
+      "term": "Değişken fon",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Portföy dağılımını piyasa koşullarına göre farklı varlıklar arasında değiştirebilen fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Fon yöneticisi dönem içinde hisse, tahvil veya para piyasası ağırlığını değiştirebilir.",
+      "common_mistake": "Varlık dağılımının sürekli aynı kaldığını varsaymak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "flexible fund"
+      ],
+      "seen_as": "“Değişken fon”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "karma_fon",
+      "term": "Karma fon",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Birden fazla varlık sınıfını belirli esaslarla birlikte taşıyan fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Hisse ve borçlanma araçları aynı fon içinde bulunabilir.",
+      "common_mistake": "Karma fonun otomatik olarak düşük riskli olduğunu düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "balanced fund",
+        "mixed fund"
+      ],
+      "seen_as": "“Karma fon”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "fon_sepeti_fonu",
+      "term": "Fon sepeti fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Portföyünün önemli kısmını başka fonların katılma paylarında tutan fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Tek fonla farklı fon yöneticilerine ve stratejilere erişim sağlayabilir.",
+      "common_mistake": "Alttaki fonların giderlerine ek olarak üst fon giderlerini göz ardı etmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "fund of funds"
+      ],
+      "seen_as": "“Fon sepeti fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "kiymetli_maden_fonu",
+      "term": "Kıymetli madenler fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Altın ve diğer kıymetli madenlere veya bunlara dayalı araçlara yatırım yapan fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Fon getirisi altın fiyatına ek olarak kur ve fon giderlerinden etkilenebilir.",
+      "common_mistake": "Gram altınla birebir aynı getiri göstereceğini varsaymak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "gold fund",
+        "precious metals fund",
+        "altın fonu"
+      ],
+      "seen_as": "“Altın / kıymetli madenler fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "katilim_fonu",
+      "term": "Katılım fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Portföyünü katılım finans ilkelerine uygun araçlardan oluşturan fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Kira sertifikası, katılım hesapları veya uygun paylar kullanılabilir.",
+      "common_mistake": "Katılım fonlarının tek bir risk düzeyinde olduğunu düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "participation fund",
+        "faizsiz fon"
+      ],
+      "seen_as": "“Katılım fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "yabanci_fon",
+      "term": "Yabancı varlık fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Yurt dışı varlıklara veya yabancı piyasalara ağırlık veren fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Yabancı varlık yükselse bile TL getirisi kur hareketinden ayrıca etkilenir.",
+      "common_mistake": "Kur etkisini fonun varlık performansından ayırmamak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "foreign fund",
+        "yabancı hisse fonu"
+      ],
+      "seen_as": "“Yabancı teknoloji fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "serbest_fon",
+      "term": "Serbest fon",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Daha esnek stratejiler kullanabilen ve çoğunlukla nitelikli yatırımcılara sunulan fon türüdür.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Kaldıraç veya karmaşık araçlar kullanabilen stratejiler bulunabilir.",
+      "common_mistake": "“Serbest” kelimesini kolay erişilebilir veya risksiz anlamında okumak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "hedge fund",
+        "serbest özel fon"
+      ],
+      "seen_as": "“Nitelikli yatırımcıya satılabilir”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "emeklilik_fonu",
+      "term": "Emeklilik yatırım fonu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Bireysel emeklilik sistemindeki birikimlerin değerlendirildiği fonlardır.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Katılımcı, planındaki seçeneklere göre fon dağılımını değiştirebilir.",
+      "common_mistake": "BES hesabındaki fon ile bankadan alınan yatırım fonunu tamamen aynı süreç sanmak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/menkul-kiymet-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "pension fund",
+        "bes fonu"
+      ],
+      "seen_as": "“Emeklilik yatırım fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "etf_byf",
+      "term": "ETF / Borsa yatırım fonu (BYF)",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Bir endeksi veya varlık sepetini izlemeyi amaçlayan ve payları borsada hisse gibi işlem gören fondur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Bir endeks ETF’si işlem saatinde anlık fiyatla alınıp satılabilir.",
+      "common_mistake": "ETF’yi EFT para transferiyle veya normal yatırım fonunun valör sistemiyle karıştırmak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/borsa-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "etf",
+        "byf",
+        "exchange traded fund",
+        "borsa yatırım fonu",
+        "eft"
+      ],
+      "seen_as": "“ETF”, “BYF”, “borsa yatırım fonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": [
+        "net_aktif_deger",
+        "takip_farki",
+        "piyasa_yapici"
+      ]
+    },
+    {
+      "id": "net_aktif_deger",
+      "term": "Net aktif değer (NAV)",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Fon varlıklarının borçlar düşüldükten sonraki toplam değerinin pay başına karşılığıdır.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "ETF piyasa fiyatı kısa süreli olarak pay başına net aktif değerin üzerinde veya altında olabilir.",
+      "common_mistake": "Borsadaki ETF fiyatı ile net aktif değerin her saniye aynı olması gerektiğini düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/borsa-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "nav",
+        "net asset value",
+        "fon toplam değeri"
+      ],
+      "seen_as": "“NAV”, “iNAV”, “net aktif değer”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "takip_farki",
+      "term": "Takip farkı",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Endeks izleyen fonun getirisi ile izlediği endeksin getirisi arasındaki farktır.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "Endeks %10 yükselirken fon gider ve uygulama farkları nedeniyle %9,5 yükselebilir.",
+      "common_mistake": "Endeksi izleyen her fonun endeksi birebir kopyalayacağını düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/borsa-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "tracking difference",
+        "tracking error"
+      ],
+      "seen_as": "“Endeksin gerisinde kaldı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "etf_prim_iskonto",
+      "term": "ETF primi / iskontosu",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "ETF piyasa fiyatının net aktif değerinin üzerinde veya altında işlem görmesidir.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "NAV 100 iken fiyat 101 ise yaklaşık %1 prim söz konusu olabilir.",
+      "common_mistake": "Primi şirket büyüme beklentisi gibi yorumlamak.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/borsa-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "premium to nav",
+        "discount to nav",
+        "primli işlem",
+        "iskontolu işlem"
+      ],
+      "seen_as": "“NAV’a göre primli/iskontolu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "piyasa_yapici",
+      "term": "Piyasa yapıcı",
+      "category": "Fonlar ve ETF",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Belirli ürünlerde sürekli alış ve satış kotasyonu vererek likiditeyi destekleyen kurumdur.",
+      "why": "Ürünün nasıl fiyatlandığını, hangi riskleri taşıdığını ve paraya dönüş süresini doğru anlamak için önemlidir.",
+      "example": "ETF’de piyasa yapıcının kotasyonları alış-satış farkının makul kalmasına yardımcı olabilir.",
+      "common_mistake": "Piyasa yapıcının fiyatın düşmesini engellemek zorunda olduğunu düşünmek.",
+      "in_app": "Rehberde yatırım araçlarını tanı bölümünde ve fon/ETF ile ilgili haberlerde.",
+      "source_name": "SPK — Yatırım Fonları",
+      "source_url": "https://spk.gov.tr/kurumlar/fonlar/yatirim-fonlari/borsa-yatirim-fonlari/tanitim-rehberi",
+      "aliases": [
+        "market maker"
+      ],
+      "seen_as": "“Piyasa yapıcılık faaliyeti”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "viop",
+      "term": "VİOP",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Vadeli işlem ve opsiyon sözleşmelerinin işlem gördüğü Borsa İstanbul piyasasıdır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Pay, endeks, döviz veya emtia dayanaklı sözleşmeler bulunabilir.",
+      "common_mistake": "VİOP’u normal hisse alımı gibi görmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "vadeli işlem ve opsiyon piyasası"
+      ],
+      "seen_as": "“VİOP işlemleri”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": [
+        "kaldirac",
+        "baslangic_teminati",
+        "gunluk_uzlasma"
+      ]
+    },
+    {
+      "id": "vadeli_islem",
+      "term": "Vadeli işlem sözleşmesi",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Belirli bir dayanak varlığı gelecekteki vadede önceden belirlenen esaslarla alma veya satma yükümlülüğü doğuran sözleşmedir.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Endeks vadeli sözleşmesinde vade ve sözleşme büyüklüğü önceden tanımlıdır.",
+      "common_mistake": "Sadece teminat tutarı kadar ekonomik risk taşındığını düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "futures",
+        "future contract"
+      ],
+      "seen_as": "“Vadeli kontrat”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "opsiyon",
+      "term": "Opsiyon sözleşmesi",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Alıcıya belirli koşullarda alma veya satma hakkı veren; satıcıya ise yükümlülük doğurabilen sözleşmedir.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Opsiyon alıcısı hakkı için prim öder; hakkı kullanmak zorunda değildir.",
+      "common_mistake": "Opsiyon alıcısı ile satıcısının riskini aynı sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "option"
+      ],
+      "seen_as": "“Opsiyon primi”, “call”, “put”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "dayanak_varlik",
+      "term": "Dayanak varlık",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Türev sözleşmenin değerinin bağlı olduğu hisse, endeks, döviz, emtia veya başka varlıktır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "BIST 30 vadeli sözleşmesinin dayanağı BIST 30 endeksidir.",
+      "common_mistake": "Sözleşme fiyatıyla dayanak varlık fiyatının birebir aynı olması gerektiğini düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "underlying",
+        "underlying asset"
+      ],
+      "seen_as": "“Dayanak varlık BIST 30”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "sozlesme_buyuklugu",
+      "term": "Sözleşme büyüklüğü",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Bir kontratın kaç birim dayanak varlığı temsil ettiğini gösterir.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Bir kontratın fiyat hareketi, sözleşme çarpanı nedeniyle ekrandaki bir puandan daha büyük parasal sonuç yaratabilir.",
+      "common_mistake": "Bir kontratı bir adet hisseyle eş tutmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "contract size",
+        "multiplier"
+      ],
+      "seen_as": "“Sözleşme büyüklüğü”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "vade",
+      "term": "Vade / son işlem günü",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Sözleşmenin işlem ve uzlaşma sürecinin sona erdiği tarih veya dönemi ifade eder.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Aynı dayanakta farklı vadeler farklı fiyatlardan işlem görebilir.",
+      "common_mistake": "Vadeli pozisyonun süresiz tutulabileceğini düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "expiry",
+        "expiration",
+        "maturity"
+      ],
+      "seen_as": "“Ağustos vadeli”, “son işlem günü”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "uzun_pozisyon",
+      "term": "Uzun pozisyon",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Sözleşme fiyatının yükselmesinden yarar sağlamayı amaçlayan alım yönlü pozisyondur.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Fiyat yükselirse uzun vadeli pozisyon genellikle değer kazanır.",
+      "common_mistake": "Uzun pozisyonu mutlaka uzun vadeli yatırım sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "long position",
+        "long"
+      ],
+      "seen_as": "“Uzun açtı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "kisa_pozisyon",
+      "term": "Kısa pozisyon",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Sözleşme fiyatının düşmesinden yarar sağlamayı amaçlayan satış yönlü pozisyondur.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Fiyat düşerse kısa vadeli pozisyon değer kazanabilir.",
+      "common_mistake": "Kısa pozisyonda zararın yalnız yatırılan teminatla sınırlı olduğunu düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "short position",
+        "short"
+      ],
+      "seen_as": "“Kısa pozisyon aldı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "baslangic_teminati",
+      "term": "Başlangıç teminatı",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Pozisyon açabilmek için hesapta bulunması gereken asgari teminattır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "100.000 TL ekonomik büyüklükteki pozisyon daha düşük teminatla açılabilir.",
+      "common_mistake": "Teminatı pozisyonun toplam maliyeti sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "initial margin"
+      ],
+      "seen_as": "“Başlangıç teminatı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "surdurme_teminati",
+      "term": "Sürdürme teminatı",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Açık pozisyonu sürdürebilmek için korunması gereken teminat seviyesidir.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Zararlar teminatı düşürdüğünde ek teminat ihtiyacı doğabilir.",
+      "common_mistake": "Başlangıç teminatı yatırıldıktan sonra başka yükümlülük oluşmayacağını sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "maintenance margin"
+      ],
+      "seen_as": "“Sürdürme seviyesi”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "kaldirac",
+      "term": "Kaldıraç",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Daha küçük teminatla daha büyük ekonomik pozisyon taşınmasını ifade eder.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Dayanakta %1 hareket, teminata göre çok daha büyük oransal sonuç oluşturabilir.",
+      "common_mistake": "Kaldıracı yalnız kazancı büyüten bir özellik gibi görmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "leverage",
+        "leveraged"
+      ],
+      "seen_as": "“10 kat kaldıraç”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "gunluk_uzlasma",
+      "term": "Günlük uzlaşma",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Açık pozisyonların gün sonu uzlaşma fiyatına göre kâr ve zararının hesaba yansıtılmasıdır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Pozisyon kapanmasa bile günlük zarar teminattan düşebilir.",
+      "common_mistake": "Kâr veya zararın yalnız pozisyon kapatıldığında oluşacağını düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "mark to market",
+        "daily settlement"
+      ],
+      "seen_as": "“Günlük uzlaşma fiyatı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "teminat_tamamlama",
+      "term": "Teminat tamamlama çağrısı",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Teminat yetersiz kaldığında hesaba ek varlık yatırılması veya pozisyon azaltılması gereğini ifade eder.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Hızlı fiyat hareketinde teminat seviyesi kısa sürede yetersiz kalabilir.",
+      "common_mistake": "Çağrı gelene kadar pozisyonun risksiz olduğunu düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "margin call",
+        "teminat çağrısı"
+      ],
+      "seen_as": "“Margin call”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "fiziki_teslimat",
+      "term": "Fiziki teslimat",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Vade sonunda uzlaşmanın dayanak varlığın teslimiyle yapılmasıdır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Bazı pay sözleşmelerinde vade sonunda pay teslimi söz konusu olabilir.",
+      "common_mistake": "Her VİOP sözleşmesinin nakit farkla kapandığını düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "physical delivery"
+      ],
+      "seen_as": "“Fiziki teslimatlı sözleşme”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "nakdi_uzlasma",
+      "term": "Nakdi uzlaşma",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Vade sonunda dayanak teslimi yerine fiyat farkının nakit olarak hesaplaşılmasıdır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Endeks sözleşmelerinde uzlaşma nakit fark üzerinden yapılabilir.",
+      "common_mistake": "Nakdi uzlaşmayı pozisyonda hiç zarar oluşmaması sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "cash settlement"
+      ],
+      "seen_as": "“Nakdi uzlaşmalı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "pozisyon_kapatma",
+      "term": "Pozisyon kapatma",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Açık pozisyonun ters yönlü işlemle sona erdirilmesidir.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Uzun pozisyon aynı sözleşmede satış yapılarak kapatılabilir.",
+      "common_mistake": "Kapatma işlemini vade sonunu beklemek zorunluluğuyla karıştırmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "close position",
+        "offset"
+      ],
+      "seen_as": "“Pozisyonunu kapattı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "vade_tasima",
+      "term": "Vade taşıma / rollover",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Yaklaşan vadeli pozisyonu kapatıp daha ileri vadeli sözleşmede yeni pozisyon açmaktır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Ağustos kontratı kapatılıp ekim kontratı açılabilir.",
+      "common_mistake": "İki vade arasındaki fiyat farkı ve işlem maliyetini yok saymak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "rollover",
+        "roll"
+      ],
+      "seen_as": "“Pozisyonu sonraki vadeye taşıdı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "korunma",
+      "term": "Korunma amaçlı işlem (hedge)",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Mevcut varlıktaki olumsuz fiyat hareketinin etkisini azaltmak amacıyla karşı pozisyon almaktır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Döviz borcu olan şirket vadeli döviz işlemiyle kur riskini azaltmaya çalışabilir.",
+      "common_mistake": "Hedge işleminin bütün riski ve maliyeti sıfırladığını düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "hedge",
+        "hedging",
+        "riskten korunma"
+      ],
+      "seen_as": "“Kur riskini hedge etti”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "spekulasyon",
+      "term": "Spekülasyon",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Fiyat hareketinden kazanç amacıyla risk üstlenilmesidir.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Yükseliş beklentisiyle vadeli uzun pozisyon açmak spekülatif olabilir.",
+      "common_mistake": "Spekülasyonu otomatik olarak manipülasyonla aynı sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "speculation"
+      ],
+      "seen_as": "“Spekülatif pozisyon”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "baz_riski",
+      "term": "Baz riski",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Korunulan varlık ile kullanılan sözleşmenin fiyatlarının beklenen ölçüde birlikte hareket etmemesi riskidir.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Spot ürün ile vadeli sözleşme arasındaki fark korunma sonucunu etkileyebilir.",
+      "common_mistake": "Hedge oranı doğruysa sonucun kesin olduğunu düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "basis risk"
+      ],
+      "seen_as": "“Baz açıldı/daraldı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "opsiyon_primi",
+      "term": "Opsiyon primi",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Opsiyon alıcısının hakkı elde etmek için satıcıya ödediği fiyattır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Opsiyon kullanılmasa bile ödenen prim alıcı için maliyettir.",
+      "common_mistake": "Primi teminatla veya kullanım fiyatıyla karıştırmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "option premium",
+        "premium"
+      ],
+      "seen_as": "“Prim ödedi”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "kullanim_fiyati",
+      "term": "Kullanım fiyatı",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Opsiyon hakkının kullanılabileceği önceden belirlenmiş fiyattır.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Alım opsiyonu dayanak 100 seviyesinden alma hakkı verebilir.",
+      "common_mistake": "Kullanım fiyatını opsiyonun piyasa fiyatı sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "strike price",
+        "exercise price"
+      ],
+      "seen_as": "“Kullanım fiyatı 100”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "alim_opsiyonu",
+      "term": "Alım opsiyonu (call)",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Alıcıya dayanak varlığı kullanım fiyatından alma hakkı veren opsiyondur.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Dayanak yükselirse call opsiyonunun değeri diğer koşullara bağlı olarak artabilir.",
+      "common_mistake": "Call almanın doğrudan hisse almakla aynı risk yapısında olduğunu düşünmek.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "call option",
+        "call"
+      ],
+      "seen_as": "“Call opsiyonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "satim_opsiyonu",
+      "term": "Satım opsiyonu (put)",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Alıcıya dayanak varlığı kullanım fiyatından satma hakkı veren opsiyondur.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Portföy düşüşüne karşı put opsiyonu korunma amacıyla kullanılabilir.",
+      "common_mistake": "Put opsiyonunun her düşüşte birebir zarar telafi edeceğini sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "put option",
+        "put"
+      ],
+      "seen_as": "“Put opsiyonu”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "acik_pozisyon",
+      "term": "Açık pozisyon sayısı",
+      "category": "VİOP ve Türevler",
+      "level": "İleri",
+      "essential": false,
+      "short": "Henüz kapatılmamış veya vadesi dolmamış sözleşmelerin toplamını gösterir.",
+      "why": "Türev ürünlerde görünen teminat ile taşınan ekonomik pozisyon farklı olabildiği için önemlidir.",
+      "example": "Fiyatla birlikte açık pozisyon artışı piyasaya yeni pozisyon girişi olduğunu gösterebilir.",
+      "common_mistake": "Açık pozisyonu günlük işlem hacmiyle aynı sanmak.",
+      "in_app": "Rehberin ileri seviye yatırım araçları bölümünde ve VİOP haberlerinde.",
+      "source_name": "Borsa İstanbul — VİOP",
+      "source_url": "https://www.borsaistanbul.com/piyasalar/viop",
+      "aliases": [
+        "open interest"
+      ],
+      "seen_as": "“Açık pozisyon arttı”",
+      "contexts": [
+        "guide",
+        "news"
+      ],
+      "track": "Yatırım Araçlarını Tanı",
+      "related": []
+    },
+    {
+      "id": "aciklanan_deger",
+      "term": "Açıklanan değer (Actual)",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Veri yayımlandığında gerçekleşen son değerdir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Enflasyon açıklanan %3,2; beklenti %3,0 ise sonuç tahminin üzerindedir.",
+      "common_mistake": "Açıklanan değeri önceki dönemle veya beklentiyle karşılaştırmadan yorumlamak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "actual",
+        "açıklanan",
+        "gerçekleşen"
+      ],
+      "seen_as": "Actual / Açıklanan",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "beklenti_takvim",
+      "term": "Beklenti (Forecast)",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Ekonomistlerin veya piyasa katılımcılarının veri öncesindeki ortak tahminidir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "PMI beklentisi 50,5 iken açıklanan 49,8 olabilir.",
+      "common_mistake": "Beklentiyi resmî hedef veya garanti edilmiş sonuç sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "forecast",
+        "expectation",
+        "beklenti"
+      ],
+      "seen_as": "Forecast / Beklenti",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "onceki_deger",
+      "term": "Önceki değer (Previous)",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Aynı göstergenin bir önceki yayımlanan dönem değeridir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "İşsizlik önceki %4,0 iken yeni veri %4,2 olabilir.",
+      "common_mistake": "Önceki değerin sonradan revize edilebileceğini gözden kaçırmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "previous",
+        "prior",
+        "önceki"
+      ],
+      "seen_as": "Previous / Önceki",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "revizyon",
+      "term": "Revizyon",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Daha önce açıklanan ekonomik verinin yeni bilgilerle düzeltilmesidir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Önceki istihdam 200 bin iken 170 bine revize edilebilir.",
+      "common_mistake": "Sadece manşet yeni veriyi okuyup önemli önceki revizyonu atlamak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "revised",
+        "revision",
+        "revize"
+      ],
+      "seen_as": "Previous revised / Revizyon",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "konsensus",
+      "term": "Konsensüs",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Farklı tahminlerin bir araya getirilmesiyle oluşan ortak piyasa beklentisidir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "10 ekonomistin tahmin medyanı %3,0 olabilir.",
+      "common_mistake": "Bütün analistlerin aynı tahmini yaptığını düşünmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "consensus",
+        "median forecast"
+      ],
+      "seen_as": "Konsensüs beklenti",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "veri_surprizi",
+      "term": "Veri sürprizi",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Açıklanan değer ile piyasa beklentisi arasındaki beklenmeyen farktır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Beklenti 150 bin, açıklanan 230 bin ise pozitif istihdam sürprizi denebilir.",
+      "common_mistake": "Pozitif sürprizi her varlık için otomatik olumlu sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "data surprise",
+        "surprise"
+      ],
+      "seen_as": "Beklentiden güçlü/zayıf",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "mom",
+      "term": "Aylık değişim (MoM)",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Göstergenin bir önceki aya göre değişimini anlatır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "TÜFE aylık %2 ise fiyat endeksi önceki aya göre %2 artmıştır.",
+      "common_mistake": "Aylık oranı yıllık oranla karıştırmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "mom",
+        "month over month",
+        "aylık"
+      ],
+      "seen_as": "MoM / Aylık",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "yoy",
+      "term": "Yıllık değişim (YoY)",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Göstergenin geçen yılın aynı dönemine göre değişimini anlatır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Temmuz TÜFE YoY, geçen yıl temmuza göre değişimi gösterir.",
+      "common_mistake": "Yıllık oranın son 12 ayın basit toplamı olduğunu düşünmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "yoy",
+        "year over year",
+        "yıllık"
+      ],
+      "seen_as": "YoY / Yıllık",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "qoq",
+      "term": "Çeyreklik değişim (QoQ)",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Göstergenin önceki üç aylık döneme göre değişimini anlatır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "GSYH ikinci çeyrekte önceki çeyreğe göre %0,5 büyüyebilir.",
+      "common_mistake": "Çeyreklik oranı yıllıklandırılmış oranla aynı sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "qoq",
+        "quarter over quarter",
+        "çeyreklik"
+      ],
+      "seen_as": "QoQ / Çeyreklik",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "mevsimsellikten_arindirilmis",
+      "term": "Mevsimsellikten arındırılmış",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Tatil, hava ve dönemsel üretim gibi düzenli mevsim etkileri azaltılmış veridir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Aralık perakende satışları yılbaşı etkisi çıkarılarak karşılaştırılabilir.",
+      "common_mistake": "Arındırılmış veri ile ham veriyi doğrudan kıyaslamak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "seasonally adjusted",
+        "sa",
+        "mevsim etkisinden arındırılmış"
+      ],
+      "seen_as": "Seasonally adjusted / SA",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "oncu_veri",
+      "term": "Öncü / ilk tahmin",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Daha sınırlı bilgiyle erken yayımlanan ve sonradan güncellenebilen ilk tahmindir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Flash PMI ay bitmeden erken sinyal verir.",
+      "common_mistake": "Öncü veriyi nihai ve değişmez kabul etmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "preliminary",
+        "flash",
+        "advance",
+        "öncü"
+      ],
+      "seen_as": "Flash PMI / Preliminary",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "nihai_veri",
+      "term": "Nihai veri",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Daha fazla bilgiyle tamamlanan son yayımdır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Öncü PMI 51,0 iken nihai veri 50,7 olabilir.",
+      "common_mistake": "Nihai verinin hiçbir zaman revize edilmeyeceğini düşünmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "final",
+        "final reading",
+        "nihai"
+      ],
+      "seen_as": "Final / Nihai",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "onem_derecesi",
+      "term": "Takvim önem derecesi",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Takvim sağlayıcısının verinin geçmişteki piyasa etkisine göre verdiği yaklaşık sınıflandırmadır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Faiz kararı yüksek, küçük bir sektör verisi orta önem işaretlenebilir.",
+      "common_mistake": "Yüksek önem etiketinin kesin büyük fiyat hareketi garantisi olduğunu sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "high impact",
+        "medium impact",
+        "importance"
+      ],
+      "seen_as": "Yüksek / Orta önem",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "cpi",
+      "term": "TÜFE / CPI",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Tüketicilerin satın aldığı mal ve hizmet sepetindeki fiyat değişimini ölçen endekstir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "CPI beklentinin üzerinde gelirse faiz beklentileri etkilenebilir.",
+      "common_mistake": "Enflasyon oranını fiyat seviyesinin kendisiyle karıştırmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "consumer price index",
+        "cpi",
+        "tüketici fiyat endeksi"
+      ],
+      "seen_as": "CPI, TÜFE",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": [
+        "cekirdek_enflasyon",
+        "mom",
+        "yoy",
+        "baz_etkisi"
+      ]
+    },
+    {
+      "id": "cekirdek_enflasyon",
+      "term": "Çekirdek enflasyon",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Geçici veya çok oynak bazı kalemler dışarıda bırakılarak fiyat eğilimini izlemeye çalışan göstergedir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Enerji fiyatı düşerken çekirdek enflasyon yüksek kalabilir.",
+      "common_mistake": "Çekirdek göstergenin yaşam maliyetini tam olarak temsil ettiğini düşünmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "core cpi",
+        "core inflation",
+        "çekirdek tüfe"
+      ],
+      "seen_as": "Core CPI / Çekirdek",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "ppi",
+      "term": "ÜFE / PPI",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Üretici seviyesindeki mal ve hizmet fiyat değişimlerini ölçen göstergedir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Üretici maliyetlerindeki artış ileride tüketici fiyatlarına yansıyabilir; bu kesin değildir.",
+      "common_mistake": "ÜFE artışının aynı oranda hemen TÜFE’ye geçeceğini varsaymak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "producer price index",
+        "ppi",
+        "üretici fiyat endeksi",
+        "üfe"
+      ],
+      "seen_as": "PPI / ÜFE",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "faiz_karari",
+      "term": "Faiz kararı",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Merkez bankasının politika faizini değiştirme veya sabit tutma kararıdır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Faiz sabit kalsa bile karar metnindeki ton piyasayı etkileyebilir.",
+      "common_mistake": "Sadece oranı okuyup karar metnini görmezden gelmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "interest rate decision",
+        "rate decision"
+      ],
+      "seen_as": "Interest rate decision",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": [
+        "sahin_ton",
+        "guvercin_ton",
+        "baz_puan"
+      ]
+    },
+    {
+      "id": "ppk",
+      "term": "PPK",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Türkiye Cumhuriyet Merkez Bankası Para Politikası Kurulunu ifade eder.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "PPK politika faizi ve karar metnini açıklar.",
+      "common_mistake": "PPK kararını tek başına döviz veya hisse yönü garantisi sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "para politikası kurulu",
+        "tcmb ppk"
+      ],
+      "seen_as": "PPK kararı",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "fomc",
+      "term": "FOMC",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "ABD Merkez Bankasının para politikası kararlarını alan Federal Açık Piyasa Komitesidir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "FOMC faiz, projeksiyon ve Başkanın açıklamalarını yayımlayabilir.",
+      "common_mistake": "Fed ile FOMC’yi tamamen farklı kurumlar sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "Federal Reserve — FOMC",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomc.htm",
+      "aliases": [
+        "federal open market committee",
+        "fed meeting"
+      ],
+      "seen_as": "FOMC meeting / Fed kararı",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "ecb_toplantisi",
+      "term": "ECB faiz toplantısı",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Avrupa Merkez Bankasının Euro Bölgesi para politikası kararını açıkladığı toplantıdır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "ECB kararı euro, Avrupa tahvilleri ve hisseleri etkileyebilir.",
+      "common_mistake": "ECB kararının yalnız Almanya’yı ilgilendirdiğini düşünmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "European Central Bank",
+      "source_url": "https://www.ecb.europa.eu/mopo/decisions/html/index.en.html",
+      "aliases": [
+        "ecb meeting",
+        "ecb rate decision",
+        "avrupa merkez bankası"
+      ],
+      "seen_as": "ECB rate decision",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "tutanaklar",
+      "term": "Toplantı tutanakları",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Merkez bankası toplantısındaki değerlendirme ve görüş ayrılıklarını daha ayrıntılı gösteren metindir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Tutanaklarda enflasyon veya büyüme risklerine verilen ağırlık görülebilir.",
+      "common_mistake": "Tutanakların yeni faiz kararı olduğunu düşünmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "Federal Reserve — FOMC",
+      "source_url": "https://www.federalreserve.gov/monetarypolicy/fomc.htm",
+      "aliases": [
+        "minutes",
+        "meeting minutes",
+        "fomc minutes"
+      ],
+      "seen_as": "FOMC minutes / Tutanaklar",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "issizlik_basvurulari",
+      "term": "İşsizlik maaşı başvuruları",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Belirli dönemde ilk kez işsizlik yardımı talep eden kişi sayısını gösteren yüksek frekanslı işgücü verisidir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Başvuruların kalıcı yükselişi işgücü piyasasında zayıflama sinyali olabilir.",
+      "common_mistake": "Tek haftalık oynak veriden kesin trend çıkarmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "U.S. Bureau of Labor Statistics",
+      "source_url": "https://www.bls.gov/",
+      "aliases": [
+        "initial jobless claims",
+        "jobless claims"
+      ],
+      "seen_as": "Initial Jobless Claims",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "ortalama_saatlik_kazanc",
+      "term": "Ortalama saatlik kazançlar",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Çalışanların saat başına ortalama ücret değişimini ölçen ABD işgücü göstergesidir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Ücret artışı güçlü kaldığında hizmet enflasyonu tartışmaları etkilenebilir.",
+      "common_mistake": "Ücret artışını doğrudan reel gelir artışı sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "U.S. Bureau of Labor Statistics",
+      "source_url": "https://www.bls.gov/",
+      "aliases": [
+        "average hourly earnings",
+        "ahe",
+        "wage growth"
+      ],
+      "seen_as": "Average Hourly Earnings",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "imalat_pmi",
+      "term": "İmalat PMI",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "İmalat şirketleri anketinden üretim, sipariş ve istihdam eğilimini özetleyen yayılma endeksidir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "50 üzeri önceki aya göre genişlemeye, altı daralmaya işaret edebilir.",
+      "common_mistake": "52 değerini üretimin %52 büyüdüğü şeklinde okumak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "manufacturing pmi"
+      ],
+      "seen_as": "Manufacturing PMI",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "hizmet_pmi",
+      "term": "Hizmet PMI",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Hizmet sektöründeki faaliyet eğilimini şirket anketleriyle ölçen göstergedir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Hizmet PMI 50’nin altına indiğinde önceki aya göre daralma sinyali verebilir.",
+      "common_mistake": "PMI’yı resmî üretim miktarı verisi sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "services pmi",
+        "service pmi"
+      ],
+      "seen_as": "Services PMI",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "perakende_satislar",
+      "term": "Perakende satışlar",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Tüketicilerin mağaza ve benzeri kanallardaki harcama değişimini ölçer.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Beklentiden güçlü satışlar iç talebin canlı olduğuna işaret edebilir.",
+      "common_mistake": "Nominal artışta enflasyon etkisini yok saymak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "retail sales"
+      ],
+      "seen_as": "Retail Sales",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "tuketici_guveni",
+      "term": "Tüketici güveni",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Hanehalkının ekonomi ve kişisel mali durum beklentisini anketle ölçer.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Güven düşerken harcamalar hemen aynı oranda düşmeyebilir.",
+      "common_mistake": "Anket sonucunu gerçekleşmiş tüketim verisi sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "consumer confidence",
+        "consumer sentiment"
+      ],
+      "seen_as": "Consumer Confidence",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "ticaret_dengesi",
+      "term": "Dış ticaret dengesi",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Mal ihracatı ile ithalatı arasındaki farktır.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "İthalat ihracattan fazlaysa dış ticaret açığı oluşur.",
+      "common_mistake": "Açığın her koşulda kötü, fazlanın her koşulda iyi olduğunu düşünmek.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "trade balance",
+        "trade deficit",
+        "trade surplus"
+      ],
+      "seen_as": "Trade Balance",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "cari_denge",
+      "term": "Cari denge",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Mal ve hizmet ticareti, gelirler ve transferler dahil ülkenin dış ekonomik akımlarını özetleyen dengedir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Enerji ithalatı yükseldiğinde cari açık büyüyebilir.",
+      "common_mistake": "Cari dengeyi yalnız dış ticaret dengesiyle aynı sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "current account",
+        "current account balance"
+      ],
+      "seen_as": "Current Account",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "dayanikli_mal",
+      "term": "Dayanıklı mal siparişleri",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Uzun ömürlü mallara verilen yeni siparişlerin değişimini ölçen ABD göstergesidir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Uçak siparişleri manşet veriyi çok oynatabilir; çekirdek alt kalemler ayrıca izlenebilir.",
+      "common_mistake": "Tek seferlik büyük siparişleri kalıcı talep trendi sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "durable goods orders"
+      ],
+      "seen_as": "Durable Goods Orders",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "petrol_stoklari",
+      "term": "Petrol stokları",
+      "category": "Ekonomik Takvim Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Belirli ülkedeki ticari ham petrol stoklarının haftalık değişimini gösterir.",
+      "why": "Takvim verisini yalnız yüksek veya düşük diye değil, beklenti ve önceki değerle birlikte okumayı sağlar.",
+      "example": "Beklenmedik stok artışı kısa vadede petrol fiyatı üzerinde baskı yaratabilir.",
+      "common_mistake": "Stok verisini tek başına petrol fiyatının yönünü belirleyen unsur sanmak.",
+      "in_app": "Ekonomik Takvim ekranındaki hızlı açıklama alanında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "crude oil inventories",
+        "eia inventories",
+        "oil stocks"
+      ],
+      "seen_as": "Crude Oil Inventories",
+      "contexts": [
+        "guide",
+        "calendar",
+        "news"
+      ],
+      "track": "Ekonomik Takvim Dili",
+      "related": []
+    },
+    {
+      "id": "sahin_ton",
+      "term": "Şahin ton (hawkish)",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Merkez bankasının enflasyonla mücadele için daha sıkı para politikasına yakın durduğunu anlatan piyasa ifadesidir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Faiz artışı veya faizlerin uzun süre yüksek kalabileceği mesajı şahin olarak yorumlanabilir.",
+      "common_mistake": "Şahin ifadenin mutlaka aynı gün faiz artışı anlamına geldiğini düşünmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "hawkish",
+        "şahin açıklama",
+        "şahin duruş",
+        "şahin mesaj",
+        "şahin sinyal"
+      ],
+      "seen_as": "“Fed şahin mesaj verdi”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "guvercin_ton",
+      "term": "Güvercin ton (dovish)",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Merkez bankasının daha gevşek para politikası veya büyüme desteğine yakın durduğunu anlatan piyasa ifadesidir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Faiz indirimi olasılığına açık mesaj güvercin kabul edilebilir.",
+      "common_mistake": "Güvercin tonun bütün riskli varlıkları kesin yükselteceğini sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "dovish",
+        "güvercin açıklama",
+        "güvercin duruş"
+      ],
+      "seen_as": "“Açıklamalar güvercin bulundu”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "parasal_sikilasma",
+      "term": "Parasal sıkılaşma",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Para ve kredi koşullarının enflasyonu veya talebi yavaşlatacak yönde sıkılaştırılmasıdır.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Politika faizi artışı veya likidite koşullarının sıkılaştırılması bu kapsama girebilir.",
+      "common_mistake": "Sıkılaşmayı yalnız tek bir faiz kararıyla sınırlamak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "monetary tightening",
+        "sıkı para politikası"
+      ],
+      "seen_as": "“Sıkılaşma süreci”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "parasal_gevseme",
+      "term": "Parasal gevşeme",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Para ve kredi koşullarının ekonomik faaliyeti destekleyecek yönde gevşetilmesidir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Faiz indirimi veya likidite desteği gevşeme örneğidir.",
+      "common_mistake": "Gevşemenin enflasyon veya kur riski taşımadığını düşünmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "monetary easing",
+        "gevşek para politikası"
+      ],
+      "seen_as": "“Gevşeme döngüsü”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "fiyatlaniyor",
+      "term": "Fiyatlanıyor / priced in",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Bir beklentinin piyasa fiyatlarına önemli ölçüde yansımış olduğunu anlatır.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Karar beklendiği gibi geldiğinde fiyat hareketi sınırlı kalabilir çünkü beklenti önceden fiyatlanmıştır.",
+      "common_mistake": "Fiyatlanmış beklentinin kesin gerçekleşeceğini düşünmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "SPK — Yatırımcı Bilgilendirme",
+      "source_url": "https://spk.gov.tr/yatirimcilar/yatirimci-bilgilendirme-kitapciklari",
+      "aliases": [
+        "priced in",
+        "fiyatlara dahil",
+        "fiyatlandı"
+      ],
+      "seen_as": "“Faiz indirimi fiyatlanıyor”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "beklentiye_paralel",
+      "term": "Beklentiye paralel",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Açıklanan sonuç ile piyasa tahmini arasında anlamlı fark olmadığını ifade eder.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Beklenti 1 milyar, açıklanan 1,02 milyar ise paralel kabul edilebilir.",
+      "common_mistake": "Paralel sonucu otomatik olarak fiyatın değişmeyeceği anlamına getirmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "in line with expectations",
+        "in line",
+        "beklentilere paralel"
+      ],
+      "seen_as": "“Kâr beklentiye paralel”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "ileri_yonlendirme",
+      "term": "İleriye dönük yönlendirme",
+      "category": "Haber ve KAP Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Merkez bankası veya şirket yönetiminin gelecekteki karar ve beklentilere ilişkin verdiği çerçevedir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Merkez bankası faizlerin bir süre yüksek kalabileceğini söyleyebilir.",
+      "common_mistake": "Yönlendirmeyi değişmez taahhüt sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "forward guidance"
+      ],
+      "seen_as": "“İleriye dönük yönlendirme”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "veri_odakli",
+      "term": "Veri odaklı yaklaşım",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Gelecek kararların önceden sabit değil, açıklanacak verilere göre şekilleneceğini ifade eder.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Merkez bankası enflasyon ve işgücü verilerine göre toplantı bazında karar verebilir.",
+      "common_mistake": "Bu ifadenin hiçbir politika eğilimi olmadığı anlamına geldiğini düşünmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "data dependent",
+        "data-driven"
+      ],
+      "seen_as": "“Kararlar veri odaklı alınacak”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "dezenflasyon",
+      "term": "Dezenflasyon",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Fiyatların düşmesi değil, enflasyon oranının yavaşlamasıdır.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Enflasyon %60’tan %40’a düşerken fiyatlar yine artmaya devam eder, fakat daha yavaş artar.",
+      "common_mistake": "Dezenflasyonu deflasyon veya genel fiyat düşüşü sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "disinflation"
+      ],
+      "seen_as": "“Dezenflasyon süreci”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "baz_etkisi",
+      "term": "Baz etkisi",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Karşılaştırılan önceki dönemin olağandışı yüksek veya düşük olmasının yıllık oranı etkilemesidir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Geçen yıl fiyat artışı çok yüksekse bu yıl yıllık oran mekanik olarak düşebilir.",
+      "common_mistake": "Baz etkisini temel fiyat baskılarının tamamen sona ermesi sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "base effect"
+      ],
+      "seen_as": "“Baz etkisiyle geriledi”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "reel_faiz",
+      "term": "Reel faiz",
+      "category": "Haber ve KAP Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Nominal faiz ile enflasyon arasındaki farkı dikkate alan yaklaşık faiz ölçüsüdür.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Nominal faiz %40, beklenen enflasyon %30 ise basit yaklaşımla pozitif reel faiz söz konusu olabilir.",
+      "common_mistake": "Geçmiş ve beklenen enflasyonla yapılan hesapları aynı sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "real interest rate",
+        "real rate"
+      ],
+      "seen_as": "“Pozitif reel faiz”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "risk_istahi",
+      "term": "Risk iştahı",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Yatırımcıların belirsizlik karşısında daha riskli varlıkları alma isteğini anlatan genel piyasa ifadesidir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Risk iştahı yükseldiğinde hisse ve gelişen ülke varlıklarına talep artabilir; kesin değildir.",
+      "common_mistake": "Tek bir endeks hareketinden bütün piyasanın risk iştahını çıkarmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "SPK — Yatırımcı Bilgilendirme",
+      "source_url": "https://spk.gov.tr/yatirimcilar/yatirimci-bilgilendirme-kitapciklari",
+      "aliases": [
+        "risk appetite",
+        "risk-on",
+        "risk off"
+      ],
+      "seen_as": "“Küresel risk iştahı arttı”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "guvenli_liman",
+      "term": "Güvenli liman",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Belirsizlik dönemlerinde değerini koruması beklenen varlıklar için kullanılan piyasa ifadesidir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Jeopolitik riskte altın veya bazı devlet tahvillerine talep artabilir.",
+      "common_mistake": "Bir varlığın her krizde mutlaka yükseleceğini düşünmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "SPK — Yatırımcı Bilgilendirme",
+      "source_url": "https://spk.gov.tr/yatirimcilar/yatirimci-bilgilendirme-kitapciklari",
+      "aliases": [
+        "safe haven"
+      ],
+      "seen_as": "“Altına güvenli liman talebi”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "baz_puan",
+      "term": "Baz puan",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Faiz oranlarındaki değişimi ifade eden ölçüdür; 100 baz puan 1 yüzde puana eşittir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "%50’den %47,5’e düşüş 250 baz puandır.",
+      "common_mistake": "250 baz puanı %250 değişim sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "TCMB — Terimler Sözlüğü",
+      "source_url": "https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB%2BTR/Main%2BMenu/Banka%2BHakkinda/Egitim-Akademik/Terimler%2BSozlugu/",
+      "aliases": [
+        "basis point",
+        "bps",
+        "bp"
+      ],
+      "seen_as": "“250 baz puan indirim”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "getiri_egrisi",
+      "term": "Getiri eğrisi",
+      "category": "Haber ve KAP Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Farklı vadelerdeki benzer tahvillerin faizlerini birlikte gösteren eğridir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Kısa vadeli faiz uzun vadeli faizden yüksek olabilir.",
+      "common_mistake": "Ters eğrinin ekonomik daralmayı kesin ve zamanlaması belli biçimde gösterdiğini sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "SPK — Yatırımcı Bilgilendirme",
+      "source_url": "https://spk.gov.tr/yatirimcilar/yatirimci-bilgilendirme-kitapciklari",
+      "aliases": [
+        "yield curve"
+      ],
+      "seen_as": "“Getiri eğrisi tersine döndü”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "dolar_endeksi",
+      "term": "Dolar endeksi (DXY)",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "ABD dolarının belirli büyük para birimleri sepetine karşı değerini ölçen endekstir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "DXY artışı doların sepete karşı genel olarak güçlendiğini gösterebilir.",
+      "common_mistake": "DXY ile USD/TRY’nin birebir aynı yönde ve oranda hareket edeceğini düşünmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "SPK — Yatırımcı Bilgilendirme",
+      "source_url": "https://spk.gov.tr/yatirimcilar/yatirimci-bilgilendirme-kitapciklari",
+      "aliases": [
+        "dxy",
+        "dollar index",
+        "usd index"
+      ],
+      "seen_as": "“DXY yükseldi”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "beklentiyi_asti",
+      "term": "Beklentiyi aştı (beat)",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Şirket sonucunun piyasa tahmininden daha iyi gelmesini ifade eder.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Beklenti 900 milyon, net kâr 1 milyar ise sonuç beklentiyi aşmış olabilir.",
+      "common_mistake": "Beklentiyi aşan tek kalemin şirketin bütün finansal durumunu iyi yaptığını düşünmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "beat",
+        "above expectations",
+        "beklentinin üzerinde"
+      ],
+      "seen_as": "“Kâr beklentiyi aştı”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": [
+        "beklenti_takvim",
+        "veri_surprizi"
+      ]
+    },
+    {
+      "id": "beklentinin_altinda",
+      "term": "Beklentinin altında kaldı (miss)",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Şirket sonucunun piyasa tahmininden daha zayıf gelmesini ifade eder.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Beklenti 10 milyar, ciro 9,5 milyar ise miss denebilir.",
+      "common_mistake": "Tek çeyrek sapmasını kalıcı trend saymak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "miss",
+        "below expectations",
+        "beklentinin altında"
+      ],
+      "seen_as": "“Ciro beklentiyi karşılayamadı”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "sirket_beklentisi",
+      "term": "Şirket beklentisi (guidance)",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": true,
+      "short": "Şirket yönetiminin gelecek dönem satış, kârlılık veya yatırım hedeflerine ilişkin tahminidir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Şirket ciro büyüme beklentisini %20’den %25’e çıkarabilir.",
+      "common_mistake": "Guidance’ı garanti edilmiş sonuç sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "company guidance",
+        "guidance",
+        "outlook",
+        "yıl sonu beklentisi"
+      ],
+      "seen_as": "“2026 guidance yukarı çekildi”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "yukari_revize",
+      "term": "Yukarı revize edildi",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Daha önce açıklanan tahmin veya hedefin daha yüksek bir seviyeye çıkarılmasıdır.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Şirket satış beklentisini artırabilir.",
+      "common_mistake": "Revizyonun kalitesini ve dayanağını incelemeden yalnız başlığa göre karar vermek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "raised guidance",
+        "upward revision",
+        "yukarı güncelledi"
+      ],
+      "seen_as": "“Yıl sonu hedefini yukarı revize etti”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "marj_genisledi",
+      "term": "Marj genişledi",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Kârın satışlara oranının önceki döneme göre arttığını ifade eder.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Marj %12’den %15’e çıkabilir.",
+      "common_mistake": "Marj artarken satışların veya nakit akışının zayıflayabileceğini gözden kaçırmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "margin expansion",
+        "margin expanded",
+        "margin improved",
+        "marj arttı",
+        "marj genişlemesi",
+        "marjını genişletti"
+      ],
+      "seen_as": "“FAVÖK marjı genişledi”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "marj_daraldi",
+      "term": "Marj daraldı",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Kârın satışlara oranının önceki döneme göre azaldığını ifade eder.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Maliyet artışı nedeniyle marj %20’den %17’ye düşebilir.",
+      "common_mistake": "Tek dönem daralmayı kalıcı rekabet kaybı sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "margin contraction",
+        "margin contracted",
+        "margin declined",
+        "marj düştü",
+        "marj daralması",
+        "marjı daraldı"
+      ],
+      "seen_as": "“Brüt marj daraldı”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "eps",
+      "term": "Hisse başına kâr (EPS)",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Net kârın ağırlıklı ortalama pay sayısına bölünmesiyle bulunan kâr ölçüsüdür.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Net kâr artsa da pay sayısı daha hızlı artarsa EPS aynı ölçüde artmayabilir.",
+      "common_mistake": "Toplam net kâr ile hisse başına kârı aynı sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "earnings per share",
+        "eps",
+        "hbk"
+      ],
+      "seen_as": "“EPS 2,15”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "kapasite_artisi",
+      "term": "Kapasite artışı",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Şirketin üretim yapabilme miktarını artıran yatırım veya düzenlemeyi ifade eder.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Yeni hat devreye girdiğinde üretim kapasitesi artabilir.",
+      "common_mistake": "Kapasite artışının otomatik olarak aynı oranda satış ve kâr yaratacağını düşünmek.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "capacity expansion",
+        "capacity increase"
+      ],
+      "seen_as": "“Üretim kapasitesi %30 artacak”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "yatirim_tesvik",
+      "term": "Yatırım teşvik belgesi",
+      "category": "Haber ve KAP Dili",
+      "level": "Başlangıç",
+      "essential": false,
+      "short": "Belirli yatırım için vergi, gümrük veya başka desteklerden yararlanma çerçevesini gösteren resmî belgedir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Belge yatırım planını destekleyebilir, fakat yatırımın tamamlandığı anlamına gelmez.",
+      "common_mistake": "Teşvik tutarını şirketin hesabına giren nakit hibe sanmak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "investment incentive certificate",
+        "yatırım teşviği"
+      ],
+      "seen_as": "“Yatırım teşvik belgesi alındı”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
+    },
+    {
+      "id": "sulanma",
+      "term": "Sulanma (dilution)",
+      "category": "Haber ve KAP Dili",
+      "level": "Biraz Teknik",
+      "essential": false,
+      "short": "Yeni pay ihracı sonucunda mevcut pay sahibinin şirket içindeki oransal payının azalabilmesidir.",
+      "why": "Haber başlığındaki ifadenin şirket veya piyasa açısından ne söylediğini abartmadan anlamayı sağlar.",
+      "example": "Pay sayısı artarken mevcut yatırımcı yeni pay almazsa ortaklık oranı düşebilir.",
+      "common_mistake": "Her sermaye artırımında şirket değerinin aynı oranda artacağını varsaymak.",
+      "in_app": "KAP, basın ve Yahoo haberlerinin altındaki kavram kısayollarında.",
+      "source_name": "KAP / SPK Yatırımcı Bilgilendirme",
+      "source_url": "https://www.kap.org.tr/",
+      "aliases": [
+        "dilution",
+        "seyrelme"
+      ],
+      "seen_as": "“Paylarda sulanma”",
+      "contexts": [
+        "guide",
+        "news",
+        "kap"
+      ],
+      "track": "Haber ve KAP Dili",
+      "related": []
     }
   ]
 }

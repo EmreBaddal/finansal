@@ -22,7 +22,12 @@ from alert_engine import (
     send_ntfy_notification,
 )
 from finance_storage import FinanceStorage
-from guide_engine import render_guide_page
+from guide_engine import (
+    GUIDE_PAGE_LABEL,
+    render_calendar_term_helper,
+    render_contextual_term_shortcuts,
+    render_guide_page,
+)
 from portfolio_engine import (
     build_portfolio_snapshot,
     currency_for_symbol,
@@ -275,14 +280,14 @@ if "watch_list" not in st.session_state:
 st.sidebar.markdown("### 🧭 Ana Menü")
 app_section = st.sidebar.radio(
     "Uygulama bölümü",
-    ["📊 Yatırım Paneli", "📘 Rehber Sözlük"],
+    ["📊 Yatırım Paneli", GUIDE_PAGE_LABEL],
     index=0,
     key="aylooper_app_section",
     label_visibility="collapsed",
 )
 st.sidebar.markdown("---")
 
-if app_section == "📘 Rehber Sözlük":
+if app_section == GUIDE_PAGE_LABEL:
   render_guide_page(
       storage=storage,
       watch_list=st.session_state.watch_list,
@@ -4215,11 +4220,17 @@ with main_tab1:
         if not kap_news:
           kap_news = fetch_rss_news_sorted(f"{clean_ticker} KAP bildirimi")
         if kap_news:
-          for item in kap_news:
+          for news_index, item in enumerate(kap_news):
             st.markdown(
                 f"* [{item['title']}]({item['link']}) — <small"
                 f" style='color:gray;'>📅 {item['published_str']}</small>",
                 unsafe_allow_html=True,
+            )
+            render_contextual_term_shortcuts(
+                item["title"],
+                key_prefix=f"kap_{selected_stock}_{news_index}",
+                context="kap",
+                max_terms=3,
             )
         else:
           st.info("KAP bildirimleri bulunamadı.")
@@ -4229,11 +4240,16 @@ with main_tab1:
     with sub_tab3:
       g_news = fetch_rss_news_sorted(f"{clean_ticker} hisse haber OR borsa")
       if g_news:
-        for item in g_news:
+        for news_index, item in enumerate(g_news):
           st.markdown(
-              f"* [{item['title']}]({item['link']}) — *{item['source']}*  \n "
-              f" <small style='color:gray;'>📅 {item['published_str']}</small>",
+              f"* [{item['title']}]({item['link']}) — *{item['source']}* · 📅 {item['published_str']}",
               unsafe_allow_html=True,
+          )
+          render_contextual_term_shortcuts(
+              item["title"],
+              key_prefix=f"press_{selected_stock}_{news_index}",
+              context="news",
+              max_terms=3,
           )
       else:
         st.info("İlgili haber bulunamadı.")
@@ -4243,7 +4259,7 @@ with main_tab1:
         ticker_obj_yf = yf.Ticker(selected_stock)
         news_list = ticker_obj_yf.news
         if news_list:
-          for item in news_list[:7]:
+          for news_index, item in enumerate(news_list[:7]):
             title = (
                 item.get("title")
                 or item.get("content", {}).get("title", "Başlık Yok")
@@ -4255,6 +4271,12 @@ with main_tab1:
                 .get("url", "#")
             )
             st.markdown(f"* [{title}]({link})")
+            render_contextual_term_shortcuts(
+                title,
+                key_prefix=f"yahoo_{selected_stock}_{news_index}",
+                context="news",
+                max_terms=3,
+            )
         else:
           st.info("Yahoo Finance haberi bulunamadı.")
       except Exception:
@@ -4319,6 +4341,8 @@ with main_tab2:
       "yüksek ve orta önem düzeyindeki gelişmeler. Filtreleri takvimdeki "
       "ayar simgesinden değiştirebilirsin."
   )
+
+  render_calendar_term_helper()
 
   calendar_config = {
       "colorTheme": "light",
@@ -4400,7 +4424,6 @@ with main_tab2:
             width: 138.89%;
             height: 720px;
             transform: scale(0.72);
-          }}
           .tradingview-widget-container {{
             height: 720px;
           }}
@@ -4489,6 +4512,14 @@ with main_tab2:
         "Önceki değer (isteğe bağlı)",
         placeholder="Örn: 147K",
         key="macro_previous_free",
+    )
+
+  if macro_event_title.strip():
+    render_contextual_term_shortcuts(
+        macro_event_title,
+        key_prefix="macro_event_title",
+        context="calendar",
+        max_terms=4,
     )
 
   macro_question = st.text_area(
