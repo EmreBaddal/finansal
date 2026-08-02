@@ -275,8 +275,50 @@ if "watch_list" not in st.session_state:
 # ---------------------------------------------------------
 # ANA SAYFA / REHBER AYRIMI
 # ---------------------------------------------------------
-# Rehber üstteki kalabalık sekmelere eklenmez. Sol menüden ayrı bir sayfa
-# olarak açılır; Rehber seçildiğinde yatırım panelinin geri kalanı çalıştırılmaz.
+# Ana bölüm URL ile eşleştirilir. Böylece tarayıcı/touchpad geri ve ileri
+# hareketleri panel ile rehber arasında gerçek gezinme gibi çalışabilir.
+def _app_query_params_dict():
+  try:
+    return {str(k): str(v) for k, v in st.query_params.to_dict().items()}
+  except Exception:
+    try:
+      return {str(k): str(v) for k, v in dict(st.query_params).items()}
+    except Exception:
+      return {}
+
+
+def _replace_app_query_params(params):
+  clean = {str(k): str(v) for k, v in params.items() if v not in (None, "")}
+  try:
+    st.query_params.from_dict(clean)
+  except Exception:
+    try:
+      st.query_params.clear()
+      for key, value in clean.items():
+        st.query_params[key] = value
+    except Exception:
+      pass
+
+
+def _on_app_section_change():
+  params = _app_query_params_dict()
+  selected = st.session_state.get("aylooper_app_section", "📊 Yatırım Paneli")
+  if selected == GUIDE_PAGE_LABEL:
+    params["view"] = "guide"
+    params.setdefault("guide_section", "ilk-10")
+  else:
+    params["view"] = "panel"
+    params.pop("guide_section", None)
+    params.pop("guide_term", None)
+  _replace_app_query_params(params)
+
+
+# URL tarayıcı geri/ileri hareketiyle değiştiğinde radio durumunu da geri yükle.
+_url_view = _app_query_params_dict().get("view", "panel")
+_url_section = GUIDE_PAGE_LABEL if _url_view == "guide" else "📊 Yatırım Paneli"
+if st.session_state.get("aylooper_app_section") != _url_section:
+  st.session_state["aylooper_app_section"] = _url_section
+
 st.sidebar.markdown("### 🧭 Ana Menü")
 app_section = st.sidebar.radio(
     "Uygulama bölümü",
@@ -284,6 +326,7 @@ app_section = st.sidebar.radio(
     index=0,
     key="aylooper_app_section",
     label_visibility="collapsed",
+    on_change=_on_app_section_change,
 )
 st.sidebar.markdown("---")
 

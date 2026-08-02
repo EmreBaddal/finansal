@@ -19,6 +19,24 @@ import streamlit as st
 GUIDE_FILE = Path(__file__).with_name("guide_content.json")
 GUIDE_PAGE_LABEL = "📘 Rehber & Piyasa Dili"
 
+GUIDE_SECTIONS = [
+    "🚀 İlk 10 kavram",
+    "🎯 Sana göre önce öğren",
+    "💰 Yatırım araçlarını tanı",
+    "📅 Ekonomik takvimi oku",
+    "📰 Haber ve KAP dilini çöz",
+    "🔎 Tüm sözlükte ara",
+]
+GUIDE_SECTION_TO_SLUG = {
+    "🚀 İlk 10 kavram": "ilk-10",
+    "🎯 Sana göre önce öğren": "sana-gore",
+    "💰 Yatırım araçlarını tanı": "yatirim-araclari",
+    "📅 Ekonomik takvimi oku": "ekonomik-takvim",
+    "📰 Haber ve KAP dilini çöz": "haber-kap",
+    "🔎 Tüm sözlükte ara": "arama",
+}
+GUIDE_SLUG_TO_SECTION = {value: key for key, value in GUIDE_SECTION_TO_SLUG.items()}
+
 @st.cache_data(show_spinner=False)
 def load_guide_content(path_text: str = str(GUIDE_FILE)) -> dict[str, Any]:
     path = Path(path_text)
@@ -100,10 +118,104 @@ def search_guide(query: str, context: str | None = None, max_results: int = 8) -
     scored.sort(key=lambda x:(-x[0],str(x[1].get("term",""))))
     return [x[1] for x in scored[:max_results]]
 
-def _navigate_to_guide(term_id: str, return_context: str = "") -> None:
+def _query_params_dict() -> dict[str, str]:
+    try:
+        return {str(k): str(v) for k, v in st.query_params.to_dict().items()}
+    except Exception:
+        try:
+            return {str(k): str(v) for k, v in dict(st.query_params).items()}
+        except Exception:
+            return {}
+
+
+def _replace_query_params(params: dict[str, str]) -> None:
+    clean = {str(k): str(v) for k, v in params.items() if v not in (None, "")}
+    try:
+        st.query_params.from_dict(clean)
+    except Exception:
+        try:
+            st.query_params.clear()
+            for key, value in clean.items():
+                st.query_params[key] = value
+        except Exception:
+            pass
+
+
+def _set_guide_url(section: str, term_id: str | None = None) -> None:
+    params = _query_params_dict()
+    params["view"] = "guide"
+    params["guide_section"] = GUIDE_SECTION_TO_SLUG.get(section, "ilk-10")
+    if term_id:
+        params["guide_term"] = str(term_id)
+    else:
+        params.pop("guide_term", None)
+    _replace_query_params(params)
+
+
+def _navigate_to_guide(
+    term_id: str,
+    return_context: str = "",
+    return_section: str | None = None,
+) -> None:
+    origin_section = return_section or st.session_state.get(
+        "guide_section", GUIDE_SECTIONS[0]
+    )
+    if return_context == "calendar":
+        origin_section = "📅 Ekonomik takvimi oku"
+    elif return_context in {"news", "kap"}:
+        origin_section = "📰 Haber ve KAP dilini çöz"
+
     st.session_state["guide_selected_term_id"] = term_id
     st.session_state["guide_return_context"] = return_context
+    st.session_state["guide_return_section"] = origin_section
+    st.session_state["guide_section"] = origin_section
     st.session_state["aylooper_app_section"] = GUIDE_PAGE_LABEL
+    _set_guide_url(origin_section, term_id=term_id)
+
+
+def _return_to_guide_section() -> None:
+    origin_section = st.session_state.get(
+        "guide_return_section",
+        st.session_state.get("guide_section", GUIDE_SECTIONS[0]),
+    )
+    if origin_section not in GUIDE_SECTIONS:
+        origin_section = GUIDE_SECTIONS[0]
+    st.session_state.pop("guide_selected_term_id", None)
+    st.session_state["guide_section"] = origin_section
+    _set_guide_url(origin_section, term_id=None)
+
+
+def _on_guide_section_change() -> None:
+    section = st.session_state.get("guide_section", GUIDE_SECTIONS[0])
+    if section not in GUIDE_SECTIONS:
+        section = GUIDE_SECTIONS[0]
+        st.session_state["guide_section"] = section
+    st.session_state.pop("guide_selected_term_id", None)
+    st.session_state["guide_return_section"] = section
+    _set_guide_url(section, term_id=None)
+
+
+def _sync_guide_state_from_url(mapping: dict[str, dict[str, Any]]) -> None:
+    params = _query_params_dict()
+    section = GUIDE_SLUG_TO_SECTION.get(
+        params.get("guide_section", ""),
+        st.session_state.get("guide_section", GUIDE_SECTIONS[0]),
+    )
+    if section not in GUIDE_SECTIONS:
+        section = GUIDE_SECTIONS[0]
+    st.session_state["guide_section"] = section
+
+    term_id = params.get("guide_term", "")
+    if term_id and term_id in mapping:
+        st.session_state["guide_selected_term_id"] = term_id
+        st.session_state.setdefault("guide_return_section", section)
+    elif "guide_term" not in params:
+        st.session_state.pop("guide_selected_term_id", None)
+
+    # Rehber ilk kez açıldığında URL'ye mevcut bölümü ekle. Böylece
+    # tarayıcı geri/ileri hareketleri hangi rehber ekranında olduğunu bilir.
+    if params.get("view") != "guide" or not params.get("guide_section"):
+        _set_guide_url(section, term_id=term_id or None)
 
 def _render_term(item: dict[str, Any], compact: bool = False, key_prefix: str = "term") -> None:
     st.markdown(f"#### {item.get('term','Kavram')}")
@@ -143,28 +255,140 @@ def render_contextual_term_shortcuts(text: str, key_prefix: str, context: str = 
             _render_term(item,compact=True,key_prefix=f"ctx_{digest}")
             st.button("Rehberde ayrıntılı aç",key=f"ctx_full_{digest}_{item['id']}",on_click=_navigate_to_guide,args=(item['id'],context))
 
+def _remember_calendar_term(term_id: str) -> None:
+    if not term_id:
+        return
+    recent = list(st.session_state.get("calendar_recent_term_ids", []))
+    recent = [str(x) for x in recent if str(x) != str(term_id)]
+    recent.insert(0, str(term_id))
+    st.session_state["calendar_recent_term_ids"] = recent[:5]
+    st.session_state["calendar_active_term_id"] = str(term_id)
+
+
+def _open_recent_calendar_term(term_id: str) -> None:
+    st.session_state["calendar_guide_search"] = ""
+    st.session_state["calendar_quick_term"] = "Seç"
+    _remember_calendar_term(term_id)
+
+
+def _on_calendar_quick_change(label_to_id: dict[str, str]) -> None:
+    selected = st.session_state.get("calendar_quick_term", "Seç")
+    if selected in label_to_id:
+        st.session_state["calendar_guide_search"] = ""
+        _remember_calendar_term(label_to_id[selected])
+
+
+def _on_calendar_search_change() -> None:
+    st.session_state["calendar_quick_term"] = "Seç"
+    if not str(st.session_state.get("calendar_guide_search", "")).strip():
+        st.session_state.pop("calendar_search_last_query", None)
+
+
+def _on_calendar_match_change(label_to_id: dict[str, str]) -> None:
+    selected = st.session_state.get("calendar_guide_match", "")
+    if selected in label_to_id:
+        _remember_calendar_term(label_to_id[selected])
+
+
 def render_calendar_term_helper() -> None:
     """TradingView takviminin üstünde çalışan hızlı, mobil uyumlu sözlük."""
-    ids=['aciklanan_deger','beklenti_takvim','onceki_deger','revizyon','mom','yoy','cpi','cekirdek_enflasyon','pmi','tarim_disi_istihdam','faiz_karari','baz_puan']
-    mapping=terms_by_id()
-    with st.expander("📘 Takvimdeki ifadeleri 30 saniyede açıkla",expanded=False):
-        st.caption("Takvimde gördüğün ifadeyi seç veya yaz. Açıklama bu ekranda açılır; takvimden kopmazsın.")
-        available=[mapping[x] for x in ids if x in mapping]
-        labels=[x['term'] for x in available]
-        selected=st.selectbox("Sık görülen ifade",["Seç"]+labels,key="calendar_quick_term")
-        query=st.text_input("Başka bir ifade ara",placeholder="Örn: Core CPI, YoY, revizyon, FOMC",key="calendar_guide_search")
-        item=None
-        if selected!="Seç": item=next((x for x in available if x['term']==selected),None)
+    ids = [
+        "aciklanan_deger",
+        "beklenti_takvim",
+        "onceki_deger",
+        "revizyon",
+        "mom",
+        "yoy",
+        "cpi",
+        "cekirdek_enflasyon",
+        "pmi",
+        "tarim_disi_istihdam",
+        "faiz_karari",
+        "baz_puan",
+    ]
+    mapping = terms_by_id()
+
+    with st.expander("📘 Takvimdeki ifadeleri 30 saniyede açıkla", expanded=False):
+        st.caption(
+            "Temel takvim dilinden bir kavram seç, son baktıklarına dön veya "
+            "takvimde gördüğün ifadeyi ara. Açıklama bu ekranda açılır."
+        )
+
+        available = [mapping[x] for x in ids if x in mapping]
+        label_to_id = {str(x["term"]): str(x["id"]) for x in available}
+
+        st.markdown("**Hızlı kavramlar**")
+        st.selectbox(
+            "Hızlı kavram",
+            ["Seç"] + list(label_to_id),
+            key="calendar_quick_term",
+            label_visibility="collapsed",
+            on_change=_on_calendar_quick_change,
+            args=(label_to_id,),
+        )
+
+        recent_ids = [
+            term_id
+            for term_id in st.session_state.get("calendar_recent_term_ids", [])
+            if term_id in mapping
+        ]
+        if recent_ids:
+            st.markdown("**Son aradıkların**")
+            recent_cols = st.columns(min(3, len(recent_ids)))
+            for index, term_id in enumerate(recent_ids):
+                item = mapping[term_id]
+                recent_cols[index % len(recent_cols)].button(
+                    str(item.get("term", "Kavram")),
+                    key=f"calendar_recent_{term_id}",
+                    on_click=_open_recent_calendar_term,
+                    args=(term_id,),
+                    use_container_width=True,
+                )
+
+        st.markdown("**Takvimde gördüğün ifadeyi ara**")
+        query = st.text_input(
+            "Takvim ifadesi",
+            placeholder="Örn: Core CPI, YoY, revizyon, FOMC",
+            key="calendar_guide_search",
+            label_visibility="collapsed",
+            on_change=_on_calendar_search_change,
+        )
+
+        item = None
+        active_id = str(st.session_state.get("calendar_active_term_id", ""))
+        if active_id in mapping:
+            item = mapping[active_id]
+
         if query.strip():
-            found=search_guide(query,context="calendar",max_results=5)
+            found = search_guide(query, context="calendar", max_results=5)
             if found:
-                choice=st.selectbox("Eşleşen kavram",[x['term'] for x in found],key="calendar_guide_match")
-                item=next((x for x in found if x['term']==choice),item)
-            else: st.info("Bu ifadeyle eşleşen kavram bulunamadı.")
+                match_label_to_id = {str(x["term"]): str(x["id"]) for x in found}
+                choice = st.selectbox(
+                    "Eşleşen kavram",
+                    list(match_label_to_id),
+                    key="calendar_guide_match",
+                    on_change=_on_calendar_match_change,
+                    args=(match_label_to_id,),
+                )
+                normalized_query = normalize_text(query)
+                if st.session_state.get("calendar_search_last_query") != normalized_query:
+                    st.session_state["calendar_search_last_query"] = normalized_query
+                    _remember_calendar_term(match_label_to_id[choice])
+                matched_id = str(st.session_state.get("calendar_active_term_id", ""))
+                if matched_id in mapping:
+                    item = mapping[matched_id]
+            else:
+                st.info("Bu ifadeyle eşleşen kavram bulunamadı.")
+
         if item:
             with st.container(border=True):
-                _render_term(item,compact=True,key_prefix="calendar")
-                st.button("Rehberde ayrıntılı aç",key=f"calendar_full_{item['id']}",on_click=_navigate_to_guide,args=(item['id'],"calendar"))
+                _render_term(item, compact=True, key_prefix="calendar")
+                st.button(
+                    "Rehberde ayrıntılı aç",
+                    key=f"calendar_full_{item['id']}",
+                    on_click=_navigate_to_guide,
+                    args=(item["id"], "calendar", "📅 Ekonomik takvimi oku"),
+                )
 
 def _portfolio_priorities(storage: Any, watch_list: Iterable[str]) -> list[tuple[str,str]]:
     out: "OrderedDict[str,str]"=OrderedDict()
@@ -198,6 +422,7 @@ def _show_term_cards(items: list[dict[str,Any]], max_items: int | None = None) -
 
 def render_guide_page(storage: Any, watch_list: Iterable[str]) -> None:
     payload=load_guide_content(); terms=payload.get('terms',[]); mapping=terms_by_id()
+    _sync_guide_state_from_url(mapping)
     st.header("📘 Rehber & Piyasa Dili")
     st.caption("Kavramları kısa açıklamayla başlatır; ayrıntı yalnız açtığında görünür. Yatırım tavsiyesi üretmez.")
     if payload.get('error'): st.error(payload['error']); return
@@ -207,11 +432,19 @@ def render_guide_page(storage: Any, watch_list: Iterable[str]) -> None:
         with st.container(border=True):
             st.caption("Açtığın kavram")
             _render_term(mapping[selected_id],compact=False,key_prefix="focused")
-        if st.button("← Rehber ana sayfasına dön",key="guide_home_back"):
-            st.session_state.pop('guide_selected_term_id',None); st.rerun()
+        st.button(
+            "← Geldiğim rehber bölümüne dön",
+            key="guide_home_back",
+            on_click=_return_to_guide_section,
+        )
         st.markdown('---')
 
-    section=st.selectbox("Rehber bölümü",["🚀 İlk 10 kavram","🎯 Sana göre önce öğren","💰 Yatırım araçlarını tanı","📅 Ekonomik takvimi oku","📰 Haber ve KAP dilini çöz","🔎 Tüm sözlükte ara"],key="guide_section")
+    section=st.selectbox(
+        "Rehber bölümü",
+        GUIDE_SECTIONS,
+        key="guide_section",
+        on_change=_on_guide_section_change,
+    )
 
     if section=="🚀 İlk 10 kavram":
         st.subheader("İlk 10 kavram")
@@ -225,7 +458,12 @@ def render_guide_page(storage: Any, watch_list: Iterable[str]) -> None:
             with st.container(border=True):
                 st.markdown(f"**{mapping[term_id]['term']}**")
                 st.write(mapping[term_id]['short']); st.caption(reason)
-                st.button("Ayrıntıyı aç",key=f"prio_{term_id}",on_click=_navigate_to_guide,args=(term_id,'guide'))
+                st.button(
+                    "Ayrıntıyı aç",
+                    key=f"prio_{term_id}",
+                    on_click=_navigate_to_guide,
+                    args=(term_id, "guide", section),
+                )
     elif section=="💰 Yatırım araçlarını tanı":
         tool=st.selectbox("Araç grubu",["Fonlar ve ETF","VİOP ve Türevler"],key="guide_tool_group")
         if tool=="VİOP ve Türevler": st.warning("Bu bölüm kaldıraçlı ve türev ürünleri anlatır. İlk adımlar ve risk kavramlarını tamamladıktan sonra ilerlemek daha anlaşılır olur.")
