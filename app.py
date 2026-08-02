@@ -3223,16 +3223,115 @@ def portfolio_storage_ready():
 
 
 def portfolio_create_transaction(payload):
+  """Portföy işlemini kaydeder; eski önbellekteki storage nesnesine karşı yedeklidir."""
   method = getattr(storage, "create_portfolio_transaction", None)
   if callable(method):
-    return method(payload)
+    try:
+      created = method(payload)
+      if created:
+        return created
+      # Metot hata ayrıntısı bırakmadıysa doğrudan Supabase yedeğini dene.
+      if getattr(storage, "last_error", ""):
+        return None
+    except Exception as exc:
+      storage.last_error = str(exc)
+
+  if storage.is_supabase and getattr(storage, "client", None) is not None:
+    try:
+      row = {
+          "symbol": str(payload.get("symbol", "")).strip().upper(),
+          "transaction_type": str(payload.get("transaction_type", "buy")).lower(),
+          "quantity": payload.get("quantity"),
+          "unit_price": payload.get("unit_price"),
+          "currency": str(payload.get("currency", "TRY")).upper(),
+          "trade_date": str(payload.get("trade_date") or datetime.now().date().isoformat()),
+          "commission": payload.get("commission", 0),
+          "actual_try_amount": payload.get("actual_try_amount"),
+          "fx_rate_to_try": payload.get("fx_rate_to_try"),
+          "journal_entry_id": payload.get("journal_entry_id"),
+          "note": str(payload.get("note", "")).strip() or None,
+      }
+      response = (
+          storage.client.table("portfolio_transactions")
+          .insert(row)
+          .select("*")
+          .execute()
+      )
+      data = list(response.data or [])
+      storage.last_error = ""
+      return data[0] if data else None
+    except Exception as exc:
+      storage.last_error = str(exc)
+      return None
+
+  storage.last_error = (
+      "Portföy kayıt yöntemi yüklenmedi. Streamlit uygulamasını yeniden başlat."
+  )
   return None
+
+
+def portfolio_update_transaction(transaction_id, payload):
+  """İşlem kaydını günceller; eski storage önbelleğine karşı Supabase yedeği vardır."""
+  method = getattr(storage, "update_portfolio_transaction", None)
+  if callable(method):
+    try:
+      ok = method(transaction_id, payload)
+      if ok:
+        return True
+      if getattr(storage, "last_error", ""):
+        return False
+    except Exception as exc:
+      storage.last_error = str(exc)
+
+  if storage.is_supabase and getattr(storage, "client", None) is not None:
+    try:
+      update = {
+          "symbol": str(payload.get("symbol", "")).strip().upper(),
+          "transaction_type": str(payload.get("transaction_type", "buy")).lower(),
+          "quantity": payload.get("quantity"),
+          "unit_price": payload.get("unit_price"),
+          "currency": str(payload.get("currency", "TRY")).upper(),
+          "trade_date": str(payload.get("trade_date") or datetime.now().date().isoformat()),
+          "commission": payload.get("commission", 0),
+          "actual_try_amount": payload.get("actual_try_amount"),
+          "fx_rate_to_try": payload.get("fx_rate_to_try"),
+          "journal_entry_id": payload.get("journal_entry_id"),
+          "note": str(payload.get("note", "")).strip() or None,
+          "updated_at": datetime.now().isoformat(),
+      }
+      storage.client.table("portfolio_transactions").update(update).eq(
+          "id", transaction_id
+      ).execute()
+      storage.last_error = ""
+      return True
+    except Exception as exc:
+      storage.last_error = str(exc)
+      return False
+
+  storage.last_error = "Portföy güncelleme yöntemi yüklenmedi."
+  return False
 
 
 def portfolio_delete_transaction(transaction_id):
   method = getattr(storage, "delete_portfolio_transaction", None)
   if callable(method):
-    return method(transaction_id)
+    try:
+      return method(transaction_id)
+    except Exception as exc:
+      storage.last_error = str(exc)
+
+  if storage.is_supabase and getattr(storage, "client", None) is not None:
+    try:
+      storage.client.table("portfolio_transactions").delete().eq(
+          "id", transaction_id
+      ).execute()
+      storage.last_error = ""
+      return True
+    except Exception as exc:
+      storage.last_error = str(exc)
+      return False
+
+  storage.last_error = "Portföy silme yöntemi yüklenmedi."
   return False
 
 
@@ -3570,7 +3669,10 @@ def render_portfolio_tab():
             "created_at": datetime.now().isoformat(),
         }
         native_amount = transaction_native_amount(candidate)
-        if optional_price(actual_try_amount) and native_amount:
+        if currency == "TRY":
+          candidate["actual_try_amount"] = None
+          candidate["fx_rate_to_try"] = 1.0
+        elif optional_price(actual_try_amount) and native_amount:
           candidate["fx_rate_to_try"] = float(actual_try_amount) / native_amount
         else:
           candidate["fx_rate_to_try"] = fetch_fx_rate_on_date(currency, trade_date.isoformat())
@@ -3588,7 +3690,7 @@ def render_portfolio_tab():
             st.success("Portföy işlemi kaydedildi.")
             st.rerun()
           else:
-            st.error(f"İşlem kaydedilemedi: {storage.last_error}")
+            st.error(f"İşlem kaydedilemedi: {storage.last_error or 'Bilinmeyen kayıt hatası. Uygulamayı yeniden başlatıp tekrar dene.'}")
 
   if not transactions:
     st.info("Henüz portföy işlemi yok. İlk alış işlemini eklediğinde cüzdan ve grafikler oluşacak.")
@@ -3679,23 +3781,192 @@ def render_portfolio_tab():
     })
   st.dataframe(pd.DataFrame(history_rows), use_container_width=True, hide_index=True)
 
-  with st.expander("🗑️ Hatalı işlem kaydını sil"):
+  with st.expander("✏️ İşlem kaydını düzenle veya sil"):
+    st.caption(
+        "Yanlış adet, maliyet, tarih veya toplam tutarı buradan düzeltebilirsin. "
+        "Değişiklikten sonra portföy hesabı otomatik olarak yeniden yapılır."
+    )
     transaction_labels = {
         (
             f"{item.get('trade_date')} · {item.get('symbol')} · "
             f"{'Alış' if item.get('transaction_type') == 'buy' else 'Satış'} · "
             f"{item.get('quantity')} × {item.get('unit_price')} · {str(item.get('id'))[:6]}"
-        ): str(item.get("id"))
+        ): item
         for item in transactions
     }
-    delete_label = st.selectbox("Silinecek işlem", list(transaction_labels))
-    if st.button("İşlemi kalıcı olarak sil", type="secondary"):
-      delete_id = transaction_labels[delete_label]
-      remaining = [item for item in transactions if str(item.get("id")) != delete_id]
-      valid_remaining, detail = validate_transaction_sequence(remaining)
+    selected_tx_label = st.selectbox(
+        "Düzenlenecek işlem",
+        list(transaction_labels),
+        key="portfolio_edit_transaction_select",
+    )
+    selected_tx = transaction_labels[selected_tx_label]
+    selected_tx_id = str(selected_tx.get("id"))
+
+    all_plan_entries = profile_all_journal_entries()
+    edit_plan_options = [("Planla ilişkilendirme", None)]
+    for entry in all_plan_entries:
+      entry_symbol = str(entry.get("symbol") or "").strip().upper()
+      entry_id_text = str(entry.get("id") or "")
+      edit_plan_options.append((
+          f"{entry_symbol} · {entry.get('title', 'Başlıksız')} · "
+          f"{entry.get('status', 'Açık')} · {entry_id_text[:6]}",
+          entry.get("id"),
+      ))
+    edit_plan_labels = [item[0] for item in edit_plan_options]
+    current_plan_id = str(selected_tx.get("journal_entry_id") or "")
+    current_plan_index = 0
+    for index, (_, plan_id) in enumerate(edit_plan_options):
+      if plan_id is not None and str(plan_id) == current_plan_id:
+        current_plan_index = index
+        break
+
+    try:
+      edit_date_default = parser.parse(str(selected_tx.get("trade_date"))).date()
+    except Exception:
+      edit_date_default = datetime.now().date()
+
+    with st.form(f"portfolio_edit_transaction_{selected_tx_id}"):
+      edit_col1, edit_col2 = st.columns(2)
+      with edit_col1:
+        edit_symbol = st.text_input(
+            "Hisse / varlık",
+            value=str(selected_tx.get("symbol") or ""),
+        ).strip().upper()
+        edit_transaction_text = st.selectbox(
+            "İşlem",
+            ["Alış", "Satış"],
+            index=0 if selected_tx.get("transaction_type") == "buy" else 1,
+        )
+        edit_quantity = st.number_input(
+            "Adet / lot",
+            min_value=0.000001,
+            value=float(selected_tx.get("quantity") or 1.0),
+            step=1.0,
+            format="%.6f",
+        )
+        edit_unit_price = st.number_input(
+            "Birim işlem fiyatı",
+            min_value=0.000001,
+            value=float(selected_tx.get("unit_price") or 1.0),
+            step=0.01,
+            format="%.6f",
+        )
+        edit_trade_date = st.date_input(
+            "İşlem tarihi",
+            value=edit_date_default,
+        )
+      with edit_col2:
+        edit_currencies = ["TRY", "USD", "EUR", "GBP"]
+        current_currency = str(selected_tx.get("currency") or "TRY").upper()
+        edit_currency = st.selectbox(
+            "İşlem para birimi",
+            edit_currencies,
+            index=(
+                edit_currencies.index(current_currency)
+                if current_currency in edit_currencies
+                else 0
+            ),
+        )
+        edit_commission = st.number_input(
+            "Komisyon",
+            min_value=0.0,
+            value=float(selected_tx.get("commission") or 0.0),
+            step=0.01,
+            format="%.4f",
+        )
+        edit_actual_try = st.number_input(
+            "Gerçekte ödediğim / aldığım TL",
+            min_value=0.0,
+            value=(
+                0.0
+                if edit_currency == "TRY"
+                else float(selected_tx.get("actual_try_amount") or 0.0)
+            ),
+            step=1.0,
+            disabled=edit_currency == "TRY",
+            help=(
+                "Yalnız yabancı para işlemlerinde kullanılır. TRY işlemlerinde "
+                "maliyet adet × fiyat + komisyon olarak hesaplanır."
+            ),
+        )
+        edit_selected_plan_label = st.selectbox(
+            "İlgili plan",
+            edit_plan_labels,
+            index=current_plan_index,
+        )
+      edit_note = st.text_area(
+          "İşlem notu",
+          value=str(selected_tx.get("note") or ""),
+          height=90,
+      )
+      edit_action1, edit_action2 = st.columns(2)
+      with edit_action1:
+        update_transaction_clicked = st.form_submit_button(
+            "💾 İşlemi Güncelle",
+            type="primary",
+        )
+      with edit_action2:
+        delete_transaction_clicked = st.form_submit_button(
+            "🗑️ İşlemi Sil",
+        )
+
+    if update_transaction_clicked:
+      edit_tx_type = "buy" if edit_transaction_text == "Alış" else "sell"
+      edit_journal_entry_id = dict(edit_plan_options).get(edit_selected_plan_label)
+      replacement = {
+          **selected_tx,
+          "symbol": edit_symbol,
+          "transaction_type": edit_tx_type,
+          "quantity": float(edit_quantity),
+          "unit_price": float(edit_unit_price),
+          "currency": edit_currency,
+          "trade_date": edit_trade_date.isoformat(),
+          "commission": float(edit_commission),
+          "actual_try_amount": optional_price(edit_actual_try),
+          "journal_entry_id": edit_journal_entry_id,
+          "note": edit_note,
+      }
+      native_amount = transaction_native_amount(replacement)
+      if edit_currency == "TRY":
+        replacement["actual_try_amount"] = None
+        replacement["fx_rate_to_try"] = 1.0
+      elif optional_price(edit_actual_try) and native_amount:
+        replacement["fx_rate_to_try"] = float(edit_actual_try) / native_amount
+      else:
+        replacement["fx_rate_to_try"] = fetch_fx_rate_on_date(
+            edit_currency, edit_trade_date.isoformat()
+        )
+
+      candidate_transactions = [
+          replacement if str(item.get("id")) == selected_tx_id else item
+          for item in transactions
+      ]
+      valid_edit, edit_detail = validate_transaction_sequence(candidate_transactions)
+      if not edit_symbol:
+        st.error("Hisse / varlık sembolü zorunludur.")
+      elif not valid_edit:
+        st.error(f"Bu değişiklik işlem sırasını bozuyor: {edit_detail}")
+      elif portfolio_update_transaction(selected_tx_id, replacement):
+        if edit_symbol not in st.session_state.watch_list:
+          if storage.add_watchlist_symbol(edit_symbol):
+            st.session_state.watch_list.append(edit_symbol)
+        get_portfolio_market_data.clear()
+        st.success("İşlem kaydı güncellendi.")
+        st.rerun()
+      else:
+        st.error(f"Güncelleme başarısız: {storage.last_error}")
+
+    if delete_transaction_clicked:
+      remaining = [
+          item for item in transactions if str(item.get("id")) != selected_tx_id
+      ]
+      valid_remaining, delete_detail = validate_transaction_sequence(remaining)
       if not valid_remaining:
-        st.error(f"Bu kayıt silinirse sonraki satışlar geçersiz kalır: {detail}")
-      elif portfolio_delete_transaction(delete_id):
+        st.error(
+            "Bu kayıt silinirse sonraki satışlar geçersiz kalır: "
+            f"{delete_detail}"
+        )
+      elif portfolio_delete_transaction(selected_tx_id):
         get_portfolio_market_data.clear()
         st.warning("İşlem kaydı silindi.")
         st.rerun()

@@ -398,6 +398,62 @@ class FinanceStorage:
         self.last_error = ""
         return row
 
+    def update_portfolio_transaction(
+        self,
+        transaction_id: str,
+        payload: dict[str, Any],
+    ) -> bool:
+        """Mevcut alış/satış kaydını güvenli biçimde günceller."""
+        allowed = {
+            "symbol",
+            "transaction_type",
+            "quantity",
+            "unit_price",
+            "currency",
+            "trade_date",
+            "commission",
+            "actual_try_amount",
+            "fx_rate_to_try",
+            "journal_entry_id",
+            "note",
+        }
+        update = {key: value for key, value in payload.items() if key in allowed}
+        if "symbol" in update:
+            update["symbol"] = str(update["symbol"]).strip().upper()
+        if "transaction_type" in update:
+            update["transaction_type"] = str(update["transaction_type"]).lower()
+        if "currency" in update:
+            update["currency"] = str(update["currency"]).upper()
+        if "trade_date" in update and hasattr(update["trade_date"], "isoformat"):
+            update["trade_date"] = update["trade_date"].isoformat()
+        if "note" in update:
+            update["note"] = str(update.get("note") or "").strip() or None
+        update["updated_at"] = utc_now_iso()
+
+        if self.is_supabase:
+            try:
+                self.client.table("portfolio_transactions").update(update).eq(
+                    "id", transaction_id
+                ).execute()
+                self.last_error = ""
+                return True
+            except Exception as exc:
+                self.last_error = str(exc)
+                return False
+
+        path = self._local_path("portfolio_transactions.json")
+        rows = _read_json(path, [])
+        changed = False
+        for row in rows:
+            if str(row.get("id")) == str(transaction_id):
+                row.update(update)
+                changed = True
+                break
+        if changed:
+            _write_json(path, rows)
+            self.last_error = ""
+        return changed
+
     def delete_portfolio_transaction(self, transaction_id: str) -> bool:
         if self.is_supabase:
             try:

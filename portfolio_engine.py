@@ -202,7 +202,9 @@ def build_portfolio_snapshot(
 
         if tx_type == "buy":
             native_cost = quantity * unit_price + commission
-            try_cost = actual_try_amount
+            # TRY işlemlerinde maliyet doğrudan adet × fiyat + komisyondur.
+            # "Gerçek TL" alanı yalnız yabancı para işlemlerinde kur dönüşümü içindir.
+            try_cost = native_cost if currency == "TRY" else actual_try_amount
             if try_cost is None and fx_rate is not None:
                 try_cost = native_cost * fx_rate
             if try_cost is None:
@@ -236,7 +238,8 @@ def build_portfolio_snapshot(
         removed_native = avg_native * quantity
         removed_try = avg_try * quantity
         proceeds_native = max(0.0, quantity * unit_price - commission)
-        proceeds_try = actual_try_amount
+        # TRY satışlarında alınan tutar doğrudan işlem hesabından gelir.
+        proceeds_try = proceeds_native if currency == "TRY" else actual_try_amount
         if proceeds_try is None and fx_rate is not None:
             proceeds_try = proceeds_native * fx_rate
         if proceeds_try is None:
