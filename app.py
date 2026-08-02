@@ -22,6 +22,7 @@ from alert_engine import (
     send_ntfy_notification,
 )
 from finance_storage import FinanceStorage
+from guide_engine import render_guide_page
 from portfolio_engine import (
     build_portfolio_snapshot,
     currency_for_symbol,
@@ -265,6 +266,28 @@ except Exception:
 
 if "watch_list" not in st.session_state:
   st.session_state.watch_list = storage.get_watchlist(DEFAULT_WATCHLIST)
+
+# ---------------------------------------------------------
+# ANA SAYFA / REHBER AYRIMI
+# ---------------------------------------------------------
+# Rehber üstteki kalabalık sekmelere eklenmez. Sol menüden ayrı bir sayfa
+# olarak açılır; Rehber seçildiğinde yatırım panelinin geri kalanı çalıştırılmaz.
+st.sidebar.markdown("### 🧭 Ana Menü")
+app_section = st.sidebar.radio(
+    "Uygulama bölümü",
+    ["📊 Yatırım Paneli", "📘 Rehber Sözlük"],
+    index=0,
+    key="aylooper_app_section",
+    label_visibility="collapsed",
+)
+st.sidebar.markdown("---")
+
+if app_section == "📘 Rehber Sözlük":
+  render_guide_page(
+      storage=storage,
+      watch_list=st.session_state.watch_list,
+  )
+  st.stop()
 
 # ---------------------------------------------------------
 # TEMATİK SEKTÖR / DİKEY VERİ TABANI (BIST & NASDAQ)
