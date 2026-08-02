@@ -1,13 +1,14 @@
-"""Aylooper Rehber Sözlük ekranı.
+"""Aylooper Rehber ve Piyasa Dili.
 
-İçerik guide_content.json dosyasından okunur. Bu modül yatırım tavsiyesi
-üretmez; yalnızca kavramları sade dille açıklar ve kullanıcının uygulamadaki
-kayıtlarına göre hangi kavramları önce öğrenmesinin faydalı olacağını seçer.
+Sözlük ayrı bir sayfada çalışır. Haber başlıklarında ve ekonomik takvim
+çevresinde görülen kavramları yerel JSON içeriğiyle eşleştirir. Yapay zekâ
+ve ücretli API kullanmaz.
 """
-
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import unicodedata
 from collections import Counter, OrderedDict
 from pathlib import Path
@@ -15,9 +16,8 @@ from typing import Any, Iterable
 
 import streamlit as st
 
-
 GUIDE_FILE = Path(__file__).with_name("guide_content.json")
-
+GUIDE_PAGE_LABEL = "📘 Rehber & Piyasa Dili"
 
 @st.cache_data(show_spinner=False)
 def load_guide_content(path_text: str = str(GUIDE_FILE)) -> dict[str, Any]:
@@ -28,237 +28,226 @@ def load_guide_content(path_text: str = str(GUIDE_FILE)) -> dict[str, Any]:
         return {"terms": [], "error": f"Rehber içeriği bulunamadı: {path.name}"}
     except Exception as exc:
         return {"terms": [], "error": f"Rehber içeriği okunamadı: {exc}"}
-
-    terms = payload.get("terms")
-    if not isinstance(terms, list):
+    if not isinstance(payload.get("terms"), list):
         return {"terms": [], "error": "Rehber dosyasındaki terms alanı geçersiz."}
     return payload
 
-
-def _search_text(value: Any) -> str:
+def normalize_text(value: Any) -> str:
     text = str(value or "").casefold()
-    normalized = unicodedata.normalize("NFKD", text)
-    return "".join(char for char in normalized if not unicodedata.combining(char))
-
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", text).strip()
 
 def _safe_call(obj: Any, method_name: str, default: Any) -> Any:
     method = getattr(obj, method_name, None)
-    if not callable(method):
-        return default
-    try:
-        return method()
-    except Exception:
-        return default
+    if not callable(method): return default
+    try: return method()
+    except Exception: return default
 
+def terms_by_id() -> dict[str, dict[str, Any]]:
+    return {str(x.get("id")):x for x in load_guide_content().get("terms",[]) if x.get("id")}
 
-def _portfolio_learning_priorities(storage: Any, watch_list: Iterable[str]) -> list[tuple[str, str]]:
-    """Kullanıcının mevcut kayıtlarına göre öğrenme öncelikleri üretir.
+def _aliases(item: dict[str, Any]) -> list[str]:
+    values = [item.get("term", "")] + list(item.get("aliases") or [])
+    return sorted({normalize_text(x) for x in values if normalize_text(x)}, key=len, reverse=True)
 
-    Burada yatırım profili veya uygunluk çıkarımı yapılmaz. Yalnızca uygulamada
-    karşılaşılmış olabilecek kavramlar öne alınır.
-    """
-    priorities: "OrderedDict[str, str]" = OrderedDict()
+def find_guide_terms(text: str, context: str | None = None, max_results: int = 5) -> list[dict[str, Any]]:
+    """Metindeki sözlük kavramlarını uzun ve özgül ifadeleri önceleyerek bulur."""
+    haystack = normalize_text(text)
+    if not haystack: return []
+    allowed_short = {"pmi","cpi","ppi","nfp","gdp","eps","etf","byf","roe","dxy","mom","yoy","qoq","ppk","fomc","ecb","viop"}
+    matches: list[tuple[int, dict[str, Any]]] = []
+    for item in load_guide_content().get("terms", []):
+        contexts = set(item.get("contexts") or [])
+        best = 0
+        for alias in _aliases(item):
+            if len(alias) < 3 and alias not in allowed_short: continue
+            pattern = rf"(?<![\w]){re.escape(alias)}(?![\w])"
+            if re.search(pattern, haystack):
+                score = len(alias) * 10
+                if alias == normalize_text(item.get("term")): score += 25
+                if context and context in contexts: score += 20
+                if item.get("essential"): score += 3
+                best = max(best, score)
+        if best: matches.append((best,item))
+    matches.sort(key=lambda x:(-x[0], str(x[1].get("term",""))))
+    result=[]; seen=set()
+    for _,item in matches:
+        if item.get("id") in seen: continue
+        result.append(item); seen.add(item.get("id"))
+        if len(result)>=max_results: break
+    return result
 
-    def add(term_id: str, reason: str) -> None:
-        if term_id not in priorities:
-            priorities[term_id] = reason
-
-    # Her yeni yatırımcı için temel rota.
-    add("hisse_senedi", "Uygulamadaki temel varlık türünü doğru anlamak için.")
-    add("lot_adet", "İşlem miktarı ve toplam tutar hesabının başlangıcı olduğu için.")
-    add("maliyet", "Alışların ortalama maliyete nasıl dönüştüğünü anlamak için.")
-    add("gerceklesmemis_kar_zarar", "Açık pozisyon sonucunu kesinleşmiş sonuçtan ayırmak için.")
-    add("limit_emir", "İşlem fiyatını kontrol eden temel emir türü olduğu için.")
-    add("stop_emri", "Stop seviyesinin kesin gerçekleşme fiyatı olmadığını bilmek için.")
-    add("pozisyon_buyuklugu", "Toplam sonucu yalnız hissenin değil ayrılan tutarın da belirlediğini görmek için.")
-    add("cesitlendirme", "Farklı şirket sayısı ile gerçek çeşitlendirme arasındaki farkı anlamak için.")
-
-    transactions = _safe_call(storage, "list_portfolio_transactions", [])
-    if isinstance(transactions, list) and transactions:
-        symbols = [str(row.get("symbol", "")).upper() for row in transactions if row.get("symbol")]
-        currencies = {str(row.get("currency", "TRY")).upper() for row in transactions}
-        transaction_types = {str(row.get("transaction_type", "buy")).lower() for row in transactions}
-        buy_counts = Counter(
-            str(row.get("symbol", "")).upper()
-            for row in transactions
-            if str(row.get("transaction_type", "buy")).lower() == "buy" and row.get("symbol")
-        )
-
-        if len(set(symbols)) >= 2:
-            add("yogunlasma", "Birden fazla pozisyonun portföy ağırlıklarını doğru okumak için.")
-        if any(count > 1 for count in buy_counts.values()):
-            add("maliyet", "Aynı varlıkta birden fazla alış kaydı bulunduğu için.")
-        if "sell" in transaction_types:
-            add("gerceklesmis_kar_zarar", "Portföyde satış işlemi bulunduğu için.")
-        if any(currency != "TRY" for currency in currencies):
-            add("kur_riski", "Yabancı para cinsinden işlem bulunduğu için.")
-
-    plans = _safe_call(storage, "list_all_journal_entries", [])
-    if isinstance(plans, list) and plans:
-        add("giris_fiyati", "Uygulamada kayıtlı analiz veya işlem planların bulunduğu için.")
-        add("hedef_fiyat", "Planın başarı koşulunu ölçmek için.")
-        add("stop_seviyesi", "Planın geçersiz sayılacağı noktayı önceden tanımlamak için.")
-        add("risk_getiri", "Hedef ile stop arasındaki matematiksel ilişkiyi anlamak için.")
-
-    normalized_watch = [str(symbol).upper() for symbol in watch_list or []]
-    if any(symbol.endswith(".IS") for symbol in normalized_watch):
-        add("kap", "Takip listende Borsa İstanbul varlıkları bulunduğu için.")
-        add("bilanco_aciklamasi", "BIST şirketlerinde resmî finansal açıklamaları okumak için.")
-        add("bedelli_sermaye", "BIST yatırımcılarının sık karşılaştığı sermaye işlemlerinden biri olduğu için.")
-        add("bedelsiz_sermaye", "Pay sayısı artışı ile servet artışını birbirinden ayırmak için.")
-    if any("-USD" in symbol for symbol in normalized_watch):
-        add("volatilite", "Takip listende kripto varlık bulunduğu için fiyat hareketi kavramı önceliklidir.")
-        add("likidite", "Hızlı hareket eden piyasalarda gerçekleşme koşullarını anlamak için.")
-        add("piyasa_emri", "Hızlı piyasada görülen fiyat ile gerçekleşen fiyatın farklılaşabileceğini bilmek için.")
-
-    return list(priorities.items())[:10]
-
-
-def _render_learning_path() -> None:
-    st.markdown("### 🗺️ Başlangıç öğrenme yolu")
-    st.caption("Hepsini bir günde öğrenmek gerekmez. Bu sıra, kavramların birbirinin üzerine kurulmasını sağlar.")
-    steps = [
-        ("1", "İşlemi anla", "Hisse · lot · maliyet · güncel değer · kâr/zarar"),
-        ("2", "Emri anla", "Piyasa emri · limit emir · stop emri · likidite"),
-        ("3", "Planı anla", "Giriş · hedef · stop · pozisyon büyüklüğü · risk/getiri"),
-        ("4", "Şirketi anla", "Ciro · kâr · nakit akışı · borç · değerleme"),
-        ("5", "Gelişmeyi anla", "KAP · bilanço · sermaye işlemleri · faiz · enflasyon"),
-    ]
-    cols = st.columns(5)
-    for col, (number, title, text) in zip(cols, steps):
-        with col:
-            with st.container(border=True):
-                st.markdown(f"#### {number}. {title}")
-                st.caption(text)
-
-
-def _render_recommended_terms(
-    terms_by_id: dict[str, dict[str, Any]],
-    priorities: list[tuple[str, str]],
-) -> None:
-    valid = [(terms_by_id[term_id], reason) for term_id, reason in priorities if term_id in terms_by_id]
-    if not valid:
-        return
-
-    st.markdown("### 🎯 Önce bunları öğren")
-    st.caption(
-        "Bu sıra bir yatırım önerisi değildir. Takip listen ve uygulamadaki kayıtların nedeniyle "
-        "karşına çıkma ihtimali yüksek kavramları öne alır."
-    )
-    for item, reason in valid:
-        with st.container(border=True):
-            c1, c2 = st.columns([1, 4])
-            with c1:
-                st.markdown("**Öncelikli**")
-                st.caption(item.get("category", ""))
-            with c2:
-                st.markdown(f"#### {item.get('term', 'Kavram')}")
-                st.write(item.get("short", ""))
-                st.caption(reason)
-
-
-def render_guide_page(storage: Any, watch_list: Iterable[str]) -> None:
-    payload = load_guide_content()
-    terms = payload.get("terms", [])
-
-    st.header("📘 Rehber Sözlük")
-    st.caption(
-        "Yatırıma yeni başlayanlar için kavramları sade dille açıklar. "
-        "Bu bölüm al/sat kararı üretmez ve geleceğe ilişkin getiri tahmini yapmaz."
-    )
-
-    if payload.get("error"):
-        st.error(payload["error"])
-        return
-    if not terms:
-        st.warning("Rehber içeriği boş.")
-        return
-
-    categories = sorted({str(item.get("category", "Diğer")) for item in terms})
-    essential_count = sum(bool(item.get("essential")) for item in terms)
-    metric1, metric2, metric3 = st.columns(3)
-    metric1.metric("Toplam kavram", len(terms))
-    metric2.metric("Öncelikli kavram", essential_count)
-    metric3.metric("Konu başlığı", len(categories))
-
-    _render_learning_path()
-
-    terms_by_id = {str(item.get("id")): item for item in terms}
-    priorities = _portfolio_learning_priorities(storage, watch_list)
-    _render_recommended_terms(terms_by_id, priorities)
-
-    st.markdown("---")
-    st.markdown("### 🔎 Rehberde ara")
-    filter_col1, filter_col2, filter_col3 = st.columns([2, 1, 1])
-    with filter_col1:
-        search = st.text_input(
-            "Kavram veya açıklama ara",
-            placeholder="Örn: stop, bilanço, enflasyon, nakit akışı",
-            key="guide_search",
-        )
-    with filter_col2:
-        category = st.selectbox("Kategori", ["Tümü"] + categories, key="guide_category")
-    with filter_col3:
-        level = st.selectbox("Seviye", ["Tümü", "Başlangıç", "Biraz Teknik"], key="guide_level")
-
-    essential_only = st.checkbox(
-        "Yalnız bilinmesi öncelikli kavramları göster",
-        value=False,
-        key="guide_essential_only",
-    )
-
-    needle = _search_text(search)
-    filtered: list[dict[str, Any]] = []
-    for item in terms:
-        if category != "Tümü" and item.get("category") != category:
+def search_guide(query: str, context: str | None = None, max_results: int = 8) -> list[dict[str, Any]]:
+    needle = normalize_text(query)
+    if not needle: return []
+    scored=[]
+    for item in load_guide_content().get("terms",[]):
+        contexts=set(item.get("contexts") or [])
+        aliases=_aliases(item)
+        searchable=normalize_text(" ".join([str(item.get(k,"")) for k in ("term","short","seen_as","category")] + aliases))
+        if len(needle) <= 4:
+            if not any(re.search(rf"(?<![\w]){re.escape(needle)}(?![\w])", candidate) for candidate in aliases + [normalize_text(item.get("term", ""))]):
+                continue
+        elif needle not in searchable:
             continue
-        if level != "Tümü" and item.get("level") != level:
-            continue
-        if essential_only and not item.get("essential"):
-            continue
-        haystack = _search_text(
-            " ".join(
-                str(item.get(field, ""))
-                for field in ("term", "category", "short", "why", "example", "common_mistake", "in_app")
-            )
-        )
-        if needle and needle not in haystack:
-            continue
-        filtered.append(item)
+        score=0
+        if any(needle==a for a in aliases): score+=100
+        if normalize_text(item.get("term","" )).startswith(needle): score+=60
+        if context and context in contexts: score+=20
+        score += max(0,30-searchable.find(needle))
+        scored.append((score,item))
+    scored.sort(key=lambda x:(-x[0],str(x[1].get("term",""))))
+    return [x[1] for x in scored[:max_results]]
 
-    filtered.sort(key=lambda item: (not bool(item.get("essential")), str(item.get("term", ""))))
-    st.caption(f"Gösterilen kavram: {len(filtered)} / {len(terms)}")
+def _navigate_to_guide(term_id: str, return_context: str = "") -> None:
+    st.session_state["guide_selected_term_id"] = term_id
+    st.session_state["guide_return_context"] = return_context
+    st.session_state["aylooper_app_section"] = GUIDE_PAGE_LABEL
 
-    if not filtered:
-        st.info("Bu filtrelerle eşleşen kavram bulunamadı.")
-        return
-
-    for item in filtered:
-        badge = "⭐ Öncelikli" if item.get("essential") else item.get("level", "")
-        heading = f"{item.get('term', 'Kavram')} · {badge} · {item.get('category', '')}"
-        with st.expander(heading, expanded=False):
-            st.markdown("**Kısaca ne demek?**")
-            st.write(item.get("short", ""))
-
+def _render_term(item: dict[str, Any], compact: bool = False, key_prefix: str = "term") -> None:
+    st.markdown(f"#### {item.get('term','Kavram')}")
+    st.write(item.get("short", ""))
+    seen = str(item.get("seen_as","")).strip()
+    if seen: st.caption(f"Ekranda/haberde şöyle görünebilir: {seen}")
+    if compact:
+        with st.expander("Neden önemli ve sık yapılan hata", expanded=False):
             st.markdown("**Neden önemli?**")
             st.write(item.get("why", ""))
-
             st.markdown("**Basit örnek**")
             st.write(item.get("example", ""))
-
-            st.markdown("**Sık yapılan hata**")
             st.warning(item.get("common_mistake", ""), icon="⚠️")
+    else:
+        st.markdown("**Neden önemli?**")
+        st.write(item.get("why", ""))
+        st.markdown("**Basit örnek**")
+        st.write(item.get("example", ""))
+        st.markdown("**Sık yapılan yanlış yorum**")
+        st.warning(item.get("common_mistake", ""), icon="⚠️")
+        st.markdown("**Aylooper'da nerede karşına çıkar?**")
+        st.info(item.get("in_app", ""), icon="📍")
+        url=str(item.get("source_url","")).strip()
+        if url: st.link_button(f"Kaynak: {item.get('source_name','Kaynak')}",url)
 
-            st.markdown("**Aylooper'da nerede karşına çıkar?**")
-            st.info(item.get("in_app", ""), icon="📍")
+def render_contextual_term_shortcuts(text: str, key_prefix: str, context: str = "news", max_terms: int = 3) -> None:
+    matches=find_guide_terms(text,context=context,max_results=max_terms)
+    if not matches: return
+    digest=hashlib.sha1(f"{key_prefix}|{text}".encode("utf-8")).hexdigest()[:10]
+    labels=", ".join(str(x.get("term")) for x in matches)
+    popover_label = f"📘 {matches[0].get('term')}" if len(matches) == 1 else f"📘 {matches[0].get('term')} +{len(matches)-1}"
+    with st.popover(popover_label):
+        options={str(x.get("term")):str(x.get("id")) for x in matches}
+        selected_label=st.radio("Açıklanacak kavram",list(options),horizontal=False,key=f"ctx_radio_{digest}",label_visibility="collapsed")
+        item=terms_by_id().get(options[selected_label])
+        if item:
+            _render_term(item,compact=True,key_prefix=f"ctx_{digest}")
+            st.button("Rehberde ayrıntılı aç",key=f"ctx_full_{digest}_{item['id']}",on_click=_navigate_to_guide,args=(item['id'],context))
 
-            source_url = str(item.get("source_url", "")).strip()
-            source_name = str(item.get("source_name", "Resmî kaynak")).strip()
-            if source_url:
-                st.link_button(f"Kaynak: {source_name}", source_url)
+def render_calendar_term_helper() -> None:
+    """TradingView takviminin üstünde çalışan hızlı, mobil uyumlu sözlük."""
+    ids=['aciklanan_deger','beklenti_takvim','onceki_deger','revizyon','mom','yoy','cpi','cekirdek_enflasyon','pmi','tarim_disi_istihdam','faiz_karari','baz_puan']
+    mapping=terms_by_id()
+    with st.expander("📘 Takvimdeki ifadeleri 30 saniyede açıkla",expanded=False):
+        st.caption("Takvimde gördüğün ifadeyi seç veya yaz. Açıklama bu ekranda açılır; takvimden kopmazsın.")
+        available=[mapping[x] for x in ids if x in mapping]
+        labels=[x['term'] for x in available]
+        selected=st.selectbox("Sık görülen ifade",["Seç"]+labels,key="calendar_quick_term")
+        query=st.text_input("Başka bir ifade ara",placeholder="Örn: Core CPI, YoY, revizyon, FOMC",key="calendar_guide_search")
+        item=None
+        if selected!="Seç": item=next((x for x in available if x['term']==selected),None)
+        if query.strip():
+            found=search_guide(query,context="calendar",max_results=5)
+            if found:
+                choice=st.selectbox("Eşleşen kavram",[x['term'] for x in found],key="calendar_guide_match")
+                item=next((x for x in found if x['term']==choice),item)
+            else: st.info("Bu ifadeyle eşleşen kavram bulunamadı.")
+        if item:
+            with st.container(border=True):
+                _render_term(item,compact=True,key_prefix="calendar")
+                st.button("Rehberde ayrıntılı aç",key=f"calendar_full_{item['id']}",on_click=_navigate_to_guide,args=(item['id'],"calendar"))
 
-    st.markdown("---")
-    st.caption(
-        "Rehber açıklamaları eğitim amaçlıdır. Bir kavramın tek başına olumlu veya olumsuz olması, "
-        "bir yatırımın uygunluğunu ya da gelecekteki performansını göstermez."
-    )
+def _portfolio_priorities(storage: Any, watch_list: Iterable[str]) -> list[tuple[str,str]]:
+    out: "OrderedDict[str,str]"=OrderedDict()
+    def add(i,r):
+        if i not in out: out[i]=r
+    for i,r in [
+        ('hisse_senedi','Yatırım aracının neyi temsil ettiğini anlamak için.'),('maliyet','Portföy hesabının temelini anlamak için.'),
+        ('gerceklesmemis_kar_zarar','Açık pozisyon sonucunu kesinleşmiş sonuçtan ayırmak için.'),('limit_emir','İşlem fiyatını kontrol etmek için.'),
+        ('pozisyon_buyuklugu','Toplam riski yalnız fiyatın değil ayrılan tutarın da belirlediğini görmek için.'),('cesitlendirme','Şirket sayısıyla gerçek dağılımı ayırmak için.')]: add(i,r)
+    tx=_safe_call(storage,'list_portfolio_transactions',[])
+    if isinstance(tx,list) and tx:
+        currencies={str(x.get('currency','TRY')).upper() for x in tx}
+        types={str(x.get('transaction_type','buy')).lower() for x in tx}
+        counts=Counter(str(x.get('symbol','')).upper() for x in tx if str(x.get('transaction_type','buy')).lower()=='buy')
+        if any(v>1 for v in counts.values()): add('maliyet','Aynı varlıkta birden fazla alışın bulunduğu için.')
+        if 'sell' in types: add('gerceklesmis_kar_zarar','Satış işlemin bulunduğu için.')
+        if any(c!='TRY' for c in currencies): add('kur_riski','Yabancı para işlemin bulunduğu için.')
+    plans=_safe_call(storage,'list_all_journal_entries',[])
+    if isinstance(plans,list) and plans:
+        add('giris_fiyati','Kayıtlı işlem planların olduğu için.'); add('risk_getiri','Hedef ve stop ilişkisini okumak için.')
+    wl=[str(x).upper() for x in (watch_list or [])]
+    if any(x.endswith('.IS') for x in wl): add('kap','BIST varlıklarını takip ettiğin için.')
+    if any('-USD' in x for x in wl): add('volatilite','Kripto varlık takip ettiğin için.')
+    return list(out.items())[:8]
+
+def _show_term_cards(items: list[dict[str,Any]], max_items: int | None = None) -> None:
+    if max_items: items=items[:max_items]
+    for item in items:
+        with st.expander(f"{item.get('term')} · {item.get('level')}",expanded=False):
+            _render_term(item,compact=False,key_prefix=f"guide_{item.get('id')}")
+
+def render_guide_page(storage: Any, watch_list: Iterable[str]) -> None:
+    payload=load_guide_content(); terms=payload.get('terms',[]); mapping=terms_by_id()
+    st.header("📘 Rehber & Piyasa Dili")
+    st.caption("Kavramları kısa açıklamayla başlatır; ayrıntı yalnız açtığında görünür. Yatırım tavsiyesi üretmez.")
+    if payload.get('error'): st.error(payload['error']); return
+
+    selected_id=st.session_state.get('guide_selected_term_id')
+    if selected_id and selected_id in mapping:
+        with st.container(border=True):
+            st.caption("Açtığın kavram")
+            _render_term(mapping[selected_id],compact=False,key_prefix="focused")
+        if st.button("← Rehber ana sayfasına dön",key="guide_home_back"):
+            st.session_state.pop('guide_selected_term_id',None); st.rerun()
+        st.markdown('---')
+
+    section=st.selectbox("Rehber bölümü",["🚀 İlk 10 kavram","🎯 Sana göre önce öğren","💰 Yatırım araçlarını tanı","📅 Ekonomik takvimi oku","📰 Haber ve KAP dilini çöz","🔎 Tüm sözlükte ara"],key="guide_section")
+
+    if section=="🚀 İlk 10 kavram":
+        st.subheader("İlk 10 kavram")
+        st.caption("Önce bunları öğren; ileri başlıklar daha sonra anlamlı hale gelir.")
+        ids=['hisse_senedi','lot_adet','maliyet','guncel_deger','gerceklesmemis_kar_zarar','limit_emir','stop_seviyesi','pozisyon_buyuklugu','cesitlendirme','yatirim_fonu']
+        _show_term_cards([mapping[x] for x in ids if x in mapping])
+    elif section=="🎯 Sana göre önce öğren":
+        st.subheader("Sana göre önce öğren")
+        for term_id,reason in _portfolio_priorities(storage,watch_list):
+            if term_id not in mapping: continue
+            with st.container(border=True):
+                st.markdown(f"**{mapping[term_id]['term']}**")
+                st.write(mapping[term_id]['short']); st.caption(reason)
+                st.button("Ayrıntıyı aç",key=f"prio_{term_id}",on_click=_navigate_to_guide,args=(term_id,'guide'))
+    elif section=="💰 Yatırım araçlarını tanı":
+        tool=st.selectbox("Araç grubu",["Fonlar ve ETF","VİOP ve Türevler"],key="guide_tool_group")
+        if tool=="VİOP ve Türevler": st.warning("Bu bölüm kaldıraçlı ve türev ürünleri anlatır. İlk adımlar ve risk kavramlarını tamamladıktan sonra ilerlemek daha anlaşılır olur.")
+        _show_term_cards([x for x in terms if x.get('category')==tool])
+    elif section=="📅 Ekonomik takvimi oku":
+        st.info("Takvimde önce Açıklanan–Beklenti–Önceki üçlüsünü; sonra MoM, YoY ve veri türünü birlikte oku.")
+        _show_term_cards([x for x in terms if x.get('category') in {'Ekonomik Takvim Dili','Ekonomik Gelişmeler'}])
+    elif section=="📰 Haber ve KAP dilini çöz":
+        st.info("Bir ifadenin olumlu veya olumsuz anlamı bağlama göre değişebilir. Kartlarda sık yapılan yanlış yorum ayrıca gösterilir.")
+        _show_term_cards([x for x in terms if x.get('category') in {'Haber ve KAP Dili','Şirket Gelişmeleri','Şirket Finansalları'}])
+    else:
+        q=st.text_input("Kavram veya haber ifadesi ara",placeholder="Örn: ETF, bedelli, hawkish, Core CPI, guidance",key="guide_all_search")
+        categories=sorted({str(x.get('category')) for x in terms})
+        c1,c2=st.columns(2)
+        category=c1.selectbox("Kategori",["Tümü"]+categories,key="guide_all_category")
+        level=c2.selectbox("Seviye",["Tümü","Başlangıç","Biraz Teknik","İleri"],key="guide_all_level")
+        if q.strip(): filtered=search_guide(q,max_results=30)
+        else: filtered=list(terms)
+        if category!="Tümü": filtered=[x for x in filtered if x.get('category')==category]
+        if level!="Tümü": filtered=[x for x in filtered if x.get('level')==level]
+        st.caption(f"Gösterilen: {len(filtered)} · Toplam içerik: {len(terms)}")
+        _show_term_cards(filtered,max_items=50)
+
+    st.markdown('---')
+    st.caption("Açıklamalar eğitim amaçlıdır. Tek bir kavram veya veri yatırımın uygunluğunu ya da gelecekteki performansını tek başına göstermez.")
