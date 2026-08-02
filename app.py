@@ -1990,11 +1990,599 @@ def render_all_plans_tab():
             st.error(f"Silme başarısız: {storage.last_error}")
 
 # ---------------------------------------------------------
+# YATIRIM TERCİH PROFİLİ — TAKİP LİSTESİNDEN VERİYE DAYALI ÖZET
+# ---------------------------------------------------------
+PROFILE_MAX_SYMBOLS = 20
+PROFILE_CACHE_SECONDS = 21600  # 6 saat
+
+SECTOR_TR_MAP = {
+    "Technology": "Teknoloji",
+    "Industrials": "Sanayi",
+    "Healthcare": "Sağlık",
+    "Financial Services": "Finansal Hizmetler",
+    "Consumer Cyclical": "Döngüsel Tüketim",
+    "Consumer Defensive": "Temel Tüketim",
+    "Energy": "Enerji",
+    "Utilities": "Altyapı / Kamu Hizmetleri",
+    "Real Estate": "Gayrimenkul",
+    "Basic Materials": "Temel Malzemeler",
+    "Communication Services": "İletişim Hizmetleri",
+}
+
+MARKET_SUFFIX_MAP = {
+    ".IS": "Türkiye / BIST",
+    ".T": "Japonya",
+    ".L": "İngiltere",
+    ".DE": "Almanya",
+    ".F": "Almanya",
+    ".PA": "Fransa",
+    ".AS": "Hollanda",
+    ".BR": "Belçika",
+    ".MI": "İtalya",
+    ".SW": "İsviçre",
+    ".HK": "Hong Kong",
+    ".AX": "Avustralya",
+    ".TO": "Kanada",
+    ".V": "Kanada",
+}
+
+
+def profile_float(value):
+  try:
+    number = float(value)
+    if pd.isna(number):
+      return None
+    return number
+  except (TypeError, ValueError):
+    return None
+
+
+def profile_percent(value):
+  number = profile_float(value)
+  return None if number is None else number * 100
+
+
+def profile_market(symbol, info):
+  symbol = str(symbol or "").upper()
+  if symbol.endswith("-USD"):
+    return "Kripto Piyasası"
+  for suffix, market_name in MARKET_SUFFIX_MAP.items():
+    if symbol.endswith(suffix):
+      return market_name
+  country = str(info.get("country") or "").strip()
+  exchange = str(info.get("exchange") or info.get("fullExchangeName") or "").strip()
+  if country:
+    return country
+  if exchange:
+    return exchange
+  return "ABD / Global"
+
+
+def profile_asset_class(symbol, quote_type):
+  symbol = str(symbol or "").upper()
+  quote_type = str(quote_type or "").upper()
+  if symbol.endswith("-USD") or quote_type == "CRYPTOCURRENCY":
+    return "Kripto"
+  if quote_type in {"ETF", "MUTUALFUND"}:
+    return "Fon / ETF"
+  if symbol.endswith("=X") or quote_type == "CURRENCY":
+    return "Döviz"
+  if quote_type in {"INDEX", "FUTURE"}:
+    return "Endeks / Vadeli"
+  return "Hisse"
+
+
+def profile_sector(symbol, info, asset_class):
+  if asset_class == "Kripto":
+    return "Kripto Varlık"
+  if asset_class == "Fon / ETF":
+    return "Fon / ETF"
+  if asset_class == "Döviz":
+    return "Döviz"
+  if asset_class == "Endeks / Vadeli":
+    return "Endeks / Vadeli"
+  raw_sector = str(info.get("sector") or info.get("industry") or "").strip()
+  if not raw_sector:
+    return "Sektör verisi yok"
+  return SECTOR_TR_MAP.get(raw_sector, raw_sector)
+
+
+def profile_listing_years(info):
+  epoch = info.get("firstTradeDateEpochUtc")
+  if epoch is None:
+    milliseconds = profile_float(info.get("firstTradeDateMilliseconds"))
+    if milliseconds:
+      epoch = milliseconds / 1000
+  epoch_value = profile_float(epoch)
+  if not epoch_value:
+    return None
+  try:
+    listed_at = datetime.fromtimestamp(epoch_value, tz=ZoneInfo("UTC"))
+    now_utc = datetime.now(ZoneInfo("UTC"))
+    return max(0.0, (now_utc - listed_at).days / 365.25)
+  except Exception:
+    return None
+
+
+def profile_volatility_band(volatility, asset_class):
+  value = profile_float(volatility)
+  if value is None:
+    return "Veri yok"
+  if asset_class == "Kripto":
+    if value < 45:
+      return "Orta"
+    if value < 75:
+      return "Yüksek"
+    return "Çok yüksek"
+  if value < 20:
+    return "Düşük"
+  if value < 35:
+    return "Orta"
+  if value < 55:
+    return "Yüksek"
+  return "Çok yüksek"
+
+
+def profile_stage_signal(asset_class, listed_years, revenue_growth, profit_margin):
+  """Sadece sayısal büyüme/kârlılık ve işlem geçmişinden sınırlı evre sinyali."""
+  if asset_class != "Hisse":
+    return "Uygulanmaz"
+  growth = profile_float(revenue_growth)
+  margin = profile_float(profit_margin)
+  age = profile_float(listed_years)
+
+  if age is not None and age < 5 and (growth is None or growth >= 5):
+    return "Yeni halka açık / kısa piyasa geçmişi"
+  if growth is not None and growth >= 20 and margin is not None and margin < 0:
+    return "Büyüme / kârlılık öncesi"
+  if growth is not None and growth >= 15 and margin is not None and margin >= 0:
+    return "Kârlı büyüme"
+  if growth is not None and growth <= -5:
+    return "Daralma / dönüşüm sinyali"
+  if margin is not None and margin >= 10 and growth is not None and -5 < growth < 15:
+    return "Olgun / istikrarlı görünüm"
+  return "Geçiş / veri sınırlı"
+
+
+@st.cache_data(ttl=PROFILE_CACHE_SECONDS, show_spinner=False)
+def fetch_preference_profile_symbol(symbol):
+  """Tek varlık için ücretsiz Yahoo verilerinden profil göstergeleri üretir."""
+  symbol = str(symbol or "").strip().upper()
+  info = {}
+  history = pd.DataFrame()
+  errors = []
+
+  try:
+    ticker = yf.Ticker(symbol)
+    try:
+      info = ticker.get_info() or {}
+    except Exception:
+      try:
+        info = ticker.info or {}
+      except Exception as exc:
+        errors.append(f"temel veri: {exc}")
+    try:
+      history = ticker.history(period="1y", interval="1d", auto_adjust=True)
+    except Exception as exc:
+      errors.append(f"fiyat geçmişi: {exc}")
+  except Exception as exc:
+    errors.append(str(exc))
+
+  quote_type = info.get("quoteType")
+  asset_class = profile_asset_class(symbol, quote_type)
+  sector = profile_sector(symbol, info, asset_class)
+
+  annual_volatility = None
+  max_drawdown = None
+  one_year_return = None
+  if history is not None and not history.empty and "Close" in history.columns:
+    closes = history["Close"].dropna()
+    if len(closes) >= 20:
+      daily_returns = closes.pct_change().dropna()
+      if not daily_returns.empty:
+        annual_volatility = profile_float(daily_returns.std() * (252 ** 0.5) * 100)
+      running_max = closes.cummax()
+      drawdowns = (closes / running_max) - 1
+      max_drawdown = profile_float(drawdowns.min() * 100)
+      if closes.iloc[0] not in (None, 0):
+        one_year_return = profile_float(((closes.iloc[-1] / closes.iloc[0]) - 1) * 100)
+
+  listing_years = profile_listing_years(info)
+  revenue_growth = profile_percent(info.get("revenueGrowth"))
+  profit_margin = profile_percent(info.get("profitMargins"))
+  return_on_equity = profile_percent(info.get("returnOnEquity"))
+  debt_to_equity = profile_float(info.get("debtToEquity"))
+  current_ratio = profile_float(info.get("currentRatio"))
+  free_cashflow = profile_float(info.get("freeCashflow"))
+  operating_cashflow = profile_float(info.get("operatingCashflow"))
+
+  return {
+      "symbol": symbol,
+      "name": str(info.get("shortName") or info.get("longName") or symbol),
+      "asset_class": asset_class,
+      "market": profile_market(symbol, info),
+      "sector": sector,
+      "currency": str(info.get("currency") or ""),
+      "listing_years": listing_years,
+      "annual_volatility": annual_volatility,
+      "volatility_band": profile_volatility_band(annual_volatility, asset_class),
+      "max_drawdown": max_drawdown,
+      "one_year_return": one_year_return,
+      "beta": profile_float(info.get("beta")),
+      "market_cap": profile_float(info.get("marketCap")),
+      "revenue_growth": revenue_growth,
+      "profit_margin": profit_margin,
+      "return_on_equity": return_on_equity,
+      "debt_to_equity": debt_to_equity,
+      "current_ratio": current_ratio,
+      "free_cashflow": free_cashflow,
+      "operating_cashflow": operating_cashflow,
+      "stage_signal": profile_stage_signal(
+          asset_class,
+          listing_years,
+          revenue_growth,
+          profit_margin,
+      ),
+      "data_error": " | ".join(errors),
+  }
+
+
+@st.cache_data(ttl=PROFILE_CACHE_SECONDS, show_spinner=False)
+def build_preference_profile(symbols_tuple):
+  return [fetch_preference_profile_symbol(symbol) for symbol in symbols_tuple]
+
+
+def profile_all_journal_entries():
+  """Eski/yeni FinanceStorage sürümlerinde bütün günlük kayıtlarını güvenli getirir."""
+  list_all_method = getattr(storage, "list_all_journal_entries", None)
+  if callable(list_all_method):
+    try:
+      return list_all_method()
+    except Exception:
+      pass
+
+  if storage.is_supabase and getattr(storage, "client", None) is not None:
+    try:
+      response = (
+          storage.client.table("journal_entries")
+          .select("*")
+          .order("created_at", desc=True)
+          .execute()
+      )
+      return list(response.data or [])
+    except Exception:
+      return []
+
+  entries = []
+  for symbol in st.session_state.get("watch_list", []):
+    try:
+      entries.extend(storage.list_journal_entries(symbol))
+    except Exception:
+      continue
+  return entries
+
+
+def profile_median(values):
+  clean_values = [profile_float(value) for value in values]
+  clean_values = [value for value in clean_values if value is not None]
+  return float(pd.Series(clean_values).median()) if clean_values else None
+
+
+def profile_fmt_pct(value, digits=1):
+  number = profile_float(value)
+  return "—" if number is None else f"%{number:.{digits}f}"
+
+
+def profile_fmt_number(value, digits=2):
+  number = profile_float(value)
+  return "—" if number is None else f"{number:,.{digits}f}"
+
+
+def profile_market_cap_text(value, currency):
+  number = profile_float(value)
+  if number is None:
+    return "—"
+  units = [(1_000_000_000_000, "T"), (1_000_000_000, "Mr"), (1_000_000, "Mn")]
+  for divisor, label in units:
+    if abs(number) >= divisor:
+      return f"{number / divisor:,.2f} {label} {currency}".strip()
+  return f"{number:,.0f} {currency}".strip()
+
+
+def build_profile_attention_items(rows, journal_entries):
+  """Yorum değil; eşiklere dayalı dikkat başlıkları üretir."""
+  items = []
+  total = len(rows)
+  if total == 0:
+    return items
+
+  sector_counts = pd.Series([row["sector"] for row in rows]).value_counts()
+  if not sector_counts.empty:
+    top_sector = str(sector_counts.index[0])
+    top_count = int(sector_counts.iloc[0])
+    share = (top_count / total) * 100
+    if total >= 3 and share >= 40:
+      items.append({
+          "title": "Sektör yoğunlaşması",
+          "observation": f"{top_sector}: {top_count}/{total} varlık (%{share:.0f}, adet bazında).",
+          "why": "Aynı sektördeki şirketler faiz, emtia, regülasyon veya talep değişikliklerine birlikte tepki verebilir.",
+          "monitor": "Sektör dağılımı ve aynı sektörde eş zamanlı açık plan sayısı.",
+      })
+
+  market_counts = pd.Series([row["market"] for row in rows]).value_counts()
+  if not market_counts.empty:
+    top_market = str(market_counts.index[0])
+    top_count = int(market_counts.iloc[0])
+    share = (top_count / total) * 100
+    if total >= 3 and share >= 70:
+      items.append({
+          "title": "Tek piyasa yoğunlaşması",
+          "observation": f"{top_market}: {top_count}/{total} varlık (%{share:.0f}).",
+          "why": "Aynı ülke, para birimi ve piyasa düzenine bağlı varlıklar ortak makro koşullardan etkilenebilir.",
+          "monitor": "Kur, ülke faizi, yerel endeks ve piyasa likiditesi.",
+      })
+
+  vol_rows = [row for row in rows if profile_float(row.get("annual_volatility")) is not None]
+  high_vol_rows = [row for row in vol_rows if row.get("volatility_band") in {"Yüksek", "Çok yüksek"}]
+  if vol_rows and len(high_vol_rows) / len(vol_rows) >= 0.40:
+    median_vol = profile_median([row.get("annual_volatility") for row in vol_rows])
+    items.append({
+        "title": "Yüksek fiyat dalgalanması",
+        "observation": f"Verisi olan varlıkların {len(high_vol_rows)}/{len(vol_rows)} adedi yüksek veya çok yüksek volatilite grubunda. Medyan: {profile_fmt_pct(median_vol)}.",
+        "why": "Geniş fiyat aralığı, aynı nominal yatırımla görülebilecek geçici zarar ve kazanç büyüklüğünü artırır.",
+        "monitor": "Pozisyon büyüklüğü, stop mesafesi ve bir yıllık maksimum düşüş.",
+    })
+
+  drawdown_values = [row.get("max_drawdown") for row in rows]
+  median_drawdown = profile_median(drawdown_values)
+  if median_drawdown is not None and median_drawdown <= -25:
+    items.append({
+        "title": "Tarihsel düşüş kapasitesi",
+        "observation": f"Bir yıllık maksimum düşüşlerin medyanı {profile_fmt_pct(median_drawdown)}.",
+        "why": "Maksimum düşüş, varlıkların geçmişte zirveden ne kadar gerileyebildiğini gösterir; geleceği garanti etmez.",
+        "monitor": "Portföy toplam düşüş toleransı ve aynı dönemde birlikte gerileyen varlıklar.",
+    })
+
+  stock_rows = [row for row in rows if row.get("asset_class") == "Hisse"]
+  young_rows = [row for row in stock_rows if profile_float(row.get("listing_years")) is not None and row["listing_years"] < 5]
+  if stock_rows and len(young_rows) / len(stock_rows) >= 0.30:
+    items.append({
+        "title": "Kısa borsa geçmişi",
+        "observation": f"Hisselerin {len(young_rows)}/{len(stock_rows)} adedi beş yıldan kısa işlem geçmişine sahip.",
+        "why": "Kısa piyasa geçmişi farklı faiz, kriz ve ekonomik döngülerde fiyat davranışını karşılaştırmayı sınırlar.",
+        "monitor": "Halka arz sonrası finansallar, pay satışı/sermaye işlemleri ve likidite değişimi.",
+    })
+
+  fundamental_rows = [
+      row for row in stock_rows
+      if profile_float(row.get("profit_margin")) is not None
+  ]
+  negative_margin = [row for row in fundamental_rows if row["profit_margin"] < 0]
+  if fundamental_rows and len(negative_margin) / len(fundamental_rows) >= 0.30:
+    items.append({
+        "title": "Kârlılık öncesi veya zarar yazan şirket ağırlığı",
+        "observation": f"Kâr marjı verisi olan hisselerin {len(negative_margin)}/{len(fundamental_rows)} adedinde marj negatif.",
+        "why": "Zarar dönemindeki büyümenin finansman ihtiyacı, nakit akışı ve sermaye artırımı olasılığını daha önemli hale getirir.",
+        "monitor": "Faaliyet nakit akışı, serbest nakit akışı, borç vadesi ve sermaye işlemleri.",
+    })
+
+  non_financial = [
+      row for row in stock_rows
+      if row.get("sector") != "Finansal Hizmetler"
+      and profile_float(row.get("debt_to_equity")) is not None
+  ]
+  high_leverage = [row for row in non_financial if row["debt_to_equity"] >= 150]
+  if non_financial and len(high_leverage) / len(non_financial) >= 0.30:
+    items.append({
+        "title": "Borçluluk hassasiyeti",
+        "observation": f"Finans dışı ve verisi olan şirketlerin {len(high_leverage)}/{len(non_financial)} adedinde borç/özkaynak %150 veya üzerinde.",
+        "why": "Yüksek borçluluk, faiz ve refinansman koşullarının şirket sonuçlarına etkisini büyütebilir.",
+        "monitor": "Net borç, faiz gideri, borç vadesi ve faaliyet nakit akışı.",
+    })
+
+  data_complete = [
+      row for row in rows
+      if profile_float(row.get("annual_volatility")) is not None
+      and (row.get("asset_class") != "Hisse" or row.get("sector") != "Sektör verisi yok")
+  ]
+  if len(data_complete) / total < 0.70:
+    items.append({
+        "title": "Veri kapsamı sınırlı",
+        "observation": f"Temel profil verisi {len(data_complete)}/{total} varlıkta yeterli düzeyde alınabildi.",
+        "why": "Eksik Yahoo verisi, ortak özelliklerin tüm listeyi aynı güven düzeyinde temsil etmesini engeller.",
+        "monitor": "Eksik sektör, finansal oran ve fiyat geçmişi satırları.",
+    })
+
+  active_entries = [entry for entry in journal_entries if str(entry.get("status", "")) in {"Açık", "İzlemede"}]
+  if active_entries:
+    missing_stop = [entry for entry in active_entries if price_value(entry.get("stop_price")) is None]
+    missing_target = [entry for entry in active_entries if price_value(entry.get("target_price")) is None]
+    if (len(missing_stop) + len(missing_target)) > 0:
+      items.append({
+          "title": "Plan kayıtlarında eksik sınırlar",
+          "observation": f"{len(active_entries)} aktif/izlenen kaydın {len(missing_stop)} tanesinde stop, {len(missing_target)} tanesinde hedef bulunmuyor.",
+          "why": "Hedef ve stop alanları, planın beklenen getiri ile tanımlanan risk tarafını sayısal olarak karşılaştırmayı sağlar.",
+          "monitor": "Giriş, hedef ve stop alanlarının birlikte doldurulması.",
+      })
+
+  if not items:
+    items.append({
+        "title": "Belirgin eşik aşımı yok",
+        "observation": "Mevcut listede tanımlı yoğunlaşma, volatilite, borçluluk ve plan tamlığı eşiklerinden belirgin biçimde aşan ortak bir yapı saptanmadı.",
+        "why": "Bu sonuç risk bulunmadığı anlamına gelmez; yalnızca kullanılan ilk sürüm eşiklerinde güçlü bir ortak sinyal oluşmadığını gösterir.",
+        "monitor": "Liste değiştikçe profili yeniden çalıştırmak.",
+    })
+
+  return items
+
+
+def render_investment_preference_profile():
+  st.subheader("🧭 Yatırım Tercih Profilim")
+  st.caption(
+      "Bu ekran kişilik veya risk iştahı tahmini yapmaz. Takip listesi ve kayıtlı "
+      "planların ortak veri özelliklerini gösterir; alım-satım yorumu üretmez."
+  )
+
+  symbols = [str(symbol).strip().upper() for symbol in st.session_state.get("watch_list", []) if str(symbol).strip()]
+  if not symbols:
+    st.info("Profil oluşturmak için takip listesine en az bir varlık ekle.")
+    return
+
+  if len(symbols) > PROFILE_MAX_SYMBOLS:
+    st.warning(
+        f"İlk sürüm performans ve ücretsiz veri sınırı için en fazla {PROFILE_MAX_SYMBOLS} "
+        "varlığı analiz eder. Listenin ilk kısmı kullanılacak."
+    )
+  analyzed_symbols = tuple(symbols[:PROFILE_MAX_SYMBOLS])
+
+  action_col1, action_col2 = st.columns([1, 3])
+  with action_col1:
+    create_profile = st.button(
+        "🔄 Profili Oluştur / Güncelle",
+        type="primary",
+        use_container_width=True,
+        key="build_preference_profile",
+    )
+  with action_col2:
+    st.caption(
+        "Yahoo verileri 6 saat önbellekte tutulur. Aynı listeyle tekrar basmak "
+        "ücretsiz veri kaynağına gereksiz istek göndermez."
+    )
+
+  if create_profile:
+    with st.spinner("Takip listesinin ortak özellikleri hesaplanıyor..."):
+      st.session_state["preference_profile_rows"] = build_preference_profile(analyzed_symbols)
+      st.session_state["preference_profile_symbols"] = analyzed_symbols
+      st.session_state["preference_profile_created_at"] = istanbul_now_text()
+
+  rows = st.session_state.get("preference_profile_rows")
+  stored_symbols = tuple(st.session_state.get("preference_profile_symbols", ()))
+  if not rows:
+    st.info("İlk profili görmek için ‘Profili Oluştur / Güncelle’ düğmesine bas.")
+    return
+
+  if stored_symbols != analyzed_symbols:
+    st.warning("Takip listesi profil oluşturulduktan sonra değişmiş. Güncel sonuç için profili yeniden oluştur.")
+
+  rows = list(rows)
+  journal_entries = profile_all_journal_entries()
+  total = len(rows)
+  sector_counts = pd.Series([row["sector"] for row in rows]).value_counts()
+  market_counts = pd.Series([row["market"] for row in rows]).value_counts()
+  top_sector = str(sector_counts.index[0]) if not sector_counts.empty else "—"
+  top_sector_share = (float(sector_counts.iloc[0]) / total * 100) if total and not sector_counts.empty else None
+  median_volatility = profile_median([row.get("annual_volatility") for row in rows])
+  active_plans = sum(str(entry.get("status", "")) in {"Açık", "İzlemede"} for entry in journal_entries)
+  usable_rows = sum(
+      profile_float(row.get("annual_volatility")) is not None
+      and (row.get("asset_class") != "Hisse" or row.get("sector") != "Sektör verisi yok")
+      for row in rows
+  )
+
+  st.markdown("#### Profil özeti")
+  summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
+  summary_col1.metric("İncelenen varlık", total)
+  summary_col2.metric(
+      "Baskın sektör",
+      top_sector,
+      f"%{top_sector_share:.0f} adet payı" if top_sector_share is not None else None,
+  )
+  summary_col3.metric("Medyan yıllık volatilite", profile_fmt_pct(median_volatility))
+  summary_col4.metric("Aktif / izlenen plan", active_plans)
+  st.caption(
+      f"Son profil: {st.session_state.get('preference_profile_created_at', '—')} · "
+      f"Yeterli temel veri: {usable_rows}/{total} · Sektör ve piyasa oranları adet bazındadır."
+  )
+
+  overview_col1, overview_col2 = st.columns(2)
+  with overview_col1:
+    st.markdown("#### Sektör dağılımı")
+    sector_frame = sector_counts.rename_axis("Sektör").reset_index(name="Varlık sayısı")
+    sector_frame["Pay (%)"] = (sector_frame["Varlık sayısı"] / total * 100).round(1)
+    st.dataframe(sector_frame, use_container_width=True, hide_index=True)
+  with overview_col2:
+    st.markdown("#### Piyasa dağılımı")
+    market_frame = market_counts.rename_axis("Piyasa / ülke").reset_index(name="Varlık sayısı")
+    market_frame["Pay (%)"] = (market_frame["Varlık sayısı"] / total * 100).round(1)
+    st.dataframe(market_frame, use_container_width=True, hide_index=True)
+
+  st.markdown("#### Dikkate değer ortak noktalar")
+  attention_items = build_profile_attention_items(rows, journal_entries)
+  for item in attention_items:
+    with st.expander(f"• {item['title']}", expanded=True):
+      st.markdown(f"**Gözlem:** {item['observation']}")
+      st.markdown(f"**Neden önemlidir:** {item['why']}")
+      st.markdown(f"**Takip edilecek veri:** {item['monitor']}")
+
+  st.markdown("#### Varlık bazında karşılaştırma")
+  comparison_rows = []
+  for row in rows:
+    comparison_rows.append({
+        "Sembol": row["symbol"],
+        "Varlık": row["name"],
+        "Sınıf": row["asset_class"],
+        "Sektör": row["sector"],
+        "Piyasa": row["market"],
+        "Borsa geçmişi (yıl)": round(row["listing_years"], 1) if profile_float(row.get("listing_years")) is not None else None,
+        "Volatilite (%)": round(row["annual_volatility"], 1) if profile_float(row.get("annual_volatility")) is not None else None,
+        "Volatilite grubu": row["volatility_band"],
+        "Maks. düşüş (%)": round(row["max_drawdown"], 1) if profile_float(row.get("max_drawdown")) is not None else None,
+        "1Y getiri (%)": round(row["one_year_return"], 1) if profile_float(row.get("one_year_return")) is not None else None,
+        "Evre göstergesi": row["stage_signal"],
+    })
+  st.dataframe(pd.DataFrame(comparison_rows), use_container_width=True, hide_index=True)
+
+  st.markdown("#### Anlamlı finansal ayrımlar")
+  st.caption(
+      "Oranlar sektörler arasında doğrudan kıyaslanmayabilir. Banka/finans şirketlerinde "
+      "borç/özkaynak ve cari oran klasik sanayi şirketleriyle aynı anlamı taşımaz."
+  )
+  financial_rows = []
+  for row in rows:
+    if row.get("asset_class") != "Hisse":
+      continue
+    financial_rows.append({
+        "Sembol": row["symbol"],
+        "Sektör": row["sector"],
+        "Ciro büyümesi (%)": round(row["revenue_growth"], 1) if profile_float(row.get("revenue_growth")) is not None else None,
+        "Kâr marjı (%)": round(row["profit_margin"], 1) if profile_float(row.get("profit_margin")) is not None else None,
+        "Özkaynak kârlılığı (%)": round(row["return_on_equity"], 1) if profile_float(row.get("return_on_equity")) is not None else None,
+        "Borç / özkaynak (%)": round(row["debt_to_equity"], 1) if profile_float(row.get("debt_to_equity")) is not None else None,
+        "Cari oran": round(row["current_ratio"], 2) if profile_float(row.get("current_ratio")) is not None else None,
+        "Serbest nakit akışı": profile_fmt_number(row.get("free_cashflow"), 0),
+        "Piyasa değeri": profile_market_cap_text(row.get("market_cap"), row.get("currency", "")),
+    })
+  if financial_rows:
+    st.dataframe(pd.DataFrame(financial_rows), use_container_width=True, hide_index=True)
+  else:
+    st.info("Takip listesinde karşılaştırılabilir şirket finansalı bulunamadı.")
+
+  with st.expander("📘 Yeni yatırımcı için kullanılan kavramlar"):
+    st.markdown(
+        """
+- **Sektör yoğunlaşması:** Takip listesindeki şirketlerin aynı ekonomik etkene bağlı olma oranıdır. Burada pozisyon büyüklüğü bilinmediği için adet bazında hesaplanır.
+- **Yıllık volatilite:** Günlük fiyat değişimlerinin yıllıklaştırılmış dalgalanma ölçüsüdür. Yön belirtmez; hareket aralığını anlatır.
+- **Maksimum düşüş:** İncelenen dönemde bir zirveden sonraki en büyük gerilemedir. Gelecekte aynı düşüşün olacağını göstermez.
+- **Borsa geçmişi:** Şirketin kuruluş yaşı değil, Yahoo verisinde erişilebilen ilk işlem tarihinden itibaren geçen süredir.
+- **Borç/özkaynak:** Finans dışı şirketlerde borç yükünün özkaynağa oranını gösterir. Bankalarda farklı yorumlanır.
+- **Serbest nakit akışı:** Şirketin faaliyet ve yatırım harcamaları sonrasında kalan nakit üretimini gösterir.
+- **Evre göstergesi:** Ciro büyümesi, kâr marjı ve borsada işlem süresinden üretilen sınırlı bir veri etiketidir; şirket hakkında kesin hüküm değildir.
+        """
+    )
+
+  st.caption(
+      "Veri kaynakları: mevcut Supabase günlük kayıtları ve ücretsiz Yahoo Finance/yfinance verileri. "
+      "Bu bölüm yatırım tavsiyesi veya yatırımcı kişiliği değerlendirmesi değildir."
+  )
+
+
+# ---------------------------------------------------------
 # ÜST DÜZEY ANA SEKMELER
 # ---------------------------------------------------------
-main_tab1, main_tab_plans, main_tab2, main_tab3 = st.tabs([
+main_tab1, main_tab_plans, main_tab_profile, main_tab2, main_tab3 = st.tabs([
     "📊 Hisse Analiz Paneli",
     "📚 Planlarım",
+    "🧭 Tercih Profilim",
     "📅 Makro Finansal Takvim & AI",
     "🪙 Kripto Piyasası",
 ])
@@ -2256,7 +2844,13 @@ with main_tab_plans:
   render_all_plans_tab()
 
 # =========================================================
-# ANA SEKMELER 3: ÜCRETSİZ KÜRESEL TAKVİM & AI CHAT
+# ANA SEKMELER 3: YATIRIM TERCİH PROFİLİ
+# =========================================================
+with main_tab_profile:
+  render_investment_preference_profile()
+
+# =========================================================
+# ANA SEKMELER 4: ÜCRETSİZ KÜRESEL TAKVİM & AI CHAT
 # =========================================================
 with main_tab2:
   st.subheader("📅 Küresel Makroekonomik Takvim")
@@ -2479,7 +3073,7 @@ with main_tab2:
         st.markdown(macro_answer)
 
 # =========================================================
-# ANA SEKMELER 4: KRİPTO PİYASASI (YFINANCE)
+# ANA SEKMELER 5: KRİPTO PİYASASI (YFINANCE)
 # =========================================================
 with main_tab3:
   st.header("🪙 Kripto Piyasası Canlı Takibi")
