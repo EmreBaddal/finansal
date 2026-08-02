@@ -3347,7 +3347,7 @@ def portfolio_money(value, currency="TRY", digits=2):
 
 def portfolio_percent(value):
   number = portfolio_float(value)
-  return "—" if number is None else f"%{number:+.2f}"
+  return "—" if number is None else f"{number:+.2f}%"
 
 
 @st.cache_data(ttl=300, show_spinner=False)
