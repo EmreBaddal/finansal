@@ -22,6 +22,16 @@ from alert_engine import (
     send_ntfy_notification,
 )
 from finance_storage import FinanceStorage
+from portfolio_engine import (
+    build_portfolio_snapshot,
+    currency_for_symbol,
+    current_fx_rates,
+    fetch_fx_rate_on_date,
+    fx_ticker_for_currency,
+    normalize_float as portfolio_float,
+    transaction_native_amount,
+    validate_transaction_sequence,
+)
 
 # Sayfa Yapılandırması (Mobil Uyumluluk Optimizasyonu)
 st.set_page_config(
@@ -2879,6 +2889,8 @@ def render_investment_preference_profile():
       "Fiyat hareketleri ne kadar geniş? Planların ne kadar net?"
   )
 
+  render_portfolio_weighted_profile_if_available()
+
   symbols = [
       str(symbol).strip().upper()
       for symbol in st.session_state.get("watch_list", [])
@@ -3164,11 +3176,562 @@ def render_investment_preference_profile():
         "Bu bölüm yatırım tavsiyesi değildir."
     )
 
+
+# ---------------------------------------------------------
+# PORTFÖYÜM / CÜZDANIM
+# ---------------------------------------------------------
+
+
+def portfolio_transactions_all():
+  """Yeni ve önbellekte kalmış eski FinanceStorage sürümleriyle uyumlu okuma."""
+  method = getattr(storage, "list_portfolio_transactions", None)
+  if callable(method):
+    try:
+      return method()
+    except Exception:
+      pass
+
+  if storage.is_supabase and getattr(storage, "client", None) is not None:
+    try:
+      response = (
+          storage.client.table("portfolio_transactions")
+          .select("*")
+          .order("trade_date", desc=True)
+          .order("created_at", desc=True)
+          .execute()
+      )
+      return list(response.data or [])
+    except Exception:
+      return []
+  return []
+
+
+def portfolio_storage_ready():
+  method = getattr(storage, "portfolio_table_available", None)
+  if callable(method):
+    try:
+      return bool(method())
+    except Exception:
+      return False
+  if storage.is_supabase and getattr(storage, "client", None) is not None:
+    try:
+      storage.client.table("portfolio_transactions").select("id").limit(1).execute()
+      return True
+    except Exception:
+      return False
+  return True
+
+
+def portfolio_create_transaction(payload):
+  method = getattr(storage, "create_portfolio_transaction", None)
+  if callable(method):
+    return method(payload)
+  return None
+
+
+def portfolio_delete_transaction(transaction_id):
+  method = getattr(storage, "delete_portfolio_transaction", None)
+  if callable(method):
+    return method(transaction_id)
+  return False
+
+
+def portfolio_money(value, currency="TRY", digits=2):
+  number = portfolio_float(value)
+  if number is None:
+    return "—"
+  symbols = {"TRY": "₺", "USD": "$", "EUR": "€", "GBP": "£"}
+  prefix = symbols.get(str(currency).upper(), "")
+  suffix = "" if prefix else f" {currency}" if currency else ""
+  return f"{prefix}{number:,.{digits}f}{suffix}"
+
+
+def portfolio_percent(value):
+  number = portfolio_float(value)
+  return "—" if number is None else f"%{number:+.2f}"
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def get_portfolio_market_data(symbols_tuple, currencies_tuple):
+  symbols = list(symbols_tuple)
+  fx_symbols = [
+      fx_ticker_for_currency(currency)
+      for currency in currencies_tuple
+      if fx_ticker_for_currency(currency)
+  ]
+  all_symbols = tuple(dict.fromkeys(symbols + [item for item in fx_symbols if item]))
+  prices = fetch_current_prices(all_symbols)
+  fx_rates = current_fx_rates(currencies_tuple, prices)
+  current_prices = {symbol: prices.get(symbol) for symbol in symbols}
+  return current_prices, fx_rates
+
+
+def portfolio_plan_map():
+  entries = profile_all_journal_entries()
+  result = {}
+  for entry in entries:
+    if str(entry.get("status", "")) not in {"Açık", "İzlemede"}:
+      continue
+    symbol = str(entry.get("symbol", "")).strip().upper()
+    if symbol and symbol not in result:
+      result[symbol] = entry
+  return result
+
+
+def portfolio_snapshot_from_transactions(transactions):
+  symbols = tuple(sorted({
+      str(item.get("symbol", "")).strip().upper()
+      for item in transactions
+      if str(item.get("symbol", "")).strip()
+  }))
+  currencies = tuple(sorted({
+      str(item.get("currency") or currency_for_symbol(item.get("symbol", ""))).upper()
+      for item in transactions
+  } | {"TRY"}))
+  current_prices, fx_rates = get_portfolio_market_data(symbols, currencies)
+  return build_portfolio_snapshot(transactions, current_prices, fx_rates)
+
+
+def portfolio_metadata(positions):
+  result = {}
+  for position in positions:
+    symbol = str(position.get("symbol", "")).upper()
+    if symbol:
+      result[symbol] = fetch_preference_profile_symbol(symbol)
+  return result
+
+
+def portfolio_weight_distribution(positions, metadata, field):
+  values = {}
+  for position in positions:
+    current_value = portfolio_float(position.get("current_value_try")) or 0.0
+    symbol = str(position.get("symbol", "")).upper()
+    label = str(metadata.get(symbol, {}).get(field) or "Veri yok")
+    values[label] = values.get(label, 0.0) + current_value
+  return dict(sorted(values.items(), key=lambda item: item[1], reverse=True))
+
+
+def portfolio_plan_complete(plan):
+  if not plan:
+    return False
+  return (
+      price_value(plan.get("target_price")) is not None
+      and price_value(plan.get("stop_price")) is not None
+  )
+
+
+def render_portfolio_weighted_report(snapshot, metadata, plan_map, compact=False):
+  positions = snapshot.get("positions", [])
+  total_value = portfolio_float(snapshot.get("totals", {}).get("current_value_try")) or 0.0
+  if not positions or total_value <= 0:
+    return
+
+  top_position = max(positions, key=lambda item: item.get("current_value_try") or 0.0)
+  sector_values = portfolio_weight_distribution(positions, metadata, "sector")
+  market_values = portfolio_weight_distribution(positions, metadata, "market")
+  top_sector, top_sector_value = next(iter(sector_values.items())) if sector_values else ("Veri yok", 0.0)
+  top_market, top_market_value = next(iter(market_values.items())) if market_values else ("Veri yok", 0.0)
+
+  wide_movement_value = 0.0
+  wide_symbols = []
+  complete_plan_value = 0.0
+  incomplete_symbols = []
+  for position in positions:
+    symbol = str(position.get("symbol", "")).upper()
+    value = portfolio_float(position.get("current_value_try")) or 0.0
+    band = str(metadata.get(symbol, {}).get("volatility_band", "Veri yok"))
+    if band in {"Yüksek", "Çok yüksek"}:
+      wide_movement_value += value
+      wide_symbols.append(symbol)
+    if portfolio_plan_complete(plan_map.get(symbol)):
+      complete_plan_value += value
+    else:
+      incomplete_symbols.append(symbol)
+
+  top_weight = (top_position.get("current_value_try") or 0.0) / total_value * 100
+  sector_share = top_sector_value / total_value * 100 if total_value else 0.0
+  market_share = top_market_value / total_value * 100 if total_value else 0.0
+  movement_share = wide_movement_value / total_value * 100 if total_value else 0.0
+  plan_share = complete_plan_value / total_value * 100 if total_value else 0.0
+
+  title = "#### 💡 Yatırım miktarına göre hap bilgiler" if not compact else "#### 💼 Gerçek portföyüne göre özet"
+  st.markdown(title)
+  card1, card2, card3, card4 = st.columns(4)
+  card1.metric("En büyük pozisyon", str(top_position.get("symbol", "—")), f"Portföyün %{top_weight:.1f}'i")
+  card2.metric("En yoğun sektör", top_sector, f"Portföyün %{sector_share:.1f}'i")
+  card3.metric("Sert hareketli bölüm", f"%{movement_share:.1f}", ", ".join(wide_symbols[:3]) or "Örnek yok")
+  card4.metric("Hedef + stop tamam", f"%{plan_share:.1f}", f"Eksik: {', '.join(incomplete_symbols[:3]) or 'yok'}")
+
+  with st.container(border=True):
+    st.markdown("**Ne görüyoruz?**")
+    st.write(
+        f"Portföyün en büyük parçası {top_position.get('symbol')} (%{top_weight:.1f}). "
+        f"En yoğun sektör {top_sector} (%{sector_share:.1f}); en yoğun piyasa ise "
+        f"{top_market} (%{market_share:.1f})."
+    )
+    st.markdown("**Bu neden önemli?**")
+    st.write(
+        "Bir hissenin veya aynı ekonomik gelişmeden etkilenen grubun ağırlığı yükseldikçe, "
+        "o gruptaki hareket toplam sonucu daha fazla değiştirir."
+    )
+    st.markdown("**Neyi takip etmelisin?**")
+    st.write(
+        f"Portföy değerinin %{movement_share:.1f}'i geniş fiyat hareketi grubunda. "
+        f"Ayrıca portföyün %{100 - plan_share:.1f}'lik kısmında hedef veya stop eksik."
+    )
+
+
+def render_portfolio_charts(snapshot, metadata):
+  positions = [
+      item for item in snapshot.get("positions", [])
+      if portfolio_float(item.get("current_value_try")) is not None
+  ]
+  if not positions:
+    return
+
+  position_df = pd.DataFrame([
+      {
+          "Varlık": item.get("symbol"),
+          "Güncel Değer (TL)": item.get("current_value_try"),
+          "K/Z (TL)": item.get("unrealized_pnl_try"),
+      }
+      for item in positions
+  ])
+  sector_values = portfolio_weight_distribution(positions, metadata, "sector")
+  market_values = portfolio_weight_distribution(positions, metadata, "market")
+
+  chart_col1, chart_col2 = st.columns(2)
+  with chart_col1:
+    fig_position = go.Figure(go.Pie(
+        labels=position_df["Varlık"],
+        values=position_df["Güncel Değer (TL)"],
+        hole=0.55,
+        textinfo="label+percent",
+    ))
+    fig_position.update_layout(
+        title="Portföy dağılımı",
+        height=390,
+        margin=dict(l=10, r=10, t=50, b=10),
+        showlegend=False,
+    )
+    st.plotly_chart(fig_position, use_container_width=True, key="portfolio_position_pie")
+
+  with chart_col2:
+    fig_pnl = go.Figure(go.Bar(
+        x=position_df["Varlık"],
+        y=position_df["K/Z (TL)"],
+        text=[portfolio_money(value) for value in position_df["K/Z (TL)"]],
+        textposition="outside",
+    ))
+    fig_pnl.update_layout(
+        title="Pozisyonların parasal etkisi",
+        height=390,
+        margin=dict(l=10, r=10, t=50, b=10),
+        yaxis_title="TL",
+    )
+    st.plotly_chart(fig_pnl, use_container_width=True, key="portfolio_pnl_bar")
+
+  chart_col3, chart_col4 = st.columns(2)
+  with chart_col3:
+    sector_df = pd.DataFrame({"Sektör": list(sector_values), "Değer": list(sector_values.values())})
+    fig_sector = go.Figure(go.Pie(
+        labels=sector_df["Sektör"],
+        values=sector_df["Değer"],
+        hole=0.55,
+        textinfo="label+percent",
+    ))
+    fig_sector.update_layout(
+        title="Sektör dağılımı (yatırım tutarına göre)",
+        height=390,
+        margin=dict(l=10, r=10, t=50, b=10),
+        showlegend=False,
+    )
+    st.plotly_chart(fig_sector, use_container_width=True, key="portfolio_sector_pie")
+
+  with chart_col4:
+    market_df = pd.DataFrame({"Piyasa": list(market_values), "Değer": list(market_values.values())})
+    fig_market = go.Figure(go.Pie(
+        labels=market_df["Piyasa"],
+        values=market_df["Değer"],
+        hole=0.55,
+        textinfo="label+percent",
+    ))
+    fig_market.update_layout(
+        title="Piyasa dağılımı",
+        height=390,
+        margin=dict(l=10, r=10, t=50, b=10),
+        showlegend=False,
+    )
+    st.plotly_chart(fig_market, use_container_width=True, key="portfolio_market_pie")
+
+
+def render_portfolio_tab():
+  st.subheader("💼 Portföyüm / Cüzdanım")
+  st.caption(
+      "Gerçek alış ve satışlarını kaydeder; ortalama maliyetini, güncel değerini, "
+      "kâr/zararını ve yatırım tutarına göre dağılımını gösterir."
+  )
+
+  if not portfolio_storage_ready():
+    st.error(
+        "Portföy tablosu henüz Supabase'de kurulmamış. Paket içindeki "
+        "portfolio_migration.sql dosyasını SQL Editor'da yeni query olarak bir kez çalıştır."
+    )
+    return
+
+  transactions = portfolio_transactions_all()
+  existing_symbols = sorted({
+      str(item.get("symbol", "")).upper()
+      for item in transactions
+      if item.get("symbol")
+  })
+  symbol_options = sorted(set(st.session_state.get("watch_list", [])) | set(existing_symbols))
+
+  with st.expander("➕ Alış veya satış işlemi ekle", expanded=not bool(transactions)):
+    symbol_mode = st.radio(
+        "Varlığı nasıl seçeceksin?",
+        ["Listeden seç", "Sembolü kendim yazacağım"],
+        horizontal=True,
+        key="portfolio_symbol_mode",
+    )
+    if symbol_mode == "Listeden seç" and symbol_options:
+      portfolio_symbol = st.selectbox(
+          "Hisse / varlık",
+          symbol_options,
+          key="portfolio_symbol_select",
+      )
+    else:
+      portfolio_symbol = st.text_input(
+          "Yahoo sembolü",
+          value=str(selected_stock or ""),
+          placeholder="Örn: KONTR.IS, AAPL, BTC-USD",
+          key="portfolio_symbol_manual",
+      ).strip().upper()
+
+    plan_options = [("Planla ilişkilendirme", None)]
+    if portfolio_symbol:
+      for entry in storage.list_journal_entries(portfolio_symbol):
+        entry_id_text = str(entry.get("id") or "")
+        plan_options.append((
+            f"{entry.get('title', 'Başlıksız')} · {entry.get('status', 'Açık')} · {entry_id_text[:6]}",
+            entry.get("id"),
+        ))
+
+    with st.form("portfolio_new_transaction", clear_on_submit=False):
+      form_col1, form_col2 = st.columns(2)
+      with form_col1:
+        transaction_text = st.selectbox("İşlem", ["Alış", "Satış"])
+        quantity = st.number_input("Adet / lot", min_value=0.000001, value=1.0, step=1.0, format="%.6f")
+        unit_price = st.number_input("Birim işlem fiyatı", min_value=0.000001, value=1.0, step=0.01, format="%.6f")
+        trade_date = st.date_input("İşlem tarihi", value=datetime.now().date())
+      with form_col2:
+        default_currency = currency_for_symbol(portfolio_symbol)
+        currencies = ["TRY", "USD", "EUR", "GBP"]
+        currency = st.selectbox(
+            "İşlem para birimi",
+            currencies,
+            index=currencies.index(default_currency) if default_currency in currencies else 0,
+        )
+        commission = st.number_input("Komisyon", min_value=0.0, value=0.0, step=0.01, format="%.4f")
+        actual_try_amount = st.number_input(
+            "Gerçekte ödediğim / aldığım TL (isteğe bağlı)",
+            min_value=0.0,
+            value=0.0,
+            step=1.0,
+            help=(
+                "Yabancı para işlemlerinde banka veya aracı kurumda görünen gerçek TL tutarı. "
+                "Boş bırakırsan işlem tarihine yakın ücretsiz kur verisi kullanılır."
+            ),
+        )
+        plan_labels = [item[0] for item in plan_options]
+        selected_plan_label = st.selectbox("İlgili plan", plan_labels)
+      note = st.text_area("İşlem notu (isteğe bağlı)", height=90)
+      add_to_watchlist = st.checkbox("Takip listesine de ekle", value=True)
+      transaction_submit = st.form_submit_button("💾 İşlemi Kaydet", type="primary")
+
+    if transaction_submit:
+      symbol = str(portfolio_symbol or "").strip().upper()
+      if not symbol:
+        st.error("Hisse / varlık sembolü zorunludur.")
+      else:
+        tx_type = "buy" if transaction_text == "Alış" else "sell"
+        journal_entry_id = dict(plan_options).get(selected_plan_label)
+        candidate = {
+            "symbol": symbol,
+            "transaction_type": tx_type,
+            "quantity": float(quantity),
+            "unit_price": float(unit_price),
+            "currency": currency,
+            "trade_date": trade_date.isoformat(),
+            "commission": float(commission),
+            "actual_try_amount": optional_price(actual_try_amount),
+            "journal_entry_id": journal_entry_id,
+            "note": note,
+            "created_at": datetime.now().isoformat(),
+        }
+        native_amount = transaction_native_amount(candidate)
+        if optional_price(actual_try_amount) and native_amount:
+          candidate["fx_rate_to_try"] = float(actual_try_amount) / native_amount
+        else:
+          candidate["fx_rate_to_try"] = fetch_fx_rate_on_date(currency, trade_date.isoformat())
+
+        valid, detail = validate_transaction_sequence(list(transactions) + [candidate])
+        if not valid:
+          st.error(detail)
+        else:
+          created = portfolio_create_transaction(candidate)
+          if created:
+            if add_to_watchlist and symbol not in st.session_state.watch_list:
+              if storage.add_watchlist_symbol(symbol):
+                st.session_state.watch_list.append(symbol)
+            get_portfolio_market_data.clear()
+            st.success("Portföy işlemi kaydedildi.")
+            st.rerun()
+          else:
+            st.error(f"İşlem kaydedilemedi: {storage.last_error}")
+
+  if not transactions:
+    st.info("Henüz portföy işlemi yok. İlk alış işlemini eklediğinde cüzdan ve grafikler oluşacak.")
+    return
+
+  valid, validation_detail = validate_transaction_sequence(transactions)
+  if not valid:
+    st.error(f"İşlem sıralamasında tutarsızlık var: {validation_detail}")
+
+  with st.spinner("Güncel fiyatlar ve portföy hesaplanıyor..."):
+    snapshot = portfolio_snapshot_from_transactions(transactions)
+    positions = snapshot.get("positions", [])
+    metadata = portfolio_metadata(positions)
+    plan_map = portfolio_plan_map()
+
+  totals = snapshot.get("totals", {})
+  metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+  metric_col1.metric("Açık pozisyon maliyeti", portfolio_money(totals.get("open_cost_try")))
+  metric_col2.metric("Bugünkü değeri", portfolio_money(totals.get("current_value_try")))
+  metric_col3.metric(
+      "Gerçekleşmemiş sonuç",
+      portfolio_money(totals.get("unrealized_pnl_try")),
+      portfolio_percent(totals.get("unrealized_return_pct")),
+  )
+  metric_col4.metric("Gerçekleşmiş sonuç", portfolio_money(totals.get("realized_pnl_try")))
+
+  if positions:
+    render_portfolio_weighted_report(snapshot, metadata, plan_map)
+
+    st.markdown("#### 📋 Açık pozisyonlar")
+    table_rows = []
+    for position in positions:
+      symbol = str(position.get("symbol", ""))
+      plan = plan_map.get(symbol)
+      table_rows.append({
+          "Varlık": symbol,
+          "Adet": position.get("quantity"),
+          "Ort. maliyet": position.get("average_cost_native"),
+          "Güncel fiyat": position.get("current_price"),
+          "Para": position.get("currency"),
+          "Maliyet (TL)": position.get("cost_basis_try"),
+          "Güncel değer (TL)": position.get("current_value_try"),
+          "K/Z (TL)": position.get("unrealized_pnl_try"),
+          "K/Z %": position.get("return_try_pct"),
+          "Ağırlık %": position.get("portfolio_weight_pct"),
+          "Hedef": plan.get("target_price") if plan else None,
+          "Stop": plan.get("stop_price") if plan else None,
+      })
+    st.dataframe(
+        pd.DataFrame(table_rows),
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Adet": st.column_config.NumberColumn(format="%.4f"),
+            "Ort. maliyet": st.column_config.NumberColumn(format="%.4f"),
+            "Güncel fiyat": st.column_config.NumberColumn(format="%.4f"),
+            "Maliyet (TL)": st.column_config.NumberColumn(format="₺%.2f"),
+            "Güncel değer (TL)": st.column_config.NumberColumn(format="₺%.2f"),
+            "K/Z (TL)": st.column_config.NumberColumn(format="₺%.2f"),
+            "K/Z %": st.column_config.NumberColumn(format="%.2f%%"),
+            "Ağırlık %": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f%%"),
+            "Hedef": st.column_config.NumberColumn(format="%.4f"),
+            "Stop": st.column_config.NumberColumn(format="%.4f"),
+        },
+    )
+    render_portfolio_charts(snapshot, metadata)
+  else:
+    st.info("Alışların tamamı satılmış; açık pozisyon bulunmuyor. Gerçekleşmiş sonuç üstte görünür.")
+
+  if snapshot.get("warnings"):
+    with st.expander("⚠️ Hesaplama notları"):
+      for warning in snapshot["warnings"]:
+        st.write(f"- {warning}")
+
+  st.markdown("#### 🧾 İşlem geçmişi")
+  history_rows = []
+  for transaction in transactions:
+    history_rows.append({
+        "Tarih": transaction.get("trade_date"),
+        "Varlık": transaction.get("symbol"),
+        "İşlem": "Alış" if transaction.get("transaction_type") == "buy" else "Satış",
+        "Adet": transaction.get("quantity"),
+        "Birim fiyat": transaction.get("unit_price"),
+        "Para": transaction.get("currency"),
+        "Komisyon": transaction.get("commission"),
+        "Gerçek TL": transaction.get("actual_try_amount"),
+        "Not": transaction.get("note"),
+    })
+  st.dataframe(pd.DataFrame(history_rows), use_container_width=True, hide_index=True)
+
+  with st.expander("🗑️ Hatalı işlem kaydını sil"):
+    transaction_labels = {
+        (
+            f"{item.get('trade_date')} · {item.get('symbol')} · "
+            f"{'Alış' if item.get('transaction_type') == 'buy' else 'Satış'} · "
+            f"{item.get('quantity')} × {item.get('unit_price')} · {str(item.get('id'))[:6]}"
+        ): str(item.get("id"))
+        for item in transactions
+    }
+    delete_label = st.selectbox("Silinecek işlem", list(transaction_labels))
+    if st.button("İşlemi kalıcı olarak sil", type="secondary"):
+      delete_id = transaction_labels[delete_label]
+      remaining = [item for item in transactions if str(item.get("id")) != delete_id]
+      valid_remaining, detail = validate_transaction_sequence(remaining)
+      if not valid_remaining:
+        st.error(f"Bu kayıt silinirse sonraki satışlar geçersiz kalır: {detail}")
+      elif portfolio_delete_transaction(delete_id):
+        get_portfolio_market_data.clear()
+        st.warning("İşlem kaydı silindi.")
+        st.rerun()
+      else:
+        st.error(f"Silme başarısız: {storage.last_error}")
+
+
+def render_portfolio_weighted_profile_if_available():
+  if not portfolio_storage_ready():
+    return
+  transactions = portfolio_transactions_all()
+  if not transactions:
+    return
+  try:
+    snapshot = portfolio_snapshot_from_transactions(transactions)
+    positions = snapshot.get("positions", [])
+    if not positions:
+      return
+    metadata = portfolio_metadata(positions)
+    plan_map = portfolio_plan_map()
+    render_portfolio_weighted_report(snapshot, metadata, plan_map, compact=True)
+    st.caption(
+        "Aşağıdaki takip listesi özeti adet bazındadır; üstteki gerçek portföy özeti ise "
+        "yatırım tutarlarını esas alır."
+    )
+    st.markdown("---")
+  except Exception as exc:
+    st.caption(f"Portföy ağırlıklı özet geçici olarak hazırlanamadı: {exc}")
+
+
 # ---------------------------------------------------------
 # ÜST DÜZEY ANA SEKMELER
 # ---------------------------------------------------------
-main_tab1, main_tab_plans, main_tab_profile, main_tab2, main_tab3 = st.tabs([
+main_tab1, main_tab_portfolio, main_tab_plans, main_tab_profile, main_tab2, main_tab3 = st.tabs([
     "📊 Hisseyi İncele",
+    "💼 Portföyüm",
     "📚 Planlarım",
     "🧭 Seçimlerimin Özeti",
     "📅 Ekonomik Takvim",
@@ -3435,19 +3998,25 @@ with main_tab1:
           st.warning("Lütfen bir soru yazın.")
 
 # =========================================================
-# ANA SEKMELER 2: TÜM PLANLARIM
+# ANA SEKMELER 2: PORTFÖYÜM / CÜZDANIM
+# =========================================================
+with main_tab_portfolio:
+  render_portfolio_tab()
+
+# =========================================================
+# ANA SEKMELER 3: TÜM PLANLARIM
 # =========================================================
 with main_tab_plans:
   render_all_plans_tab()
 
 # =========================================================
-# ANA SEKMELER 3: YATIRIM TERCİH PROFİLİ
+# ANA SEKMELER 4: YATIRIM TERCİH PROFİLİ
 # =========================================================
 with main_tab_profile:
   render_investment_preference_profile()
 
 # =========================================================
-# ANA SEKMELER 4: ÜCRETSİZ KÜRESEL TAKVİM & AI CHAT
+# ANA SEKMELER 5: ÜCRETSİZ KÜRESEL TAKVİM & AI CHAT
 # =========================================================
 with main_tab2:
   st.subheader("📅 Küresel Makroekonomik Takvim")
@@ -3670,7 +4239,7 @@ with main_tab2:
         st.markdown(macro_answer)
 
 # =========================================================
-# ANA SEKMELER 5: KRİPTO PİYASASI (YFINANCE)
+# ANA SEKMELER 6: KRİPTO PİYASASI (YFINANCE)
 # =========================================================
 with main_tab3:
   st.header("🪙 Kripto Piyasası Canlı Takibi")

@@ -309,6 +309,114 @@ class FinanceStorage:
         return len(new_rows) != len(rows)
 
     # ------------------------------------------------------------------
+    # Portföy işlemleri
+    # ------------------------------------------------------------------
+    def portfolio_table_available(self) -> bool:
+        """Supabase portföy tablosunun kurulmuş olup olmadığını doğrular."""
+        if not self.is_supabase:
+            return True
+        try:
+            self.client.table("portfolio_transactions").select("id").limit(1).execute()
+            self.last_error = ""
+            return True
+        except Exception as exc:
+            self.last_error = str(exc)
+            return False
+
+    def list_portfolio_transactions(
+        self,
+        symbol: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """Portföy alış/satış işlemlerini tarih sırasıyla getirir."""
+        if self.is_supabase:
+            try:
+                query = self.client.table("portfolio_transactions").select("*")
+                if symbol:
+                    query = query.eq("symbol", symbol.strip().upper())
+                return self._execute(
+                    query.order("trade_date", desc=True).order("created_at", desc=True)
+                )
+            except Exception as exc:
+                self.last_error = str(exc)
+                return []
+
+        rows = _read_json(self._local_path("portfolio_transactions.json"), [])
+        if symbol:
+            rows = [
+                row for row in rows
+                if str(row.get("symbol", "")).upper() == symbol.strip().upper()
+            ]
+        return sorted(
+            rows,
+            key=lambda row: (
+                str(row.get("trade_date", "")),
+                str(row.get("created_at", "")),
+            ),
+            reverse=True,
+        )
+
+    def create_portfolio_transaction(
+        self,
+        payload: dict[str, Any],
+    ) -> Optional[dict[str, Any]]:
+        now = utc_now_iso()
+        trade_date = payload.get("trade_date")
+        if hasattr(trade_date, "isoformat"):
+            trade_date = trade_date.isoformat()
+        row = {
+            "id": str(uuid4()),
+            "symbol": str(payload.get("symbol", "")).strip().upper(),
+            "transaction_type": str(payload.get("transaction_type", "buy")).lower(),
+            "quantity": payload.get("quantity"),
+            "unit_price": payload.get("unit_price"),
+            "currency": str(payload.get("currency", "TRY")).upper(),
+            "trade_date": str(trade_date or datetime.now().date().isoformat()),
+            "commission": payload.get("commission", 0),
+            "actual_try_amount": payload.get("actual_try_amount"),
+            "fx_rate_to_try": payload.get("fx_rate_to_try"),
+            "journal_entry_id": payload.get("journal_entry_id"),
+            "note": str(payload.get("note", "")).strip() or None,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        if self.is_supabase:
+            try:
+                row.pop("id", None)
+                data = self._execute(
+                    self.client.table("portfolio_transactions").insert(row).select("*")
+                )
+                return data[0] if data else None
+            except Exception as exc:
+                self.last_error = str(exc)
+                return None
+
+        path = self._local_path("portfolio_transactions.json")
+        rows = _read_json(path, [])
+        rows.append(row)
+        _write_json(path, rows)
+        self.last_error = ""
+        return row
+
+    def delete_portfolio_transaction(self, transaction_id: str) -> bool:
+        if self.is_supabase:
+            try:
+                self.client.table("portfolio_transactions").delete().eq(
+                    "id", transaction_id
+                ).execute()
+                self.last_error = ""
+                return True
+            except Exception as exc:
+                self.last_error = str(exc)
+                return False
+
+        path = self._local_path("portfolio_transactions.json")
+        rows = _read_json(path, [])
+        new_rows = [row for row in rows if str(row.get("id")) != str(transaction_id)]
+        _write_json(path, new_rows)
+        return len(new_rows) != len(rows)
+
+    # ------------------------------------------------------------------
     # Alarmlar
     # ------------------------------------------------------------------
     def list_alerts(
