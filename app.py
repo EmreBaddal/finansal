@@ -2485,8 +2485,76 @@ def profile_plan_counts(journal_entries):
   }
 
 
+
+def profile_symbol_examples(items, limit=3):
+  """Satır veya günlük kayıtlarından tekrar etmeyen kısa sembol listesi üretir."""
+  symbols = []
+  for item in items:
+    symbol = str(item.get("symbol", "")).strip().upper()
+    if symbol and symbol not in symbols:
+      symbols.append(symbol)
+    if len(symbols) >= limit:
+      break
+  return ", ".join(symbols)
+
+
+def profile_group_examples(rows, field, value, limit=3):
+  return profile_symbol_examples(
+      [row for row in rows if str(row.get(field, "")) == str(value)],
+      limit=limit,
+  )
+
+
+def profile_distribution_text(counts, total, limit=3):
+  """Mobilde rahat okunacak kısa dağılım özeti üretir."""
+  if total <= 0 or counts is None or counts.empty:
+    return "Veri yok"
+  parts = []
+  for name, count in counts.head(limit).items():
+    share = float(count) / total * 100
+    parts.append(f"{name}: {int(count)}/{total} (%{share:.0f})")
+  remaining = int(counts.iloc[limit:].sum()) if len(counts) > limit else 0
+  if remaining:
+    parts.append(f"Diğer: {remaining}/{total}")
+  return " · ".join(parts)
+
+
+def profile_movement_examples(rows, limit=3):
+  valid = [
+      row for row in rows
+      if profile_float(row.get("annual_volatility")) is not None
+  ]
+  valid.sort(
+      key=lambda row: profile_float(row.get("annual_volatility")) or 0,
+      reverse=True,
+  )
+  examples = []
+  for row in valid[:limit]:
+    examples.append(
+        f"{row.get('symbol')} ({plain_price_movement(row.get('annual_volatility'))[0].lower()})"
+    )
+  return ", ".join(examples)
+
+
+def profile_financial_examples(rows, limit=3):
+  """Genel olmayan finansal ayrımları sembol bazında kısa örneklere çevirir."""
+  examples = []
+  ignored = {
+      "Tek bir finansal konu öne çıkmıyor",
+      "Şirket finansalı uygulanmaz",
+  }
+  for row in rows:
+    headline, _ = simple_financial_focus(row)
+    if headline in ignored:
+      continue
+    examples.append(f"{row.get('symbol')}: {headline.lower()}")
+    if len(examples) >= limit:
+      break
+  return " · ".join(examples)
+
+
 def build_beginner_attention_items(rows, journal_entries):
-  """Teknik eşikleri sade, açıklayıcı ve yorumsuz dikkat notlarına çevirir."""
+  """Teknik eşikleri sade, açıklayıcı ve somut örnekli dikkat notlarına çevirir."""
   items = []
   total = len(rows)
   if total == 0:
@@ -2501,12 +2569,22 @@ def build_beginner_attention_items(rows, journal_entries):
       missing_parts.append(f"{plan_counts['missing_target']} hedef")
     if plan_counts["missing_stop"]:
       missing_parts.append(f"{plan_counts['missing_stop']} stop")
+    incomplete_entries = [
+        entry for entry in plan_counts["active"]
+        if (
+            price_value(entry.get("price_at_entry")) is None
+            or price_value(entry.get("target_price")) is None
+            or price_value(entry.get("stop_price")) is None
+        )
+    ]
+    examples = profile_symbol_examples(incomplete_entries)
+    example_text = f" Örnek: {examples}." if examples else ""
     items.append({
         "title": "Planlarının bir kısmı henüz tam değil",
         "what": (
             f"{plan_counts['active_count']} açık veya izlenen planın "
             f"{plan_counts['incomplete_count']} tanesinde temel alanlardan biri eksik. "
-            f"Eksik alanlar: {', '.join(missing_parts)}."
+            f"Eksik alanlar: {', '.join(missing_parts)}.{example_text}"
         ),
         "why": "Giriş, hedef ve stop birlikte yazılmadığında planın ne zaman başarılı veya geçersiz sayılacağı belirsiz kalır.",
         "watch": "İşleme başlamadan önce giriş, hedef ve stop alanlarının üçünü birlikte doldur.",
@@ -2517,9 +2595,11 @@ def build_beginner_attention_items(rows, journal_entries):
     top_sector = str(sector_counts.index[0])
     top_share = float(sector_counts.iloc[0]) / total * 100
     if top_share >= 50 and top_sector != "Sektör verisi yok":
+      examples = profile_group_examples(rows, "sector", top_sector)
+      example_text = f" Örnek hisseler: {examples}." if examples else ""
       items.append({
           "title": "Benzer şirketlere yönelme belirgin",
-          "what": f"Takip listesinin yaklaşık %{top_share:.0f} kadarı {top_sector} alanında.",
+          "what": f"Takip listesinin yaklaşık %{top_share:.0f} kadarı {top_sector} alanında.{example_text}",
           "why": "Farklı şirketler olsalar bile aynı sektör haberi, faiz değişimi veya ekonomik gelişmeden birlikte etkilenebilirler.",
           "watch": "Şirket sayısından çok, şirketlerin bağlı olduğu sektör ve ortak ekonomik etkenlere bak.",
       })
@@ -2529,9 +2609,11 @@ def build_beginner_attention_items(rows, journal_entries):
     top_market = str(market_counts.index[0])
     top_market_share = float(market_counts.iloc[0]) / total * 100
     if top_market_share >= 70:
+      examples = profile_group_examples(rows, "market", top_market)
+      example_text = f" Örnek: {examples}." if examples else ""
       items.append({
           "title": "Liste tek bir piyasaya fazla bağlı",
-          "what": f"Takip listesinin yaklaşık %{top_market_share:.0f} kadarı {top_market} piyasasında.",
+          "what": f"Takip listesinin yaklaşık %{top_market_share:.0f} kadarı {top_market} piyasasında.{example_text}",
           "why": "Aynı ülkenin faiz, kur, düzenleme ve piyasa koşulları listedeki birçok varlığı aynı anda etkileyebilir.",
           "watch": "Piyasa veya ülke dağılımını, yalnız hisse sayısına bakmadan kontrol et.",
       })
@@ -2539,20 +2621,28 @@ def build_beginner_attention_items(rows, journal_entries):
   median_volatility = profile_median([row.get("annual_volatility") for row in rows])
   movement_label, movement_text = plain_price_movement(median_volatility)
   if movement_label in {"Sert", "Çok sert"}:
+    examples = profile_movement_examples(rows)
+    example_text = f" Listenden örnek: {examples}." if examples else ""
     items.append({
         "title": "Fiyat hareketleri geniş",
-        "what": f"Listenin genel fiyat hareketi '{movement_label.lower()}' düzeyinde görünüyor.",
+        "what": f"Listenin genel fiyat hareketi '{movement_label.lower()}' düzeyinde görünüyor.{example_text}",
         "why": movement_text,
         "watch": "Tek işleme ayrılan tutarı ve stop mesafesini, yalnız hedef fiyata bakmadan değerlendir.",
     })
 
   drawdown_values = [profile_float(row.get("max_drawdown")) for row in rows]
   drawdown_values = [value for value in drawdown_values if value is not None]
-  deep_drawdowns = [value for value in drawdown_values if value <= -35]
-  if drawdown_values and len(deep_drawdowns) / len(drawdown_values) >= 0.35:
+  deep_drawdown_rows = [
+      row for row in rows
+      if profile_float(row.get("max_drawdown")) is not None
+      and profile_float(row.get("max_drawdown")) <= -35
+  ]
+  if drawdown_values and len(deep_drawdown_rows) / len(drawdown_values) >= 0.35:
+    examples = profile_symbol_examples(deep_drawdown_rows)
+    example_text = f" Örnek: {examples}." if examples else ""
     items.append({
         "title": "Bazı hisselerde geçmiş düşüşler derin",
-        "what": f"Verisi olan varlıkların {len(deep_drawdowns)}/{len(drawdown_values)} tanesinde son bir yıldaki en büyük düşüş %35'i aşmış.",
+        "what": f"Verisi olan varlıkların {len(deep_drawdown_rows)}/{len(drawdown_values)} tanesinde son bir yıldaki en büyük düşüş %35'i aşmış.{example_text}",
         "why": "Bir şirketin uzun vadeli hikâyesi güçlü görünse bile fiyatı ara dönemde ciddi gerileyebilir.",
         "watch": "Geçmişteki düşüş derinliğini ve işlem için ayırdığın toplam tutarı birlikte değerlendir.",
     })
@@ -2563,9 +2653,11 @@ def build_beginner_attention_items(rows, journal_entries):
       if profile_float(row.get("listing_years")) is not None and row["listing_years"] < 5
   ]
   if stock_rows and len(young_rows) / len(stock_rows) >= 0.30:
+    examples = profile_symbol_examples(young_rows)
+    example_text = f" Örnek: {examples}." if examples else ""
     items.append({
         "title": "Bazı şirketlerin piyasa geçmişi kısa",
-        "what": f"Hisselerin {len(young_rows)}/{len(stock_rows)} tanesi beş yıldan kısa borsa geçmişine sahip.",
+        "what": f"Hisselerin {len(young_rows)}/{len(stock_rows)} tanesi beş yıldan kısa borsa geçmişine sahip.{example_text}",
         "why": "Kısa geçmiş, şirketin farklı faiz, kriz ve ekonomik dönemlerde nasıl davrandığını karşılaştırmayı zorlaştırır.",
         "watch": "Halka arz sonrası finansallar, sermaye işlemleri, ortak satışları ve işlem hacmi değişimlerini izle.",
     })
@@ -2573,9 +2665,11 @@ def build_beginner_attention_items(rows, journal_entries):
   profit_rows = [row for row in stock_rows if profile_float(row.get("profit_margin")) is not None]
   negative_profit = [row for row in profit_rows if row["profit_margin"] < 0]
   if profit_rows and len(negative_profit) / len(profit_rows) >= 0.30:
+    examples = profile_symbol_examples(negative_profit)
+    example_text = f" Örnek: {examples}." if examples else ""
     items.append({
         "title": "Bazı şirketlerde kârlılık henüz oturmamış",
-        "what": f"Kâr verisi olan hisselerin {len(negative_profit)}/{len(profit_rows)} tanesinde satışlardan kâr kalmıyor.",
+        "what": f"Kâr verisi olan hisselerin {len(negative_profit)}/{len(profit_rows)} tanesinde satışlardan kâr kalmıyor.{example_text}",
         "why": "Zarar eden bir şirket büyümeye devam etse bile bu büyümeyi borç veya yeni sermaye ile finanse etmesi gerekebilir.",
         "watch": "Satış büyümesinin yanında şirketin gerçekten nakit üretip üretmediğini takip et.",
     })
@@ -2587,9 +2681,11 @@ def build_beginner_attention_items(rows, journal_entries):
   ]
   high_debt = [row for row in non_financial if row["debt_to_equity"] >= 150]
   if non_financial and len(high_debt) / len(non_financial) >= 0.30:
+    examples = profile_symbol_examples(high_debt)
+    example_text = f" Örnek: {examples}." if examples else ""
     items.append({
         "title": "Borç yükü bazı şirketlerde öne çıkıyor",
-        "what": f"Finans dışı ve verisi olan şirketlerin {len(high_debt)}/{len(non_financial)} tanesinde borç seviyesi özkaynağa göre yüksek.",
+        "what": f"Finans dışı ve verisi olan şirketlerin {len(high_debt)}/{len(non_financial)} tanesinde borç seviyesi özkaynağa göre yüksek.{example_text}",
         "why": "Faiz yükseldiğinde veya nakit akışı zayıfladığında borcun çevrilmesi daha zor hale gelebilir.",
         "watch": "Net borç, faiz gideri, borç vadesi ve faaliyetlerden gelen nakdi birlikte izle.",
     })
@@ -2600,9 +2696,12 @@ def build_beginner_attention_items(rows, journal_entries):
       and (row.get("asset_class") != "Hisse" or row.get("sector") != "Sektör verisi yok")
   ]
   if len(usable_rows) / total < 0.70:
+    missing_rows = [row for row in rows if row not in usable_rows]
+    examples = profile_symbol_examples(missing_rows)
+    example_text = f" Örnek: {examples}." if examples else ""
     items.append({
         "title": "Bazı şirketlerde veri eksik",
-        "what": f"Temel profil verisi {len(usable_rows)}/{total} varlıkta yeterli düzeyde alınabildi.",
+        "what": f"Temel profil verisi {len(usable_rows)}/{total} varlıkta yeterli düzeyde alınabildi.{example_text}",
         "why": "Eksik veri olduğunda listenin ortak özellikleri tüm hisseleri aynı güven düzeyinde temsil etmez.",
         "watch": "Eksik sektör, fiyat geçmişi veya finansal veri görülen hisseleri ayrıca incele.",
     })
@@ -2767,11 +2866,12 @@ def render_beginner_stock_summary(symbol, current_price, currency):
     )
 
 
+
 def render_investment_preference_profile():
   st.subheader("🧭 Seçimlerimin Özeti")
   st.caption(
-      "Takip listenizdeki varlıkların ortak yönlerini sade dille anlatır. "
-      "Kişilik tahmini veya alım-satım önerisi üretmez."
+      "Takip listenizdeki varlıkların ortak yönlerini sade dille ve listenden somut "
+      "örneklerle anlatır. Kişilik tahmini veya alım-satım önerisi üretmez."
   )
 
   st.info(
@@ -2844,23 +2944,31 @@ def render_investment_preference_profile():
   movement_label, movement_body = plain_price_movement(median_volatility)
   plan_counts = profile_plan_counts(journal_entries)
 
+  top_sector_examples = profile_group_examples(rows, "sector", top_sector)
+  top_market_examples = profile_group_examples(rows, "market", top_market)
+  movement_examples = profile_movement_examples(rows)
+  financial_examples = profile_financial_examples(rows)
+
   if top_sector != "Sektör verisi yok":
     common_headline = f"En belirgin ortak alan: {top_sector}"
     common_body = (
         f"Listenin yaklaşık %{top_sector_share:.0f} kadarı bu alanda. "
+        f"Örnek: {top_sector_examples or 'yeterli sembol verisi yok'}. "
         f"Varlıkların çoğu {top_market} piyasasında ve genel şirket görünümü '{top_stage.lower()}'."
     )
   else:
     common_headline = "Tek bir ortak sektör belirgin değil"
     common_body = (
-        f"Varlıkların çoğu {top_market} piyasasında. Bazı sembollerde ücretsiz sektör "
+        f"Varlıkların çoğu {top_market} piyasasında. Örnek: "
+        f"{top_market_examples or 'yeterli sembol verisi yok'}. Bazı sembollerde ücretsiz sektör "
         "verisi bulunmadığı için ortak yön sınırlı hesaplandı."
     )
 
   concentration_high = top_sector_share >= 50 or top_market_share >= 70
   concentration_headline = "Yoğunlaşma belirgin" if concentration_high else "Dağılım görece dengeli"
   concentration_body = (
-      f"En büyük sektör payı yaklaşık %{top_sector_share:.0f}; en büyük piyasa payı yaklaşık %{top_market_share:.0f}. "
+      f"Sektör dağılımı: {profile_distribution_text(sector_counts, total)}. "
+      f"Piyasa dağılımı: {profile_distribution_text(market_counts, total)}. "
       "Farklı şirket sayısı fazla olsa bile aynı sektör veya ülkeye bağlı şirketler birlikte hareket edebilir."
   )
 
@@ -2868,17 +2976,29 @@ def render_investment_preference_profile():
     plan_headline = "Açık veya izlenen plan yok"
     plan_body = "Takip listende varlıklar bulunuyor; ancak kararını giriş, hedef ve stop ile tanımlayan açık bir plan görünmüyor."
   elif plan_counts["incomplete_count"]:
+    incomplete_entries = [
+        entry for entry in plan_counts["active"]
+        if (
+            price_value(entry.get("price_at_entry")) is None
+            or price_value(entry.get("target_price")) is None
+            or price_value(entry.get("stop_price")) is None
+        )
+    ]
+    plan_examples = profile_symbol_examples(incomplete_entries)
     plan_headline = f"{plan_counts['incomplete_count']} planın temel alanları eksik"
     plan_body = (
         f"Toplam {plan_counts['active_count']} açık/izlenen plan var. "
         f"Eksikler: {plan_counts['missing_entry']} giriş, {plan_counts['missing_target']} hedef, "
         f"{plan_counts['missing_stop']} stop."
+        + (f" Örnek: {plan_examples}." if plan_examples else "")
     )
   else:
+    complete_examples = profile_symbol_examples(plan_counts["active"])
     plan_headline = "Açık planların temel alanları tamam"
     plan_body = (
         f"{plan_counts['active_count']} açık/izlenen planda giriş, hedef ve stop birlikte yazılmış. "
-        "Bu, planı sonradan aynı kurallarla değerlendirmeyi kolaylaştırır."
+        + (f"Örnek: {complete_examples}. " if complete_examples else "")
+        + "Bu, planı sonradan aynı kurallarla değerlendirmeyi kolaylaştırır."
     )
 
   st.markdown("### Önce kısa özet")
@@ -2892,7 +3012,7 @@ def render_investment_preference_profile():
   render_plain_card(
       "Fiyat hareketlerinin genel düzeyi",
       movement_label,
-      movement_body,
+      movement_body + (f" Listenden örnek: {movement_examples}." if movement_examples else ""),
       note="Bu ifade yön tahmini yapmaz; fiyatın ne kadar geniş hareket ettiğini anlatır.",
       icon="〰️",
   )
@@ -2910,6 +3030,38 @@ def render_investment_preference_profile():
       note="Plan tamlığı, yatırımın iyi veya kötü olduğunu değil; karar kurallarının yazılı olup olmadığını gösterir.",
       icon="📝",
   )
+
+  st.markdown("### ⚡ Hap bilgiler")
+  with st.container(border=True):
+    priced_rows = [row for row in rows if profile_float(row.get("annual_volatility")) is not None]
+    hard_movement_rows = [
+        row for row in priced_rows
+        if plain_price_movement(row.get("annual_volatility"))[0] in {"Sert", "Çok sert"}
+    ]
+    complete_plan_count = max(plan_counts["active_count"] - plan_counts["incomplete_count"], 0)
+    st.markdown(f"**Sektörler:** {profile_distribution_text(sector_counts, total)}")
+    st.markdown(f"**Piyasalar:** {profile_distribution_text(market_counts, total)}")
+    st.markdown(
+        f"**Fiyat davranışı:** Verisi olan {len(priced_rows)} varlığın "
+        f"{len(hard_movement_rows)} tanesi sert veya çok sert hareket grubunda."
+    )
+    st.markdown(
+        f"**Planlar:** {plan_counts['active_count']} açık/izlenen planın "
+        f"{complete_plan_count} tanesinde giriş, hedef ve stop birlikte yazılmış."
+    )
+    st.caption("Dağılım oranları listedeki varlık sayısına göredir; yatırım tutarı ağırlığı değildir.")
+
+  st.markdown("### Listenden somut örnekler")
+  with st.container(border=True):
+    if top_sector_examples and top_sector != "Sektör verisi yok":
+      st.markdown(f"- **Aynı ortak alanda olanlar:** {top_sector_examples} → {top_sector}")
+    if movement_examples:
+      st.markdown(f"- **Fiyat hareketi daha geniş görünen örnekler:** {movement_examples}")
+    if financial_examples:
+      st.markdown(f"- **Finansal açıdan ayrışan örnekler:** {financial_examples}")
+    if not any((top_sector_examples, movement_examples, financial_examples)):
+      st.write("Somut örnek üretmek için yeterli ücretsiz veri bulunamadı.")
+    st.caption("Bu örnekler iyi/kötü sıralaması değildir; açıklanan ortak özelliği görünür kılmak içindir.")
 
   attention_items = build_beginner_attention_items(rows, journal_entries)
   st.markdown("### Önce bunlara bak")
@@ -3011,6 +3163,7 @@ def render_investment_preference_profile():
         "Veri kaynakları: mevcut Supabase günlük kayıtları ve ücretsiz Yahoo Finance/yfinance verileri. "
         "Bu bölüm yatırım tavsiyesi değildir."
     )
+
 # ---------------------------------------------------------
 # ÜST DÜZEY ANA SEKMELER
 # ---------------------------------------------------------
