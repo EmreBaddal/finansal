@@ -272,6 +272,286 @@ except Exception:
 if "watch_list" not in st.session_state:
   st.session_state.watch_list = storage.get_watchlist(DEFAULT_WATCHLIST)
 
+
+# ---------------------------------------------------------
+# HIZLI PİYASA EKRANI
+# ---------------------------------------------------------
+MARKET_PAGE_LABEL = "⚡ Piyasa Ekranı"
+MARKET_REFRESH_SECONDS = 60
+MARKET_MAX_WATCHLIST_SYMBOLS = 20
+
+# Kullanıcının takip listesinden bağımsız, piyasayı hızlı okumak için sabit özet.
+# Yahoo Finance sembolleri kullanılır; yeni ücretli API veya anahtar gerekmez.
+CORE_MARKET_ITEMS = (
+    ("XU100.IS", "BIST 100", "POINT"),
+    ("^IXIC", "NASDAQ Composite", "POINT"),
+    ("^GSPC", "S&P 500", "POINT"),
+    ("TRY=X", "Dolar / TL", "TRY"),
+    ("EURTRY=X", "Euro / TL", "TRY"),
+    ("GC=F", "Ons Altın", "USD"),
+    ("BTC-USD", "Bitcoin", "USD"),
+    ("BZ=F", "Brent Petrol", "USD"),
+)
+
+
+def _market_currency_for_symbol(symbol):
+  symbol = str(symbol or "").strip().upper()
+  if symbol.endswith(".IS"):
+    return "TRY"
+  if symbol in {"TRY=X", "EURTRY=X", "GBPTRY=X"}:
+    return "TRY"
+  if symbol.startswith("^"):
+    return "POINT"
+  return currency_for_symbol(symbol)
+
+
+def _market_price_text(value, currency):
+  try:
+    number = float(value)
+  except (TypeError, ValueError):
+    return "Veri yok"
+
+  decimals = 4 if abs(number) < 10 else 2
+  formatted = f"{number:,.{decimals}f}"
+  if currency == "TRY":
+    return f"₺{formatted}"
+  if currency == "USD":
+    return f"${formatted}"
+  if currency == "EUR":
+    return f"€{formatted}"
+  if currency == "GBP":
+    return f"£{formatted}"
+  return formatted
+
+
+def _market_close_series(frame, symbol):
+  """yf.download çıktısından sembolün Close serisini sürümden bağımsız çıkarır."""
+  if frame is None or getattr(frame, "empty", True):
+    return pd.Series(dtype="float64")
+
+  try:
+    if isinstance(frame.columns, pd.MultiIndex):
+      direct_candidates = [
+          (symbol, "Close"),
+          ("Close", symbol),
+      ]
+      for column in direct_candidates:
+        if column in frame.columns:
+          return pd.to_numeric(frame[column], errors="coerce").dropna()
+
+      for column in frame.columns:
+        parts = tuple(str(item) for item in column)
+        if symbol in parts and "Close" in parts:
+          return pd.to_numeric(frame[column], errors="coerce").dropna()
+      return pd.Series(dtype="float64")
+
+    if "Close" in frame.columns:
+      return pd.to_numeric(frame["Close"], errors="coerce").dropna()
+  except Exception:
+    pass
+  return pd.Series(dtype="float64")
+
+
+def _market_current_and_previous(series):
+  """Son barı ve bir önceki işlem gününün son barını döndürür."""
+  if series is None or series.empty:
+    return None, None
+
+  try:
+    clean = pd.to_numeric(series, errors="coerce").dropna()
+    if clean.empty:
+      return None, None
+    current = float(clean.iloc[-1])
+    index_dates = pd.to_datetime(clean.index).date
+    latest_date = index_dates[-1]
+    previous_positions = [
+        index for index, item_date in enumerate(index_dates)
+        if item_date < latest_date
+    ]
+    previous = (
+        float(clean.iloc[previous_positions[-1]])
+        if previous_positions else None
+    )
+    return current, previous
+  except Exception:
+    return None, None
+
+
+@st.cache_data(ttl=55, show_spinner=False)
+def fetch_market_board_data(symbols_tuple):
+  """Birden fazla varlığın fiyatını ve günlük değişimini tek toplu istekle getirir."""
+  symbols = tuple(
+      dict.fromkeys(
+          str(symbol).strip().upper()
+          for symbol in symbols_tuple
+          if str(symbol).strip()
+      )
+  )
+  result = {
+      symbol: {"price": None, "previous_close": None, "percent_change": None}
+      for symbol in symbols
+  }
+  if not symbols:
+    return result
+
+  try:
+    frame = yf.download(
+        tickers=" ".join(symbols),
+        period="5d",
+        interval="5m",
+        auto_adjust=False,
+        progress=False,
+        group_by="ticker",
+        threads=False,
+    )
+    for symbol in symbols:
+      series = _market_close_series(frame, symbol)
+      current, previous = _market_current_and_previous(series)
+      result[symbol]["price"] = current
+      result[symbol]["previous_close"] = previous
+  except Exception:
+    pass
+
+  missing_prices = [
+      symbol for symbol, values in result.items()
+      if values.get("price") is None
+  ]
+  if missing_prices:
+    fallback_prices = fetch_current_prices(missing_prices)
+    for symbol in missing_prices:
+      fallback = fallback_prices.get(symbol)
+      if fallback is not None:
+        result[symbol]["price"] = float(fallback)
+
+  # Sadece toplu veride önceki kapanışı bulunamayan az sayıdaki sembol için
+  # tekil yedek kullanılır. Böylece ücretsiz kaynağa gereksiz istek gönderilmez.
+  for symbol, values in result.items():
+    if values.get("previous_close") is None:
+      try:
+        fast_info = yf.Ticker(symbol).fast_info
+        try:
+          previous = fast_info["previousClose"]
+        except Exception:
+          previous = getattr(fast_info, "previousClose", None)
+        if previous is not None:
+          values["previous_close"] = float(previous)
+      except Exception:
+        pass
+
+    current = values.get("price")
+    previous = values.get("previous_close")
+    if current is not None and previous not in (None, 0):
+      values["percent_change"] = (
+          (float(current) - float(previous)) / float(previous)
+      ) * 100
+
+  return result
+
+
+def _render_market_row(label, price, percent_change, currency):
+  with st.container(border=True):
+    name_col, price_col, change_col = st.columns([2.2, 1.35, 1.1])
+    with name_col:
+      st.markdown(f"**{label}**")
+    with price_col:
+      st.markdown(f"**{_market_price_text(price, currency)}**")
+    with change_col:
+      if percent_change is None:
+        st.markdown(
+            "<div style='text-align:right;font-weight:700;color:#6b7280;'>—</div>",
+            unsafe_allow_html=True,
+        )
+      else:
+        value = float(percent_change)
+        if value > 0:
+          color, arrow = "#15803d", "▲"
+        elif value < 0:
+          color, arrow = "#b91c1c", "▼"
+        else:
+          color, arrow = "#6b7280", "•"
+        st.markdown(
+            f"<div style='text-align:right;font-weight:700;color:{color};'>"
+            f"{arrow} {value:+.2f}%</div>",
+            unsafe_allow_html=True,
+        )
+
+
+@st.fragment(run_every=f"{MARKET_REFRESH_SECONDS}s")
+def render_market_list_fragment(items, board_key):
+  """Seçili piyasa listesini otomatik ve manuel yenilenebilir biçimde gösterir."""
+  control_col1, control_col2 = st.columns([1, 3])
+  with control_col1:
+    manual_refresh = st.button(
+        "🔄 Şimdi yenile",
+        key=f"market_manual_refresh_{board_key}",
+        use_container_width=True,
+    )
+  if manual_refresh:
+    fetch_market_board_data.clear()
+
+  refresh_count_key = f"market_refresh_count_{board_key}"
+  st.session_state[refresh_count_key] = (
+      int(st.session_state.get(refresh_count_key, 0)) + 1
+  )
+
+  symbols = tuple(item[0] for item in items)
+  data = fetch_market_board_data(symbols)
+
+  with control_col2:
+    st.caption(
+        f"Yenileme sayısı: {st.session_state[refresh_count_key]} · "
+        f"Son yenileme: {datetime.now(ZoneInfo('Europe/Istanbul')).strftime('%H:%M:%S')} · "
+        f"Otomatik: {MARKET_REFRESH_SECONDS} saniye"
+    )
+
+  for symbol, label, currency in items:
+    values = data.get(symbol, {})
+    _render_market_row(
+        label=label,
+        price=values.get("price"),
+        percent_change=values.get("percent_change"),
+        currency=currency,
+    )
+
+
+def render_market_page():
+  st.header("⚡ Piyasa Ekranı")
+  st.caption(
+      "Yalnızca son erişilebilir fiyatı ve günlük yükseliş/düşüş oranını gösterir. "
+      "Ücretsiz Yahoo Finance verileri bazı piyasalarda gecikmeli olabilir."
+  )
+
+  selected_list = st.radio(
+      "Gösterilecek liste",
+      ["⭐ Takip Listem", "🌍 Piyasa Özeti"],
+      horizontal=True,
+      key="market_page_list_choice",
+      label_visibility="collapsed",
+  )
+
+  if selected_list == "⭐ Takip Listem":
+    symbols = [
+        str(symbol).strip().upper()
+        for symbol in st.session_state.get("watch_list", [])
+        if str(symbol).strip()
+    ]
+    if not symbols:
+      st.info("Takip listesinde henüz varlık bulunmuyor.")
+      return
+    if len(symbols) > MARKET_MAX_WATCHLIST_SYMBOLS:
+      st.warning(
+          f"Ücretsiz veri kaynağını korumak için ilk "
+          f"{MARKET_MAX_WATCHLIST_SYMBOLS} varlık gösteriliyor."
+      )
+      symbols = symbols[:MARKET_MAX_WATCHLIST_SYMBOLS]
+    items = tuple(
+        (symbol, symbol, _market_currency_for_symbol(symbol))
+        for symbol in symbols
+    )
+    render_market_list_fragment(items, "watchlist")
+  else:
+    render_market_list_fragment(CORE_MARKET_ITEMS, "core")
+
 # ---------------------------------------------------------
 # ANA SAYFA / REHBER AYRIMI
 # ---------------------------------------------------------
@@ -306,6 +586,10 @@ def _on_app_section_change():
   if selected == GUIDE_PAGE_LABEL:
     params["view"] = "guide"
     params.setdefault("guide_section", "ilk-10")
+  elif selected == MARKET_PAGE_LABEL:
+    params["view"] = "market"
+    params.pop("guide_section", None)
+    params.pop("guide_term", None)
   else:
     params["view"] = "panel"
     params.pop("guide_section", None)
@@ -315,20 +599,29 @@ def _on_app_section_change():
 
 # URL tarayıcı geri/ileri hareketiyle değiştiğinde radio durumunu da geri yükle.
 _url_view = _app_query_params_dict().get("view", "panel")
-_url_section = GUIDE_PAGE_LABEL if _url_view == "guide" else "📊 Yatırım Paneli"
+_url_section_map = {
+    "guide": GUIDE_PAGE_LABEL,
+    "market": MARKET_PAGE_LABEL,
+    "panel": "📊 Yatırım Paneli",
+}
+_url_section = _url_section_map.get(_url_view, "📊 Yatırım Paneli")
 if st.session_state.get("aylooper_app_section") != _url_section:
   st.session_state["aylooper_app_section"] = _url_section
 
 st.sidebar.markdown("### 🧭 Ana Menü")
 app_section = st.sidebar.radio(
     "Uygulama bölümü",
-    ["📊 Yatırım Paneli", GUIDE_PAGE_LABEL],
+    ["📊 Yatırım Paneli", MARKET_PAGE_LABEL, GUIDE_PAGE_LABEL],
     index=0,
     key="aylooper_app_section",
     label_visibility="collapsed",
     on_change=_on_app_section_change,
 )
 st.sidebar.markdown("---")
+
+if app_section == MARKET_PAGE_LABEL:
+  render_market_page()
+  st.stop()
 
 if app_section == GUIDE_PAGE_LABEL:
   render_guide_page(
@@ -3527,10 +3820,18 @@ def render_portfolio_weighted_report(snapshot, metadata, plan_map, compact=False
   title = "#### 💡 Yatırım miktarına göre hap bilgiler" if not compact else "#### 💼 Gerçek portföyüne göre özet"
   st.markdown(title)
   card1, card2, card3, card4 = st.columns(4)
-  card1.metric("En büyük pozisyon", str(top_position.get("symbol", "—")), f"Portföyün %{top_weight:.1f}'i")
-  card2.metric("En yoğun sektör", top_sector, f"Portföyün %{sector_share:.1f}'i")
-  card3.metric("Sert hareketli bölüm", f"%{movement_share:.1f}", ", ".join(wide_symbols[:3]) or "Örnek yok")
-  card4.metric("Hedef + stop tamam", f"%{plan_share:.1f}", f"Eksik: {', '.join(incomplete_symbols[:3]) or 'yok'}")
+  with card1:
+    st.metric("En büyük pozisyon", str(top_position.get("symbol", "—")))
+    st.markdown(f"**Portföyün %{top_weight:.1f} kısmı**")
+  with card2:
+    st.metric("En yoğun sektör", top_sector)
+    st.markdown(f"**Portföyün %{sector_share:.1f} kısmı**")
+  with card3:
+    st.metric("Sert hareketli bölüm", f"%{movement_share:.1f}")
+    st.caption(f"Örnek: {', '.join(wide_symbols[:3]) or 'yok'}")
+  with card4:
+    st.metric("Hedef + stop tamam", f"%{plan_share:.1f}")
+    st.caption(f"Eksik: {', '.join(incomplete_symbols[:3]) or 'yok'}")
 
   with st.container(border=True):
     st.markdown("**Ne görüyoruz?**")
