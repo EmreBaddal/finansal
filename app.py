@@ -277,7 +277,7 @@ if "watch_list" not in st.session_state:
 # HIZLI PİYASA EKRANI
 # ---------------------------------------------------------
 MARKET_PAGE_LABEL = "⚡ Piyasa Ekranı"
-MARKET_REFRESH_SECONDS = 60
+MARKET_REFRESH_SECONDS = 120
 MARKET_MAX_WATCHLIST_SYMBOLS = 20
 
 # Kullanıcının takip listesinden bağımsız, piyasayı hızlı okumak için sabit özet.
@@ -324,62 +324,70 @@ def _market_price_text(value, currency):
   return formatted
 
 
-def _market_close_series(frame, symbol):
-  """yf.download çıktısından sembolün Close serisini sürümden bağımsız çıkarır."""
-  if frame is None or getattr(frame, "empty", True):
-    return pd.Series(dtype="float64")
+def _fetch_consistent_market_snapshot(symbol):
+  """Detay sayfasıyla aynı yöntemle fiyat ve günlük değişim üretir."""
+  symbol = str(symbol or "").strip().upper()
+  current_price = fetch_current_price(symbol)
+  previous_close = None
 
   try:
-    if isinstance(frame.columns, pd.MultiIndex):
-      direct_candidates = [
-          (symbol, "Close"),
-          ("Close", symbol),
-      ]
-      for column in direct_candidates:
-        if column in frame.columns:
-          return pd.to_numeric(frame[column], errors="coerce").dropna()
-
-      for column in frame.columns:
-        parts = tuple(str(item) for item in column)
-        if symbol in parts and "Close" in parts:
-          return pd.to_numeric(frame[column], errors="coerce").dropna()
-      return pd.Series(dtype="float64")
-
-    if "Close" in frame.columns:
-      return pd.to_numeric(frame["Close"], errors="coerce").dropna()
+    fast_info = yf.Ticker(symbol).fast_info
+    try:
+      previous_close = fast_info["previousClose"]
+    except Exception:
+      previous_close = getattr(fast_info, "previousClose", None)
+    previous_close = float(previous_close) if previous_close else None
   except Exception:
-    pass
-  return pd.Series(dtype="float64")
+    previous_close = None
+
+  if previous_close is None:
+    try:
+      daily = yf.Ticker(symbol).history(
+          period="5d",
+          interval="1d",
+          auto_adjust=False,
+      )
+      closes = (
+          daily["Close"].dropna()
+          if daily is not None and not daily.empty
+          else []
+      )
+      if len(closes) >= 2:
+        previous_close = float(closes.iloc[-2])
+      elif len(closes) == 1:
+        previous_close = float(closes.iloc[-1])
+    except Exception:
+      previous_close = None
+
+  if current_price is None:
+    return {
+        "current_price": None,
+        "previous_close": previous_close,
+        "price_change": 0.0,
+        "percent_change": None,
+    }
+
+  price_change = (
+      float(current_price) - float(previous_close)
+      if previous_close not in (None, 0)
+      else 0.0
+  )
+  percent_change = (
+      (price_change / float(previous_close)) * 100
+      if previous_close not in (None, 0)
+      else None
+  )
+  return {
+      "current_price": float(current_price),
+      "previous_close": previous_close,
+      "price_change": price_change,
+      "percent_change": percent_change,
+  }
 
 
-def _market_current_and_previous(series):
-  """Son barı ve bir önceki işlem gününün son barını döndürür."""
-  if series is None or series.empty:
-    return None, None
-
-  try:
-    clean = pd.to_numeric(series, errors="coerce").dropna()
-    if clean.empty:
-      return None, None
-    current = float(clean.iloc[-1])
-    index_dates = pd.to_datetime(clean.index).date
-    latest_date = index_dates[-1]
-    previous_positions = [
-        index for index, item_date in enumerate(index_dates)
-        if item_date < latest_date
-    ]
-    previous = (
-        float(clean.iloc[previous_positions[-1]])
-        if previous_positions else None
-    )
-    return current, previous
-  except Exception:
-    return None, None
-
-
-@st.cache_data(ttl=55, show_spinner=False)
+@st.cache_data(ttl=115, show_spinner=False)
 def fetch_market_board_data(symbols_tuple):
-  """Birden fazla varlığın fiyatını ve günlük değişimini tek toplu istekle getirir."""
+  """Piyasa ekranını detay sayfasıyla aynı fiyat yöntemiyle hazırlar."""
   symbols = tuple(
       dict.fromkeys(
           str(symbol).strip().upper()
@@ -387,72 +395,53 @@ def fetch_market_board_data(symbols_tuple):
           if str(symbol).strip()
       )
   )
-  result = {
-      symbol: {"price": None, "previous_close": None, "percent_change": None}
-      for symbol in symbols
-  }
   if not symbols:
-    return result
+    return {}
 
-  try:
-    frame = yf.download(
-        tickers=" ".join(symbols),
-        period="5d",
-        interval="5m",
-        auto_adjust=False,
-        progress=False,
-        group_by="ticker",
-        threads=False,
-    )
-    for symbol in symbols:
-      series = _market_close_series(frame, symbol)
-      current, previous = _market_current_and_previous(series)
-      result[symbol]["price"] = current
-      result[symbol]["previous_close"] = previous
-  except Exception:
-    pass
+  # Aynı anda çok sayıda agresif sorgu göndermeden ekranı makul hızda hazırla.
+  worker_count = min(4, len(symbols))
+  if worker_count <= 1:
+    return {
+        symbol: _fetch_consistent_market_snapshot(symbol)
+        for symbol in symbols
+    }
 
-  missing_prices = [
-      symbol for symbol, values in result.items()
-      if values.get("price") is None
-  ]
-  if missing_prices:
-    fallback_prices = fetch_current_prices(missing_prices)
-    for symbol in missing_prices:
-      fallback = fallback_prices.get(symbol)
-      if fallback is not None:
-        result[symbol]["price"] = float(fallback)
+  from concurrent.futures import ThreadPoolExecutor
 
-  # Sadece toplu veride önceki kapanışı bulunamayan az sayıdaki sembol için
-  # tekil yedek kullanılır. Böylece ücretsiz kaynağa gereksiz istek gönderilmez.
-  for symbol, values in result.items():
-    if values.get("previous_close") is None:
-      try:
-        fast_info = yf.Ticker(symbol).fast_info
-        try:
-          previous = fast_info["previousClose"]
-        except Exception:
-          previous = getattr(fast_info, "previousClose", None)
-        if previous is not None:
-          values["previous_close"] = float(previous)
-      except Exception:
-        pass
-
-    current = values.get("price")
-    previous = values.get("previous_close")
-    if current is not None and previous not in (None, 0):
-      values["percent_change"] = (
-          (float(current) - float(previous)) / float(previous)
-      ) * 100
-
-  return result
+  with ThreadPoolExecutor(max_workers=worker_count) as executor:
+    snapshots = list(executor.map(_fetch_consistent_market_snapshot, symbols))
+  return dict(zip(symbols, snapshots))
 
 
-def _render_market_row(label, price, percent_change, currency):
+def _open_symbol_from_market(symbol):
+  """Piyasa satırından aynı varlığın ayrıntılı inceleme sayfasına geçer."""
+  clean_symbol = str(symbol or "").strip().upper()
+  if not clean_symbol:
+    return
+
+  st.session_state["selected_stock_symbol"] = clean_symbol
+  st.session_state["aylooper_app_section"] = "📊 Yatırım Paneli"
+
+  params = _app_query_params_dict()
+  params["view"] = "panel"
+  params["symbol"] = clean_symbol
+  params.pop("guide_section", None)
+  params.pop("guide_term", None)
+  _replace_app_query_params(params)
+  st.rerun()
+
+
+def _render_market_row(symbol, label, price, percent_change, currency, board_key):
   with st.container(border=True):
     name_col, price_col, change_col = st.columns([2.2, 1.35, 1.1])
     with name_col:
-      st.markdown(f"**{label}**")
+      if st.button(
+          f"🔎 {label}",
+          key=f"market_open_{board_key}_{symbol}",
+          help=f"{symbol} ayrıntılı inceleme sayfasını aç",
+          use_container_width=True,
+      ):
+        _open_symbol_from_market(symbol)
     with price_col:
       st.markdown(f"**{_market_price_text(price, currency)}**")
     with change_col:
@@ -485,6 +474,7 @@ def render_market_list_fragment(items, board_key):
         "🔄 Şimdi yenile",
         key=f"market_manual_refresh_{board_key}",
         use_container_width=True,
+        help="Acil fiyat ihtiyacında 120 saniyelik otomatik süreyi beklemeden yeniler.",
     )
   if manual_refresh:
     fetch_market_board_data.clear()
@@ -507,26 +497,51 @@ def render_market_list_fragment(items, board_key):
   for symbol, label, currency in items:
     values = data.get(symbol, {})
     _render_market_row(
+        symbol=symbol,
         label=label,
-        price=values.get("price"),
+        price=values.get("current_price"),
         percent_change=values.get("percent_change"),
         currency=currency,
+        board_key=board_key,
     )
 
 
 def render_market_page():
   st.header("⚡ Piyasa Ekranı")
   st.caption(
-      "Yalnızca son erişilebilir fiyatı ve günlük yükseliş/düşüş oranını gösterir. "
-      "Ücretsiz Yahoo Finance verileri bazı piyasalarda gecikmeli olabilir."
+      "Detay sayfasıyla aynı fiyat yöntemi kullanılır. Varlık adına basarak "
+      "ayrıntılı inceleme sayfasını açabilirsin. Ücretsiz Yahoo Finance verileri "
+      "bazı piyasalarda gecikmeli olabilir."
   )
+
+  list_options = ["⭐ Takip Listem", "🌍 Piyasa Özeti"]
+  params = _app_query_params_dict()
+  url_market_list = params.get("market_list", "watch")
+  desired_choice = (
+      "🌍 Piyasa Özeti"
+      if url_market_list == "core"
+      else "⭐ Takip Listem"
+  )
+  if st.session_state.get("market_page_list_choice") != desired_choice:
+    st.session_state["market_page_list_choice"] = desired_choice
+
+  def _on_market_list_change():
+    current = st.session_state.get(
+        "market_page_list_choice",
+        "⭐ Takip Listem",
+    )
+    updated = _app_query_params_dict()
+    updated["view"] = "market"
+    updated["market_list"] = "core" if current == "🌍 Piyasa Özeti" else "watch"
+    _replace_app_query_params(updated)
 
   selected_list = st.radio(
       "Gösterilecek liste",
-      ["⭐ Takip Listem", "🌍 Piyasa Özeti"],
+      list_options,
       horizontal=True,
       key="market_page_list_choice",
       label_visibility="collapsed",
+      on_change=_on_market_list_change,
   )
 
   if selected_list == "⭐ Takip Listem":
@@ -551,6 +566,7 @@ def render_market_page():
     render_market_list_fragment(items, "watchlist")
   else:
     render_market_list_fragment(CORE_MARKET_ITEMS, "core")
+
 
 # ---------------------------------------------------------
 # ANA SAYFA / REHBER AYRIMI
@@ -582,7 +598,7 @@ def _replace_app_query_params(params):
 
 def _on_app_section_change():
   params = _app_query_params_dict()
-  selected = st.session_state.get("aylooper_app_section", "📊 Yatırım Paneli")
+  selected = st.session_state.get("aylooper_app_section", MARKET_PAGE_LABEL)
   if selected == GUIDE_PAGE_LABEL:
     params["view"] = "guide"
     params.setdefault("guide_section", "ilk-10")
@@ -597,22 +613,38 @@ def _on_app_section_change():
   _replace_app_query_params(params)
 
 
-# URL tarayıcı geri/ileri hareketiyle değiştiğinde radio durumunu da geri yükle.
-_url_view = _app_query_params_dict().get("view", "panel")
+# URL tarayıcı geri/ileri hareketiyle değiştiğinde menü durumunu da geri yükle.
+# İlk açılışta ana sayfa olarak Piyasa Ekranı gösterilir.
+_url_view = _app_query_params_dict().get("view", "market")
 _url_section_map = {
     "guide": GUIDE_PAGE_LABEL,
     "market": MARKET_PAGE_LABEL,
     "panel": "📊 Yatırım Paneli",
 }
-_url_section = _url_section_map.get(_url_view, "📊 Yatırım Paneli")
+_url_section = _url_section_map.get(_url_view, MARKET_PAGE_LABEL)
 if st.session_state.get("aylooper_app_section") != _url_section:
   st.session_state["aylooper_app_section"] = _url_section
 
+
+def _go_to_home_page():
+  st.session_state["aylooper_app_section"] = MARKET_PAGE_LABEL
+  params = _app_query_params_dict()
+  params["view"] = "market"
+  params.pop("guide_section", None)
+  params.pop("guide_term", None)
+  _replace_app_query_params(params)
+
+
 st.sidebar.markdown("### 🧭 Ana Menü")
+st.sidebar.button(
+    "🏠 Ana Sayfa",
+    key="go_to_home_page",
+    use_container_width=True,
+    on_click=_go_to_home_page,
+)
 app_section = st.sidebar.radio(
     "Uygulama bölümü",
     ["📊 Yatırım Paneli", MARKET_PAGE_LABEL, GUIDE_PAGE_LABEL],
-    index=0,
     key="aylooper_app_section",
     label_visibility="collapsed",
     on_change=_on_app_section_change,
@@ -1285,56 +1317,8 @@ def get_crypto_yf_stats(symbol="BTC-USD"):
 
 @st.cache_data(ttl=50, show_spinner=False)
 def get_market_snapshot(symbol):
-  """Seçili varlık için fiyat, önceki kapanış ve günlük değişimi getirir."""
-  symbol = symbol.strip().upper()
-  current_price = fetch_current_price(symbol)
-  previous_close = None
-
-  try:
-    fast_info = yf.Ticker(symbol).fast_info
-    try:
-      previous_close = fast_info["previousClose"]
-    except Exception:
-      previous_close = getattr(fast_info, "previousClose", None)
-    previous_close = float(previous_close) if previous_close else None
-  except Exception:
-    previous_close = None
-
-  if previous_close is None:
-    try:
-      daily = yf.Ticker(symbol).history(period="5d", interval="1d")
-      closes = daily["Close"].dropna() if daily is not None and not daily.empty else []
-      if len(closes) >= 2:
-        previous_close = float(closes.iloc[-2])
-      elif len(closes) == 1:
-        previous_close = float(closes.iloc[-1])
-    except Exception:
-      previous_close = None
-
-  if current_price is None:
-    return {
-        "current_price": None,
-        "previous_close": previous_close,
-        "price_change": 0.0,
-        "percent_change": 0.0,
-    }
-
-  price_change = (
-      float(current_price) - float(previous_close)
-      if previous_close not in (None, 0)
-      else 0.0
-  )
-  percent_change = (
-      (price_change / float(previous_close)) * 100
-      if previous_close not in (None, 0)
-      else 0.0
-  )
-  return {
-      "current_price": float(current_price),
-      "previous_close": previous_close,
-      "price_change": price_change,
-      "percent_change": percent_change,
-  }
+  """Detay sayfası için fiyat görüntüsü; Piyasa Ekranı ile aynı yöntemi kullanır."""
+  return _fetch_consistent_market_snapshot(symbol)
 
 
 def istanbul_now_text():
@@ -1366,22 +1350,84 @@ if search_input:
           st.sidebar.error(f"Kayıt başarısız: {storage.last_error}")
 
 st.sidebar.markdown("---")
+
+
+def _on_selected_stock_change():
+  symbol = str(
+      st.session_state.get("selected_stock_symbol", "")
+  ).strip().upper()
+  if not symbol:
+    return
+  params = _app_query_params_dict()
+  params["view"] = "panel"
+  params["symbol"] = symbol
+  params.pop("guide_section", None)
+  params.pop("guide_term", None)
+  _replace_app_query_params(params)
+
+
+watch_options = [
+    str(symbol).strip().upper()
+    for symbol in st.session_state.watch_list
+    if str(symbol).strip()
+]
+url_symbol = str(
+    _app_query_params_dict().get("symbol", "")
+).strip().upper()
+
+# Piyasa Özeti'nden açılan endeks/döviz gibi semboller takip listesine
+# eklenmeden de ayrıntı sayfasında görüntülenebilir.
+if url_symbol and url_symbol not in watch_options:
+  watch_options.insert(0, url_symbol)
+
+if not watch_options:
+  watch_options = list(DEFAULT_WATCHLIST[:1])
+
+desired_symbol = (
+    url_symbol
+    or str(st.session_state.get("selected_stock_symbol", "")).strip().upper()
+    or watch_options[0]
+)
+if desired_symbol not in watch_options:
+  watch_options.insert(0, desired_symbol)
+if st.session_state.get("selected_stock_symbol") != desired_symbol:
+  st.session_state["selected_stock_symbol"] = desired_symbol
+
 selected_stock = st.sidebar.selectbox(
-    "Takip Listenizden Seçin:", st.session_state.watch_list
+    "İncelenecek varlık:",
+    watch_options,
+    key="selected_stock_symbol",
+    on_change=_on_selected_stock_change,
 )
 
-if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
-  if len(st.session_state.watch_list) > 1:
-    if storage.remove_watchlist_symbol(selected_stock):
-      st.session_state.watch_list.remove(selected_stock)
-      st.sidebar.warning(
-          f"{selected_stock} listeden çıkarıldı. Günlük ve alarm geçmişi korunuyor."
-      )
+if selected_stock in st.session_state.watch_list:
+  if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
+    if len(st.session_state.watch_list) > 1:
+      if storage.remove_watchlist_symbol(selected_stock):
+        st.session_state.watch_list.remove(selected_stock)
+        next_symbol = st.session_state.watch_list[0]
+        st.session_state["selected_stock_symbol"] = next_symbol
+        params = _app_query_params_dict()
+        params["view"] = "panel"
+        params["symbol"] = next_symbol
+        _replace_app_query_params(params)
+        st.sidebar.warning(
+            f"{selected_stock} listeden çıkarıldı. Günlük ve alarm geçmişi korunuyor."
+        )
+        st.rerun()
+      else:
+        st.sidebar.error(f"Silme başarısız: {storage.last_error}")
+    else:
+      st.sidebar.error("Listenizde en az 1 hisse kalmalıdır.")
+else:
+  if st.sidebar.button("➕ Bu varlığı takip listeme ekle"):
+    if storage.add_watchlist_symbol(selected_stock):
+      st.session_state.watch_list.append(selected_stock)
+      st.sidebar.success(f"{selected_stock} takip listesine eklendi.")
       st.rerun()
     else:
-      st.sidebar.error(f"Silme başarısız: {storage.last_error}")
-  else:
-    st.sidebar.error("Listenizde en az 1 hisse kalmalıdır.")
+      st.sidebar.error(f"Kayıt başarısız: {storage.last_error}")
+
 
 st.sidebar.markdown("---")
 
@@ -4386,11 +4432,7 @@ main_tab1, main_tab_portfolio, main_tab_plans, main_tab_profile, main_tab2, main
 # =========================================================
 with main_tab1:
   if selected_stock:
-    currency = (
-        "TRY"
-        if selected_stock.endswith(".IS")
-        else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
-    )
+    currency = _market_currency_for_symbol(selected_stock)
 
     # Formların başlangıç fiyatı için ilk anlık görüntü. Üst metrik ve tüm aktif
     # alarmlar aşağıdaki fragment içinde 60 saniyede bir kendiliğinden yenilenir.
@@ -4427,11 +4469,7 @@ with main_tab1:
         "🤖 Hisseyi Sor",
     ])
 
-    currency = (
-        "TRY"
-        if selected_stock.endswith(".IS")
-        else ("USD" if "-" in selected_stock or len(selected_stock) <= 5 else "")
-    )
+    currency = _market_currency_for_symbol(selected_stock)
 
     with sub_tab_summary:
       render_beginner_stock_summary(selected_stock, current_price, currency)
@@ -4473,76 +4511,59 @@ with main_tab1:
         )
 
     with sub_tab_chart:
-      if requires_plotly_chart(selected_stock):
-        st.write("##### İnteraktif Teknik Fiyat Grafiği")
-        st.caption(
-            "Bu BIST sembolü TradingView'in dış-site veri lisansı nedeniyle "
-            "widget içinde açılamadığı için Plotly grafik kullanılıyor."
-        )
+      st.write("##### İnteraktif Teknik Fiyat Grafiği")
+      st.caption(
+          "Tüm varlıklarda daha stabil çalışan yerel Plotly grafik kullanılır. "
+          "İndikatörler başlangıçta kapalıdır; yalnız ihtiyaç duyduklarını seçebilirsin."
+      )
 
-        control_col1, control_col2, control_col3 = st.columns(3)
-        with control_col1:
-          chart_range = st.selectbox(
-              "Grafik Aralığı:",
-              list(CHART_RANGE_OPTIONS.keys()),
-              index=2,
-              key=f"chart_range_{selected_stock}",
-          )
-        with control_col2:
-          chart_type = st.radio(
-              "Grafik Tipi:",
-              ["Mum", "Çizgi"],
-              horizontal=True,
-              key=f"chart_type_{selected_stock}",
-          )
-        with control_col3:
-          chart_pivot_timeframe = st.selectbox(
-              "Pivot Çizgisi Dönemi:",
-              ["Günlük", "Haftalık", "Aylık"],
-              key=f"chart_pivot_timeframe_{selected_stock}",
-          )
-
-        selected_indicators = st.multiselect(
-            "Grafikte Göster:",
-            [
-                "Pivot Seviyeleri",
-                "EMA 20",
-                "EMA 50",
-                "Bollinger Bantları",
-                "Hacim",
-            ],
-            default=["Pivot Seviyeleri", "EMA 20", "EMA 50", "Hacim"],
-            key=f"chart_indicators_{selected_stock}",
+      control_col1, control_col2 = st.columns(2)
+      with control_col1:
+        chart_range = st.selectbox(
+            "Grafik Aralığı:",
+            list(CHART_RANGE_OPTIONS.keys()),
+            index=2,
+            key=f"chart_range_{selected_stock}",
         )
-
-        render_technical_chart(
-            ticker_symbol=selected_stock,
-            range_label=chart_range,
-            chart_type=chart_type,
-            pivot_timeframe=chart_pivot_timeframe,
-            selected_indicators=selected_indicators,
-            currency=currency,
-        )
-      else:
-        st.write("##### TradingView Gelişmiş Grafik")
-        tv_timeframe = st.radio(
-            "Başlangıç Zaman Dilimi:",
-            ["Günlük", "Haftalık", "Aylık"],
+      with control_col2:
+        chart_type = st.radio(
+            "Grafik Tipi:",
+            ["Mum", "Çizgi"],
             horizontal=True,
-            key=f"tv_timeframe_{selected_stock}",
-        )
-        st.caption(
-            "Grafik TradingView üzerinden açılır. Zaman aralığı, indikatör ve "
-            "çizim araçlarını grafiğin kendi araç çubuğundan değiştirebilirsin."
+            key=f"chart_type_{selected_stock}",
         )
 
-        rendered = render_tradingview_chart(
-            yahoo_symbol=selected_stock,
-            timeframe=tv_timeframe,
-            height=720,
+      selected_indicators = st.multiselect(
+          "İndikatör veya ek bilgi seç:",
+          [
+              "Pivot Seviyeleri",
+              "EMA 20",
+              "EMA 50",
+              "Bollinger Bantları",
+              "Hacim",
+          ],
+          default=[],
+          key=f"chart_indicators_{selected_stock}",
+          placeholder="Başlangıçta hiçbir indikatör açık değildir",
+      )
+
+      chart_pivot_timeframe = "Günlük"
+      if "Pivot Seviyeleri" in selected_indicators:
+        chart_pivot_timeframe = st.selectbox(
+            "Pivot Çizgisi Dönemi:",
+            ["Günlük", "Haftalık", "Aylık"],
+            key=f"chart_pivot_timeframe_{selected_stock}",
         )
-        if not rendered:
-          st.error("Bu sembol için TradingView grafik eşleştirmesi yapılamadı.")
+
+      render_technical_chart(
+          ticker_symbol=selected_stock,
+          range_label=chart_range,
+          chart_type=chart_type,
+          pivot_timeframe=chart_pivot_timeframe,
+          selected_indicators=selected_indicators,
+          currency=currency,
+      )
+
 
     with sub_tab_journal:
       render_journal_tab(
