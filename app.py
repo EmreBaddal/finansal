@@ -88,6 +88,22 @@ st.markdown(
         border-color: rgba(100, 116, 139, 0.48);
         text-decoration: none !important;
     }
+    /* Piyasanın açık/kapalı durumunu yalnızca küçük bir noktayla gösterir. */
+    .market-status-dot {
+        display: inline-block;
+        width: 0.62rem;
+        height: 0.62rem;
+        margin-left: 0.42rem;
+        border-radius: 50%;
+        vertical-align: middle;
+        box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.12);
+    }
+    .market-status-dot.is-open {
+        background: #16a34a;
+    }
+    .market-status-dot.is-closed {
+        background: #9ca3af;
+    }
 
     /* Yalnızca telefon ve dar ekranlar */
     @media screen and (max-width: 768px) {
@@ -495,6 +511,122 @@ def fetch_market_board_data(symbols_tuple):
   return dict(zip(symbols, snapshots))
 
 
+
+def _fallback_market_open(symbol):
+  """Yahoo piyasa durumu alınamazsa işlem saatlerinden yaklaşık durum üretir.
+
+  Bu yalnızca yedek yöntemdir. Asıl gösterge Yahoo'nun canlı ``marketState``
+  alanından gelir; böylece tatil ve özel seans günleri mümkün olduğunca doğru
+  yansıtılır.
+  """
+  clean_symbol = str(symbol or "").strip().upper()
+
+  # Kripto piyasaları haftanın her günü açıktır.
+  if clean_symbol.endswith("-USD") or clean_symbol.endswith("-USDT"):
+    return True
+
+  # Döviz piyasası: New York saatiyle pazar 17:00 - cuma 17:00 arası.
+  if clean_symbol.endswith("=X"):
+    now_ny = datetime.now(ZoneInfo("America/New_York"))
+    weekday = now_ny.weekday()  # Pazartesi=0, Pazar=6
+    if weekday == 5:
+      return False
+    if weekday == 6:
+      return now_ny.hour >= 17
+    if weekday == 4:
+      return now_ny.hour < 17
+    return True
+
+  # Vadeli işlemler için haftalık seans ve günlük bakım arası yaklaşık kontrol.
+  if clean_symbol.endswith("=F"):
+    now_ny = datetime.now(ZoneInfo("America/New_York"))
+    weekday = now_ny.weekday()
+    if weekday == 5:
+      return False
+    if weekday == 6:
+      return now_ny.hour >= 18
+    if weekday == 4 and now_ny.hour >= 17:
+      return False
+    return not (now_ny.hour == 17)
+
+  exchange_rules = [
+      ((".IS",), "Europe/Istanbul", ((10, 0), (18, 0))),
+      ((".L",), "Europe/London", ((8, 0), (16, 30))),
+      ((".DE", ".F"), "Europe/Berlin", ((9, 0), (17, 30))),
+      ((".PA", ".AS", ".BR"), "Europe/Paris", ((9, 0), (17, 30))),
+      ((".MI",), "Europe/Rome", ((9, 0), (17, 30))),
+      ((".SW",), "Europe/Zurich", ((9, 0), (17, 30))),
+      ((".TO", ".V"), "America/Toronto", ((9, 30), (16, 0))),
+      ((".AX",), "Australia/Sydney", ((10, 0), (16, 0))),
+  ]
+
+  timezone_name = "America/New_York"
+  open_time = (9, 30)
+  close_time = (16, 0)
+  for suffixes, candidate_timezone, hours in exchange_rules:
+    if clean_symbol.endswith(suffixes):
+      timezone_name = candidate_timezone
+      open_time, close_time = hours
+      break
+
+  now_local = datetime.now(ZoneInfo(timezone_name))
+  if now_local.weekday() >= 5:
+    return False
+  minute_of_day = now_local.hour * 60 + now_local.minute
+  open_minute = open_time[0] * 60 + open_time[1]
+  close_minute = close_time[0] * 60 + close_time[1]
+  return open_minute <= minute_of_day < close_minute
+
+
+@st.cache_data(ttl=115, show_spinner=False)
+def fetch_market_open_states(symbols_tuple):
+  """Sembollerin piyasa durumunu tek Yahoo sorgusuyla getirir.
+
+  ``REGULAR`` açık kabul edilir. Açılış öncesi, kapanış sonrası ve kapalı
+  durumlar gri işaretle gösterilir. Yahoo yanıt vermezse yerel saat kuralı
+  yedek olarak kullanılır; yeni API anahtarı veya ücretli servis gerekmez.
+  """
+  symbols = tuple(
+      dict.fromkeys(
+          str(symbol).strip().upper()
+          for symbol in symbols_tuple
+          if str(symbol).strip()
+      )
+  )
+  states = {}
+  if not symbols:
+    return states
+
+  try:
+    response = requests.get(
+        "https://query1.finance.yahoo.com/v7/finance/quote",
+        params={"symbols": ",".join(symbols)},
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            )
+        },
+        timeout=8,
+    )
+    if response.status_code == 200:
+      payload = response.json()
+      rows = payload.get("quoteResponse", {}).get("result", [])
+      for row in rows:
+        row_symbol = str(row.get("symbol", "")).strip().upper()
+        raw_state = str(row.get("marketState", "")).strip().upper()
+        if row_symbol and raw_state:
+          states[row_symbol] = raw_state in {"REGULAR", "OPEN"}
+  except Exception:
+    pass
+
+  for symbol in symbols:
+    if symbol not in states:
+      states[symbol] = _fallback_market_open(symbol)
+  return states
+
+
 def _open_symbol_from_market(symbol):
   """Piyasa satırından aynı varlığın ayrıntılı inceleme sayfasına geçer."""
   clean_symbol = str(symbol or "").strip().upper()
@@ -513,18 +645,30 @@ def _open_symbol_from_market(symbol):
   st.rerun()
 
 
-def _render_market_row(symbol, label, price, percent_change, currency, board_key):
+def _render_market_row(
+    symbol,
+    label,
+    price,
+    percent_change,
+    currency,
+    board_key,
+    market_open,
+):
   del board_key  # Satır anahtarı artık bağlantı URL'si için gerekli değil.
   with st.container(border=True):
     name_col, price_col, change_col = st.columns([2.2, 1.35, 1.1])
     with name_col:
       safe_label = html.escape(str(label))
       safe_symbol = urllib.parse.quote(str(symbol).strip().upper(), safe="")
+      status_class = "is-open" if market_open else "is-closed"
+      status_title = "Piyasa açık" if market_open else "Piyasa kapalı"
       st.markdown(
           f"<a class='market-symbol-link' "
           f"href='?view=panel&amp;symbol={safe_symbol}' "
           f"target='_self' title='{html.escape(str(symbol))} ayrıntılarını aç'>"
-          f"{safe_label}</a>",
+          f"{safe_label}</a>"
+          f"<span class='market-status-dot {status_class}' "
+          f"title='{status_title}' aria-label='{status_title}'></span>",
           unsafe_allow_html=True,
       )
     with price_col:
@@ -571,6 +715,7 @@ def render_market_list_fragment(items, board_key):
 
   symbols = tuple(item[0] for item in items)
   data = fetch_market_board_data(symbols)
+  market_states = fetch_market_open_states(symbols)
 
   with control_col2:
     st.caption(
@@ -588,6 +733,7 @@ def render_market_list_fragment(items, board_key):
         percent_change=values.get("percent_change"),
         currency=currency,
         board_key=board_key,
+        market_open=bool(market_states.get(symbol, False)),
     )
 
 
