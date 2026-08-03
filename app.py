@@ -628,13 +628,20 @@ def fetch_market_open_states(symbols_tuple):
 
 
 def _open_symbol_from_market(symbol):
-  """Piyasa satırından aynı varlığın ayrıntılı inceleme sayfasına geçer."""
+  """Piyasa ekranından aynı varlığın ayrıntılı inceleme sayfasına geçer.
+
+  Ana menü radio bileşeni bu çalıştırmada zaten oluşturulduğu için onun
+  ``session_state`` değerini burada doğrudan değiştirmiyoruz. Yalnızca URL'yi
+  güncelliyoruz; bir sonraki çalıştırmada URL -> menü eşlemesi paneli güvenli
+  biçimde seçiyor. Böylece StreamlitAPIException oluşmuyor.
+  """
   clean_symbol = str(symbol or "").strip().upper()
   if not clean_symbol:
     return
 
+  # Seçili varlık bileşeni Piyasa Ekranı'nda oluşturulmadığından bu değer
+  # güvenle hazırlanabilir. Panel açıldığında doğrudan bu sembol gösterilir.
   st.session_state["selected_stock_symbol"] = clean_symbol
-  st.session_state["aylooper_app_section"] = "📊 Yatırım Paneli"
 
   params = _app_query_params_dict()
   params["view"] = "panel"
@@ -645,10 +652,61 @@ def _open_symbol_from_market(symbol):
   st.rerun()
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def _validate_market_symbol(raw_symbol):
+  """Yazılan değerin Yahoo üzerinde gerçekten var olan bir sembol olduğunu doğrular.
+
+  Doğrulanmayan metinlerden otomatik ``.IS`` üretmez. Böylece ``amazon`` gibi
+  şirket adları yanlışlıkla ``AMAZON.IS`` olarak önerilmez.
+  """
+  candidate = str(raw_symbol or "").strip().upper().replace(" ", "")
+  if not candidate or len(candidate) > 24:
+    return None
+
+  # Sembollerde beklenen güvenli karakterler dışındaki girişleri doğrudan ele.
+  allowed_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-=^_")
+  if any(char not in allowed_chars for char in candidate):
+    return None
+
+  try:
+    encoded = urllib.parse.quote(candidate, safe="")
+    response = requests.get(
+        f"https://query1.finance.yahoo.com/v8/finance/chart/{encoded}",
+        params={"range": "1d", "interval": "1d"},
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            )
+        },
+        timeout=6,
+    )
+    if response.status_code != 200:
+      return None
+    payload = response.json()
+    chart = payload.get("chart", {})
+    if chart.get("error"):
+      return None
+    rows = chart.get("result") or []
+    if not rows:
+      return None
+    meta = rows[0].get("meta", {}) or {}
+    symbol = str(meta.get("symbol") or candidate).strip().upper()
+    if not symbol:
+      return None
+    return {
+        "symbol": symbol,
+        "name": str(meta.get("shortName") or meta.get("longName") or symbol),
+        "exchange": str(meta.get("fullExchangeName") or meta.get("exchangeName") or ""),
+    }
+  except Exception:
+    return None
+
 
 @st.cache_data(ttl=300, show_spinner=False)
 def search_market_assets(query):
-  """Yahoo aramasından takip listesine eklemeden açılabilecek varlıkları bulur."""
+  """Yahoo aramasından takip listesine eklemeden açılabilecek gerçek varlıkları bulur."""
   clean_query = str(query or "").strip()
   if not clean_query:
     return []
@@ -665,56 +723,78 @@ def search_market_assets(query):
   results = []
   seen = set()
 
-  try:
-    response = requests.get(
-        "https://query2.finance.yahoo.com/v1/finance/search",
-        params={"q": clean_query, "quotesCount": 10, "newsCount": 0},
-        headers={
-            "User-Agent": (
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            )
-        },
-        timeout=6,
+  def add_quote(item):
+    quote_type = str(item.get("quoteType", "")).strip().upper()
+    if quote_type and quote_type not in allowed_types:
+      return
+    symbol = str(item.get("symbol", "")).strip().upper()
+    if not symbol or symbol in seen:
+      return
+    seen.add(symbol)
+    name = (
+        item.get("shortname")
+        or item.get("longname")
+        or item.get("name")
+        or symbol
     )
-    if response.status_code == 200:
-      payload = response.json()
-      for item in payload.get("quotes", []):
-        quote_type = str(item.get("quoteType", "")).strip().upper()
-        if quote_type and quote_type not in allowed_types:
-          continue
-        symbol = str(item.get("symbol", "")).strip().upper()
-        if not symbol or symbol in seen:
-          continue
-        seen.add(symbol)
-        name = (
-            item.get("shortname")
-            or item.get("longname")
-            or item.get("name")
-            or symbol
-        )
-        exchange = item.get("exchDisp") or item.get("exchange") or ""
-        label = f"{symbol} | {name}"
-        if exchange:
-          label += f" · {exchange}"
-        results.append({"symbol": symbol, "label": label})
-  except Exception:
-    pass
+    exchange = item.get("exchDisp") or item.get("exchange") or ""
+    label = f"{symbol} | {name}"
+    if exchange:
+      label += f" · {exchange}"
+    results.append({"symbol": symbol, "label": label})
 
-  # Yahoo araması geçici olarak boş dönerse kullanıcı yazdığı sembolü yine açabilsin.
+  request_headers = {
+      "User-Agent": (
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+          "AppleWebKit/537.36 (KHTML, like Gecko) "
+          "Chrome/120.0.0.0 Safari/537.36"
+      )
+  }
+
+  # Yahoo'nun iki arama alanını sırayla dene. Biri geçici olarak kısıtlanırsa
+  # diğeri çoğu zaman sonuç verebilir.
+  for host in ("query2.finance.yahoo.com", "query1.finance.yahoo.com"):
+    try:
+      response = requests.get(
+          f"https://{host}/v1/finance/search",
+          params={
+              "q": clean_query,
+              "quotesCount": 12,
+              "newsCount": 0,
+              "enableFuzzyQuery": "true",
+              "lang": "tr-TR",
+              "region": "TR",
+          },
+          headers=request_headers,
+          timeout=6,
+      )
+      if response.status_code == 200:
+        payload = response.json()
+        for item in payload.get("quotes", []):
+          add_quote(item)
+        if results:
+          break
+    except Exception:
+      continue
+
+  # HTTP araması sonuç döndürmezse yfinance'ın arama katmanını da ücretsiz
+  # yedek olarak dene. Bu bölüm de Yahoo verisini kullanır; yeni API yoktur.
   if not results:
-    fallback = clean_query.upper().replace(" ", "")
-    if fallback:
-      if not fallback.endswith(".IS") and fallback.isalnum() and len(fallback) <= 6:
-        results.append({
-            "symbol": f"{fallback}.IS",
-            "label": f"{fallback}.IS | BIST sembolü olarak dene",
-        })
-      results.append({
-          "symbol": fallback,
-          "label": f"{fallback} | Yazılan sembolü doğrudan aç",
-      })
+    try:
+      yf_search = yf.Search(clean_query, max_results=12, news_count=0)
+      for item in list(getattr(yf_search, "quotes", []) or []):
+        add_quote(item)
+    except Exception:
+      pass
+
+  # Yalnızca gerçekten doğrulanmış doğrudan sembolü yedek sonuç olarak ekle.
+  # Şirket adlarından tahmini BIST sembolü veya genel "doğrudan aç" üretme.
+  verified = _validate_market_symbol(clean_query)
+  if verified and verified["symbol"] not in seen:
+    label = f"{verified['symbol']} | {verified['name']}"
+    if verified["exchange"]:
+      label += f" · {verified['exchange']}"
+    results.insert(0, {"symbol": verified["symbol"], "label": label})
 
   return results
 
@@ -735,7 +815,11 @@ def render_market_search_bar():
 
     matches = search_market_assets(query)
     if not matches:
-      st.info("Bu ifadeyle eşleşen bir varlık bulunamadı.")
+      st.info(
+          "Doğrulanmış bir varlık bulunamadı. Şirket adıyla sonuç gelmediyse "
+          "borsa sembolünü yazabilirsin; örneğin Amazon için AMZN. "
+          "Doğrulanmayan metinler otomatik olarak BIST sembolüne çevrilmez."
+      )
       return
 
     labels = [item["label"] for item in matches]
