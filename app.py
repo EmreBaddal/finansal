@@ -1468,8 +1468,13 @@ if url_symbol and url_symbol not in watch_options:
 if not watch_options:
   watch_options = list(DEFAULT_WATCHLIST[:1])
 
+pending_symbol = str(
+    st.session_state.pop("_pending_selected_stock_symbol", "")
+).strip().upper()
+
 desired_symbol = (
     url_symbol
+    or pending_symbol
     or str(st.session_state.get("selected_stock_symbol", "")).strip().upper()
     or watch_options[0]
 )
@@ -1485,20 +1490,28 @@ selected_stock = st.sidebar.selectbox(
     on_change=_on_selected_stock_change,
 )
 
+sidebar_notice = str(st.session_state.pop("_sidebar_notice", "")).strip()
+if sidebar_notice:
+  st.sidebar.warning(sidebar_notice)
+
 if selected_stock in st.session_state.watch_list:
   if st.sidebar.button("❌ Seçili Hisseyi Çıkar"):
     if len(st.session_state.watch_list) > 1:
       if storage.remove_watchlist_symbol(selected_stock):
         st.session_state.watch_list.remove(selected_stock)
         next_symbol = st.session_state.watch_list[0]
-        st.session_state["selected_stock_symbol"] = next_symbol
+        # Selectbox oluşturulduktan sonra kendi session_state anahtarına
+        # doğrudan değer yazmak StreamlitAPIException üretir. Yeni seçimi
+        # bir sonraki çalıştırmada, widget kurulmadan önce uygula.
+        st.session_state["_pending_selected_stock_symbol"] = next_symbol
+        st.session_state["_sidebar_notice"] = (
+            f"{selected_stock} listeden çıkarıldı. "
+            "Günlük ve alarm geçmişi korunuyor."
+        )
         params = _app_query_params_dict()
         params["view"] = "panel"
         params["symbol"] = next_symbol
         _replace_app_query_params(params)
-        st.sidebar.warning(
-            f"{selected_stock} listeden çıkarıldı. Günlük ve alarm geçmişi korunuyor."
-        )
         st.rerun()
       else:
         st.sidebar.error(f"Silme başarısız: {storage.last_error}")
