@@ -645,6 +645,153 @@ def _open_symbol_from_market(symbol):
   st.rerun()
 
 
+
+@st.cache_data(ttl=300, show_spinner=False)
+def search_market_assets(query):
+  """Yahoo aramasından takip listesine eklemeden açılabilecek varlıkları bulur."""
+  clean_query = str(query or "").strip()
+  if not clean_query:
+    return []
+
+  allowed_types = {
+      "EQUITY",
+      "ETF",
+      "INDEX",
+      "MUTUALFUND",
+      "CRYPTOCURRENCY",
+      "CURRENCY",
+      "FUTURE",
+  }
+  results = []
+  seen = set()
+
+  try:
+    response = requests.get(
+        "https://query2.finance.yahoo.com/v1/finance/search",
+        params={"q": clean_query, "quotesCount": 10, "newsCount": 0},
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            )
+        },
+        timeout=6,
+    )
+    if response.status_code == 200:
+      payload = response.json()
+      for item in payload.get("quotes", []):
+        quote_type = str(item.get("quoteType", "")).strip().upper()
+        if quote_type and quote_type not in allowed_types:
+          continue
+        symbol = str(item.get("symbol", "")).strip().upper()
+        if not symbol or symbol in seen:
+          continue
+        seen.add(symbol)
+        name = (
+            item.get("shortname")
+            or item.get("longname")
+            or item.get("name")
+            or symbol
+        )
+        exchange = item.get("exchDisp") or item.get("exchange") or ""
+        label = f"{symbol} | {name}"
+        if exchange:
+          label += f" · {exchange}"
+        results.append({"symbol": symbol, "label": label})
+  except Exception:
+    pass
+
+  # Yahoo araması geçici olarak boş dönerse kullanıcı yazdığı sembolü yine açabilsin.
+  if not results:
+    fallback = clean_query.upper().replace(" ", "")
+    if fallback:
+      if not fallback.endswith(".IS") and fallback.isalnum() and len(fallback) <= 6:
+        results.append({
+            "symbol": f"{fallback}.IS",
+            "label": f"{fallback}.IS | BIST sembolü olarak dene",
+        })
+      results.append({
+          "symbol": fallback,
+          "label": f"{fallback} | Yazılan sembolü doğrudan aç",
+      })
+
+  return results
+
+
+def render_market_search_bar():
+  """Piyasa ekranından takip listesine eklemeden ayrıntı sayfası açar."""
+  with st.container(border=True):
+    st.markdown("**🔎 Takip listesine eklemeden varlık incele**")
+    query = st.text_input(
+        "Hisse, fon, endeks, kripto veya sembol ara",
+        key="market_asset_search_query",
+        placeholder="Örn: THYAO, NVIDIA, BIST 100, altın, BTC",
+        label_visibility="collapsed",
+    )
+    if not str(query or "").strip():
+      st.caption("Aradığın varlık yalnızca açılır; takip listene otomatik eklenmez.")
+      return
+
+    matches = search_market_assets(query)
+    if not matches:
+      st.info("Bu ifadeyle eşleşen bir varlık bulunamadı.")
+      return
+
+    labels = [item["label"] for item in matches]
+    lookup = {item["label"]: item["symbol"] for item in matches}
+    result_col, open_col = st.columns([4.5, 1.25])
+    with result_col:
+      selected_label = st.selectbox(
+          "Arama sonuçları",
+          labels,
+          key="market_asset_search_result",
+          label_visibility="collapsed",
+      )
+    with open_col:
+      open_clicked = st.button(
+          "İncele",
+          key="market_asset_search_open",
+          use_container_width=True,
+          type="primary",
+      )
+    if open_clicked:
+      _open_symbol_from_market(lookup[selected_label])
+
+
+def _resolve_market_data_with_last_success(data, symbols, board_key):
+  """Geçici Yahoo hatasında aynı oturumdaki son başarılı veriyi kullanır."""
+  cache_key = f"_market_last_success_{board_key}"
+  last_success = dict(st.session_state.get(cache_key, {}))
+  resolved = {}
+  stale_symbols = []
+
+  for symbol in symbols:
+    current = dict(data.get(symbol, {}) or {})
+    current_price = _safe_market_number(current.get("current_price"))
+
+    if current_price is not None:
+      current["current_price"] = current_price
+      current["_saved_at"] = datetime.now(
+          ZoneInfo("Europe/Istanbul")
+      ).isoformat()
+      last_success[symbol] = current
+      resolved[symbol] = current
+      continue
+
+    previous = dict(last_success.get(symbol, {}) or {})
+    previous_price = _safe_market_number(previous.get("current_price"))
+    if previous_price is not None:
+      previous["current_price"] = previous_price
+      previous["_is_stale"] = True
+      resolved[symbol] = previous
+      stale_symbols.append(symbol)
+    else:
+      resolved[symbol] = current
+
+  st.session_state[cache_key] = last_success
+  return resolved, stale_symbols
+
 def _render_market_row(
     symbol,
     label,
@@ -714,7 +861,12 @@ def render_market_list_fragment(items, board_key):
   )
 
   symbols = tuple(item[0] for item in items)
-  data = fetch_market_board_data(symbols)
+  raw_data = fetch_market_board_data(symbols)
+  data, stale_symbols = _resolve_market_data_with_last_success(
+      raw_data,
+      symbols,
+      board_key,
+  )
   market_states = fetch_market_open_states(symbols)
 
   with control_col2:
@@ -722,6 +874,12 @@ def render_market_list_fragment(items, board_key):
         f"Yenileme sayısı: {st.session_state[refresh_count_key]} · "
         f"Son yenileme: {datetime.now(ZoneInfo('Europe/Istanbul')).strftime('%H:%M:%S')} · "
         f"Otomatik: {MARKET_REFRESH_SECONDS} saniye"
+    )
+
+  if stale_symbols:
+    st.caption(
+        "⚠️ Bazı fiyatlar yenilenemedi; aynı oturumdaki son başarılı "
+        "veriler gösteriliyor."
     )
 
   for symbol, label, currency in items:
@@ -744,6 +902,8 @@ def render_market_page():
       "Varlık adına basarak ayrıntılı inceleme sayfasını açabilirsin. Ücretsiz Yahoo Finance verileri "
       "bazı piyasalarda gecikmeli olabilir."
   )
+
+  render_market_search_bar()
 
   list_options = ["⭐ Takip Listem", "🌍 Piyasa Özeti"]
   params = _app_query_params_dict()
