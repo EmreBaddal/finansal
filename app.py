@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import urllib.parse
@@ -64,6 +65,28 @@ st.markdown(
         overflow-y: auto;
         max-height: 100vh;
         padding-bottom: 80px;
+    }
+
+    /* Piyasa ekranında varlık adı: büyük tam satır butonu yerine kompakt bağlantı. */
+    .market-symbol-link {
+        display: inline-block;
+        max-width: 100%;
+        padding: 0.22rem 0.42rem;
+        border: 1px solid rgba(100, 116, 139, 0.28);
+        border-radius: 0.42rem;
+        background: rgba(148, 163, 184, 0.10);
+        color: inherit !important;
+        font-weight: 700;
+        line-height: 1.25;
+        text-decoration: none !important;
+        overflow-wrap: anywhere;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .market-symbol-link:hover,
+    .market-symbol-link:focus {
+        background: rgba(148, 163, 184, 0.20);
+        border-color: rgba(100, 116, 139, 0.48);
+        text-decoration: none !important;
     }
 
     /* Yalnızca telefon ve dar ekranlar */
@@ -325,37 +348,48 @@ def _market_price_text(value, currency):
 
 
 def _fetch_consistent_market_snapshot(symbol):
-  """Detay sayfasıyla aynı yöntemle fiyat ve günlük değişim üretir."""
+  """Fiyatı ve günlük değişimi tek, tutarlı yöntemle üretir.
+
+  Yahoo ``fast_info.previousClose`` bazı sembollerde yanlış/eski bir değer
+  döndürebildiği için günlük yüzde hesabında öncelikle düzeltilmemiş günlük
+  kapanış serisi kullanılır. Böylece hem Piyasa Ekranı hem ayrıntı sayfası
+  aynı önceki seans kapanışını baz alır.
+  """
   symbol = str(symbol or "").strip().upper()
   current_price = fetch_current_price(symbol)
   previous_close = None
 
+  # Öncelik: gerçek günlük kapanış serisindeki bir önceki işlem günü.
+  # auto_adjust=False kullanılması, bölünme/temettüye göre geriye dönük
+  # düzeltilmiş fiyatın günlük değişim hesabına karışmasını engeller.
   try:
-    fast_info = yf.Ticker(symbol).fast_info
-    try:
-      previous_close = fast_info["previousClose"]
-    except Exception:
-      previous_close = getattr(fast_info, "previousClose", None)
-    previous_close = float(previous_close) if previous_close else None
+    daily = yf.Ticker(symbol).history(
+        period="10d",
+        interval="1d",
+        auto_adjust=False,
+        actions=False,
+    )
+    closes = (
+        daily["Close"].dropna()
+        if daily is not None and not daily.empty and "Close" in daily.columns
+        else []
+    )
+    if len(closes) >= 2:
+      previous_close = float(closes.iloc[-2])
+    elif len(closes) == 1:
+      previous_close = float(closes.iloc[-1])
   except Exception:
     previous_close = None
 
+  # Yalnız günlük seri alınamazsa fast_info yedek olarak kullanılır.
   if previous_close is None:
     try:
-      daily = yf.Ticker(symbol).history(
-          period="5d",
-          interval="1d",
-          auto_adjust=False,
-      )
-      closes = (
-          daily["Close"].dropna()
-          if daily is not None and not daily.empty
-          else []
-      )
-      if len(closes) >= 2:
-        previous_close = float(closes.iloc[-2])
-      elif len(closes) == 1:
-        previous_close = float(closes.iloc[-1])
+      fast_info = yf.Ticker(symbol).fast_info
+      try:
+        previous_close = fast_info["previousClose"]
+      except Exception:
+        previous_close = getattr(fast_info, "previousClose", None)
+      previous_close = float(previous_close) if previous_close else None
     except Exception:
       previous_close = None
 
@@ -432,16 +466,19 @@ def _open_symbol_from_market(symbol):
 
 
 def _render_market_row(symbol, label, price, percent_change, currency, board_key):
+  del board_key  # Satır anahtarı artık bağlantı URL'si için gerekli değil.
   with st.container(border=True):
     name_col, price_col, change_col = st.columns([2.2, 1.35, 1.1])
     with name_col:
-      if st.button(
-          f"🔎 {label}",
-          key=f"market_open_{board_key}_{symbol}",
-          help=f"{symbol} ayrıntılı inceleme sayfasını aç",
-          use_container_width=True,
-      ):
-        _open_symbol_from_market(symbol)
+      safe_label = html.escape(str(label))
+      safe_symbol = urllib.parse.quote(str(symbol).strip().upper(), safe="")
+      st.markdown(
+          f"<a class='market-symbol-link' "
+          f"href='?view=panel&amp;symbol={safe_symbol}' "
+          f"target='_self' title='{html.escape(str(symbol))} ayrıntılarını aç'>"
+          f"{safe_label}</a>",
+          unsafe_allow_html=True,
+      )
     with price_col:
       st.markdown(f"**{_market_price_text(price, currency)}**")
     with change_col:
@@ -509,8 +546,8 @@ def render_market_list_fragment(items, board_key):
 def render_market_page():
   st.header("⚡ Piyasa Ekranı")
   st.caption(
-      "Detay sayfasıyla aynı fiyat yöntemi kullanılır. Varlık adına basarak "
-      "ayrıntılı inceleme sayfasını açabilirsin. Ücretsiz Yahoo Finance verileri "
+      "Detay sayfasıyla aynı fiyat yöntemi ve önceki işlem günü kapanışı kullanılır. "
+      "Varlık adına basarak ayrıntılı inceleme sayfasını açabilirsin. Ücretsiz Yahoo Finance verileri "
       "bazı piyasalarda gecikmeli olabilir."
   )
 
