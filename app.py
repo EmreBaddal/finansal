@@ -347,49 +347,97 @@ def _market_price_text(value, currency):
   return formatted
 
 
-def _fetch_consistent_market_snapshot(symbol):
-  """Fiyatı ve günlük değişimi tek, tutarlı yöntemle üretir.
+def _safe_market_number(value):
+  """Yahoo yanıtındaki sayıyı güvenli biçimde pozitif float'a çevirir."""
+  try:
+    number = float(value)
+    if pd.isna(number) or number <= 0:
+      return None
+    return number
+  except (TypeError, ValueError):
+    return None
 
-  Yahoo ``fast_info.previousClose`` bazı sembollerde yanlış/eski bir değer
-  döndürebildiği için günlük yüzde hesabında öncelikle düzeltilmemiş günlük
-  kapanış serisi kullanılır. Böylece hem Piyasa Ekranı hem ayrıntı sayfası
-  aynı önceki seans kapanışını baz alır.
+
+def _market_today_for_history(history, symbol):
+  """Günlük bar tarihini karşılaştırmak için ilgili piyasanın bugünkü tarihini verir."""
+  index_tz = getattr(getattr(history, "index", None), "tz", None)
+  if index_tz is not None:
+    try:
+      return pd.Timestamp.now(tz=index_tz).date()
+    except Exception:
+      pass
+
+  clean_symbol = str(symbol or "").strip().upper()
+  try:
+    if clean_symbol.endswith(".IS"):
+      return datetime.now(ZoneInfo("Europe/Istanbul")).date()
+    if clean_symbol.endswith("-USD"):
+      return datetime.now(ZoneInfo("UTC")).date()
+    return datetime.now(ZoneInfo("America/New_York")).date()
+  except Exception:
+    return datetime.now().date()
+
+
+def _fetch_consistent_market_snapshot(symbol):
+  """Fiyatı ve günlük değişimi aynı Yahoo oturumundan tutarlı biçimde üretir.
+
+  Günlük seri her zaman içinde bulunulan seansın barını hemen yayımlamaz. Eski
+  sürüm son satırı bugünün barı varsayıp daima bir önceki satırı kullanıyordu;
+  bu nedenle bütün günlük yüzdeler bir gün geriden hesaplanabiliyordu.
   """
   symbol = str(symbol or "").strip().upper()
+  ticker = yf.Ticker(symbol)
   current_price = fetch_current_price(symbol)
   previous_close = None
 
-  # Öncelik: gerçek günlük kapanış serisindeki bir önceki işlem günü.
-  # auto_adjust=False kullanılması, bölünme/temettüye göre geriye dönük
-  # düzeltilmiş fiyatın günlük değişim hesabına karışmasını engeller.
+  # Birinci tercih: Yahoo chart yanıtının açıkça verdiği önceki seans kapanışı.
+  # fast_info.previousClose yerine chartPreviousClose kullanılır.
   try:
-    daily = yf.Ticker(symbol).history(
-        period="10d",
-        interval="1d",
+    ticker.history(
+        period="1d",
+        interval="1m",
         auto_adjust=False,
         actions=False,
     )
-    closes = (
-        daily["Close"].dropna()
-        if daily is not None and not daily.empty and "Close" in daily.columns
-        else []
-    )
-    if len(closes) >= 2:
-      previous_close = float(closes.iloc[-2])
-    elif len(closes) == 1:
-      previous_close = float(closes.iloc[-1])
+    metadata = getattr(ticker, "history_metadata", {}) or {}
+    previous_close = _safe_market_number(metadata.get("chartPreviousClose"))
   except Exception:
     previous_close = None
 
-  # Yalnız günlük seri alınamazsa fast_info yedek olarak kullanılır.
+  # Yedek: günlük serinin son tarihi gerçekten bugünse sondan ikinci bar;
+  # seri bugünü henüz içermiyorsa son tamamlanmış bar önceki kapanıştır.
   if previous_close is None:
     try:
-      fast_info = yf.Ticker(symbol).fast_info
+      daily = ticker.history(
+          period="10d",
+          interval="1d",
+          auto_adjust=False,
+          actions=False,
+      )
+      closes = (
+          daily["Close"].dropna()
+          if daily is not None and not daily.empty and "Close" in daily.columns
+          else pd.Series(dtype=float)
+      )
+      if not closes.empty:
+        last_bar_date = pd.Timestamp(closes.index[-1]).date()
+        market_today = _market_today_for_history(daily, symbol)
+        if last_bar_date == market_today and len(closes) >= 2:
+          previous_close = _safe_market_number(closes.iloc[-2])
+        else:
+          previous_close = _safe_market_number(closes.iloc[-1])
+    except Exception:
+      previous_close = None
+
+  # Son yedek: başka kaynaklar alınamadığında fast_info kullanılır.
+  if previous_close is None:
+    try:
+      fast_info = ticker.fast_info
       try:
-        previous_close = fast_info["previousClose"]
+        raw_previous_close = fast_info["previousClose"]
       except Exception:
-        previous_close = getattr(fast_info, "previousClose", None)
-      previous_close = float(previous_close) if previous_close else None
+        raw_previous_close = getattr(fast_info, "previousClose", None)
+      previous_close = _safe_market_number(raw_previous_close)
     except Exception:
       previous_close = None
 
